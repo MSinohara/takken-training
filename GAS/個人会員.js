@@ -572,28 +572,49 @@ function savePersonalMember_(
   let personalId =
     String(params.personalId || "").trim();
 
-  if (!personalId) {
-    personalId =
-      getNextPersonalMemberId_(
-        memberNo
-      );
-  }
-
   const values =
     sheet.getDataRange().getValues();
 
   let rowNo =
     0;
 
-  for (let i = 1; i < values.length; i++) {
+  if (!personalId) {
+    const duplicate =
+      findManualPersonalMemberDuplicate_(
+        values,
+        headerMap,
+        memberNo,
+        personName
+      );
 
-    const rowPersonalId =
-      String(getCellByHeader_(values[i], headerMap, "個人ID") || "").trim();
-
-    if (rowPersonalId === personalId) {
+    if (duplicate) {
+      personalId =
+        duplicate.personalId;
       rowNo =
-        i + 1;
-      break;
+        duplicate.rowNo;
+    }
+  }
+
+  if (!personalId) {
+    personalId =
+      getNextPersonalMemberIdFromValues_(
+        memberNo,
+        values,
+        headerMap
+      );
+  }
+
+  if (!rowNo) {
+    for (let i = 1; i < values.length; i++) {
+
+      const rowPersonalId =
+        String(getCellByHeader_(values[i], headerMap, "個人ID") || "").trim();
+
+      if (rowPersonalId === personalId) {
+        rowNo =
+          i + 1;
+        break;
+      }
     }
   }
 
@@ -623,6 +644,99 @@ function savePersonalMember_(
     message: "個人会員を保存しました。",
     personalId: personalId
   };
+}
+
+function findManualPersonalMemberDuplicate_(
+  values,
+  headerMap,
+  memberNo,
+  personName
+) {
+
+  const targetMemberNo =
+    normalizeMemberNo_(
+      memberNo
+    );
+
+  const targetName =
+    normalizePersonalMemberNameForMatch_(
+      personName
+    );
+
+  if (!targetMemberNo || !targetName) {
+    return null;
+  }
+
+  for (let i = 1; i < values.length; i++) {
+
+    const rowMemberNo =
+      normalizeMemberNo_(
+        getCellByHeader_(values[i], headerMap, "業者番号") || ""
+      );
+
+    const rowName =
+      normalizePersonalMemberNameForMatch_(
+        getCellByHeader_(values[i], headerMap, "氏名") || ""
+      );
+
+    if (
+      rowMemberNo === targetMemberNo &&
+      rowName === targetName
+    ) {
+      return {
+        rowNo: i + 1,
+        personalId: String(getCellByHeader_(values[i], headerMap, "個人ID") || "").trim()
+      };
+    }
+  }
+
+  return null;
+}
+
+function getNextPersonalMemberIdFromValues_(
+  memberNo,
+  values,
+  headerMap
+) {
+
+  let maxNo =
+    1;
+
+  const prefix =
+    normalizeMemberNo_(memberNo) + "-";
+
+  for (let i = 1; i < values.length; i++) {
+
+    const personalId =
+      String(getCellByHeader_(values[i], headerMap, "個人ID") || "").trim();
+
+    if (personalId.indexOf(prefix) !== 0) {
+      continue;
+    }
+
+    const match =
+      personalId.match(/-(\d+)$/);
+
+    if (match) {
+      maxNo =
+        Math.max(
+          maxNo,
+          Number(match[1])
+        );
+    }
+  }
+
+  return prefix +
+    String(maxNo + 1).padStart(3, "0");
+}
+
+function normalizePersonalMemberNameForMatch_(
+  value
+) {
+
+  return String(value || "")
+    .replace(/[ 　\t\r\n]/g, "")
+    .trim();
 }
 
 function normalizePersonalMemberType_(

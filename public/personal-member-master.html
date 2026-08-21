@@ -203,7 +203,7 @@ main{
       <option value="NO_MAIL">メールなし</option>
     </select>
 
-    <button class="btn" onclick="loadPersonalMembers()">検索</button>
+    <button id="searchButton" class="btn" onclick="loadPersonalMembers()">検索</button>
   </div>
 
   <div id="status" class="status">読み込み中...</div>
@@ -255,22 +255,44 @@ const pageSize =
 let selectedPersonalMap =
   {};
 
+let personalMemberSaving =
+  false;
+
+const PERSONAL_MEMBER_LOAD_TIMEOUT_MS =
+  90000;
+
+const PERSONAL_MEMBER_SAVE_TIMEOUT_MS =
+  120000;
+
 function handleSearchKey(event){
   if(event.key === "Enter"){
     loadPersonalMembers();
   }
 }
 
-function loadPersonalMembers(){
+function loadPersonalMembers(attempt){
+
+  attempt =
+    attempt || 0;
 
   const status =
     document.getElementById("status");
+
+  const searchButton =
+    document.getElementById("searchButton");
+
+  if(searchButton){
+    searchButton.disabled =
+      true;
+    searchButton.textContent =
+      attempt ? "再読み込み中..." : "検索中...";
+  }
 
   status.className =
     "status";
 
   status.textContent =
-    "読み込み中...";
+    attempt ? "再読み込み中..." : "読み込み中...";
 
   jsonp(
     "getPersonalMembersJsonp",
@@ -281,14 +303,33 @@ function loadPersonalMembers(){
     },
     function(res){
 
+      if(searchButton){
+        searchButton.disabled =
+          false;
+        searchButton.textContent =
+          "検索";
+      }
+
       if(!res || !res.ok){
+        if(attempt < 2){
+          status.className =
+            "status";
+          status.textContent =
+            "個人会員マスタの読み込みに時間がかかっています。再読み込みします...";
+          setTimeout(function(){
+            loadPersonalMembers(attempt + 1);
+          }, 1200);
+          return;
+        }
+
         personalMembers =
           [];
         renderPersonalMembers();
         status.className =
           "status ng";
-        status.textContent =
-          (res && res.message) || "個人会員マスタを取得できませんでした。";
+        status.innerHTML =
+          escapeHtml((res && res.message) || "個人会員マスタを取得できませんでした。") +
+          '<div class="actions"><button class="btn" onclick="loadPersonalMembers()">再読み込み</button></div>';
         return;
       }
 
@@ -303,7 +344,7 @@ function loadPersonalMembers(){
 
       renderPersonalMembers();
     },
-    30000
+    PERSONAL_MEMBER_LOAD_TIMEOUT_MS
   );
 }
 
@@ -606,7 +647,7 @@ function openPersonalOrgModal(personalId){
 
       renderPersonalOrgModal(res);
     },
-    30000
+    PERSONAL_MEMBER_LOAD_TIMEOUT_MS
   );
 }
 
@@ -706,7 +747,7 @@ function savePersonalOrganizations(){
         loadPersonalMembers();
       }, 500);
     },
-    30000
+    PERSONAL_MEMBER_SAVE_TIMEOUT_MS
   );
 }
 
@@ -764,7 +805,7 @@ function openEditModal(personalId){
       '</div>' +
     '</div>' +
     '<div class="actions">' +
-      '<button class="btn" onclick="savePersonalMember()">保存</button>' +
+      '<button id="savePersonalMemberButton" class="btn" onclick="savePersonalMember()">保存</button>' +
       '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
     '</div>';
 
@@ -835,7 +876,7 @@ function searchCompanyForPersonal(){
 
       renderCompanySearchResults(res.members || []);
     },
-    30000
+    PERSONAL_MEMBER_LOAD_TIMEOUT_MS
   );
 }
 
@@ -923,6 +964,10 @@ function selectedAttr(value, expected){
 
 function savePersonalMember(){
 
+  if(personalMemberSaving){
+    return;
+  }
+
   const status =
     document.getElementById("modalStatus");
 
@@ -943,6 +988,19 @@ function savePersonalMember(){
     return;
   }
 
+  const saveButton =
+    document.getElementById("savePersonalMemberButton");
+
+  personalMemberSaving =
+    true;
+
+  if(saveButton){
+    saveButton.disabled =
+      true;
+    saveButton.textContent =
+      "保存中...";
+  }
+
   jsonp(
     "savePersonalMemberJsonp",
     {
@@ -957,12 +1015,27 @@ function savePersonalMember(){
     },
     function(res){
 
+      personalMemberSaving =
+        false;
+
+      if(saveButton){
+        saveButton.disabled =
+          false;
+        saveButton.textContent =
+          "保存";
+      }
+
       if(!res || !res.ok){
         status.className =
           "status ng";
         status.textContent =
           (res && res.message) || "保存できませんでした。";
         return;
+      }
+
+      if(res.personalId){
+        document.getElementById("modalPersonalId").value =
+          res.personalId;
       }
 
       status.className =
@@ -976,7 +1049,7 @@ function savePersonalMember(){
         loadPersonalMembers();
       }, 500);
     },
-    30000
+    PERSONAL_MEMBER_SAVE_TIMEOUT_MS
   );
 }
 
