@@ -8,7 +8,13 @@ const AUTH_SESSION_STORAGE_KEY =
   "takkenTrainingSessionToken";
 
 const DEFAULT_JSONP_TIMEOUT_MS =
-  60000;
+  90000;
+
+const READ_JSONP_TIMEOUT_MS =
+  90000;
+
+const WRITE_JSONP_TIMEOUT_MS =
+  120000;
 
 const AUTH_USER_STORAGE_KEY =
   "takkenTrainingAuthUser";
@@ -115,7 +121,16 @@ document.addEventListener("click", function(event){
   }
 }, true);
 
-function jsonp(action, params, callback, timeoutMs){
+function jsonp(action, params, callback, timeoutMs, retryCount){
+
+  retryCount =
+    retryCount || 0;
+
+  const effectiveTimeoutMs =
+    getJsonpTimeoutMs_(
+      action,
+      timeoutMs
+    );
 
   const saveFeedback =
     beginSaveFeedback_(action);
@@ -211,9 +226,29 @@ function jsonp(action, params, callback, timeoutMs){
 
     delete window[callbackName];
 
+    if(
+      shouldRetryJsonp_(action, retryCount)
+    ){
+      cleanupJsonpCallback_(
+        callbackName,
+        script
+      );
+
+      setTimeout(function(){
+        jsonp(
+          action,
+          params,
+          callback,
+          timeoutMs,
+          retryCount + 1
+        );
+      }, 1200);
+      return;
+    }
+
     const errorRes = {
       ok: false,
-      message: "通信に失敗しました。時間をおいて再度お試しください。続く場合は管理者に連絡してください。"
+      message: makeJsonpCommunicationErrorMessage_(action)
     };
 
     callback(errorRes);
@@ -238,11 +273,29 @@ function jsonp(action, params, callback, timeoutMs){
     completed =
       true;
 
-    delete window[callbackName];
+    cleanupJsonpCallback_(
+      callbackName,
+      script
+    );
+
+    if(
+      shouldRetryJsonp_(action, retryCount)
+    ){
+      setTimeout(function(){
+        jsonp(
+          action,
+          params,
+          callback,
+          timeoutMs,
+          retryCount + 1
+        );
+      }, 1200);
+      return;
+    }
 
     const timeoutRes = {
       ok: false,
-      message: "処理に時間がかかっています。保存や登録の場合は、画面を再読み込みして反映状況を確認してから再操作してください。"
+      message: makeJsonpTimeoutMessage_(action)
     };
 
     callback(timeoutRes);
@@ -253,13 +306,70 @@ function jsonp(action, params, callback, timeoutMs){
       timeoutRes.message
     );
 
-    if(script && script.parentNode){
-      script.parentNode.removeChild(script);
-    }
-
-  }, timeoutMs || DEFAULT_JSONP_TIMEOUT_MS);
+  }, effectiveTimeoutMs);
 
   document.body.appendChild(script);
+}
+
+function getJsonpTimeoutMs_(action, timeoutMs){
+
+  const requested =
+    Number(timeoutMs || 0);
+
+  if(isMutationAction_(action)){
+    return Math.max(
+      requested || WRITE_JSONP_TIMEOUT_MS,
+      WRITE_JSONP_TIMEOUT_MS
+    );
+  }
+
+  return Math.max(
+    requested || READ_JSONP_TIMEOUT_MS,
+    READ_JSONP_TIMEOUT_MS
+  );
+}
+
+function shouldRetryJsonp_(action, retryCount){
+
+  return !isMutationAction_(action) &&
+    retryCount < 1;
+}
+
+function isMutationAction_(action){
+
+  const text =
+    String(action || "");
+
+  return /^(save|register|update|delete|send|resend|create|start|queue|append|finish|import|backup|build|reset|checkin|sync|replace|deactivate)/i.test(
+    text
+  );
+}
+
+function makeJsonpCommunicationErrorMessage_(action){
+
+  if(isMutationAction_(action)){
+    return "通信に失敗しました。保存・登録済みの可能性があります。画面を再読み込みして反映状況を確認してから、必要な場合だけ再操作してください。";
+  }
+
+  return "通信に失敗しました。画面を再読み込みするか、時間をおいて再度お試しください。";
+}
+
+function makeJsonpTimeoutMessage_(action){
+
+  if(isMutationAction_(action)){
+    return "処理に時間がかかっています。保存や登録の場合は、画面を再読み込みして反映状況を確認してから再操作してください。";
+  }
+
+  return "読み込みに時間がかかっています。画面を再読み込みするか、条件を絞って再度お試しください。";
+}
+
+function cleanupJsonpCallback_(callbackName, script){
+
+  delete window[callbackName];
+
+  if(script && script.parentNode){
+    script.parentNode.removeChild(script);
+  }
 }
 
 function isSaveAction_(action){

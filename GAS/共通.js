@@ -26,18 +26,26 @@ function jsonpFatalErrorOutput_(
     e && e.parameter &&
     String(e.parameter.loadTestDebug || "").toUpperCase() === "TRUE";
 
+  const hasSessionToken =
+    e && e.parameter &&
+    String(e.parameter.sessionToken || "").trim();
+
   const detail =
     err && err.message
       ? String(err.message)
       : String(err || "");
 
+  const showDetail =
+    debug ||
+    hasSessionToken ||
+    action.indexOf("CheckinLoadTest") !== -1;
+
   const result = {
     ok: false,
     message:
-      debug ||
-      action.indexOf("CheckinLoadTest") !== -1
+      showDetail
         ? "GAS入口でエラーが発生しました: " + detail
-        : "通信に失敗しました。時間をおいて再度お試しください。続く場合は管理者に連絡してください。",
+        : "処理中にエラーが発生しました。画面を再読み込みするか、時間をおいて再度お試しください。",
     debugMessage:
       detail
   };
