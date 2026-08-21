@@ -1741,7 +1741,7 @@ function registerCheckinJsonp_(e) {
       message:
         isLoadTestDebug
           ? "受付処理でエラーが発生しました: " + detail
-          : "通信に失敗しました。時間をおいて再度お試しください。続く場合は管理者に連絡してください。",
+          : "受付処理中にエラーが発生しました。受付済みになっている可能性があります。画面を再読み込みして状況を確認してから、必要な場合だけ再度お試しください。",
       debugMessage:
         detail
     };
