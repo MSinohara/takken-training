@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>修了証発行者設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 160px;
+  gap:10px;
+  margin:16px 0;
+  align-items:end;
+}
+
+.help{
+  margin-top:6px;
+  color:#666;
+  font-size:13px;
+  line-height:1.6;
+}
+
+@media screen and (max-width:900px){
+  .search{
+    display:block;
+  }
+
+  .search input,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>修了証発行者設定</h1>
+  <p>ブロック長・支部長など、修了証に記載する発行者を登録します。</p>
+</header>
+
+<main>
+
+<div class="card">
+
+  <div class="muted">
+    登録済みの発行者を一覧で確認します。新規登録や編集はボタンから開きます。
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="openIssuerModal('')">新規登録</button>
+    <a class="btn sub" href="certificate-menu.html">修了証管理へ</a>
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+</div>
+
+<div class="card">
+
+  <div class="search">
+    <input id="keyword" placeholder="役職名・団体名・役職・氏名で検索" oninput="renderIssuers()">
+    <button class="btn" onclick="loadIssuers()">再読み込み</button>
+  </div>
+
+  <table id="issuerTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>発行者ID</th>
+        <th>役職名</th>
+        <th>発行者団体名</th>
+        <th>発行者役職</th>
+        <th>発行者氏名</th>
+        <th>有効</th>
+        <th>更新日時</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="issuerBody"></tbody>
+  </table>
+
+</div>
+
+</main>
+
+<script>
+let allIssuers =
+  [];
+
+function loadIssuers(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  document.getElementById("issuerTable").style.display =
+    "none";
+
+  jsonp(
+    "getCertificateIssuersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">発行者一覧を取得できませんでした。GAS側の getCertificateIssuersJsonp を確認してください。</span>';
+        return;
+      }
+
+      allIssuers =
+        res.issuers || [];
+
+      renderIssuers();
+    }
+  );
+}
+
+function renderIssuers(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allIssuers.filter(function(issuer){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          issuer.issuerId,
+          issuer.roleName,
+          issuer.issuerOrganization,
+          issuer.issuerPosition,
+          issuer.issuerTitle,
+          issuer.issuerName,
+          issuer.active,
+          issuer.note
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  const tbody =
+    document.getElementById("issuerBody");
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    document.getElementById("status").textContent =
+      allIssuers.length === 0
+        ? "発行者はまだ登録されていません。"
+        : "条件に一致する発行者はありません。";
+
+    document.getElementById("issuerTable").style.display =
+      "none";
+    return;
+  }
+
+  filtered.forEach(function(issuer){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(issuer.issuerId) + "</td>" +
+      "<td>" + escapeHtml(issuer.roleName) + "</td>" +
+      "<td>" + escapeHtml(issuer.issuerOrganization || issuer.issuerTitle) + "</td>" +
+      "<td>" + escapeHtml(issuer.issuerPosition || "") + "</td>" +
+      "<td>" + escapeHtml(issuer.issuerName) + "</td>" +
+      "<td>" + escapeHtml(formatFlagLabel(issuer.active)) + "</td>" +
+      "<td>" + escapeHtml(formatDateTimeDisplay(issuer.updatedAt)) + "</td>" +
+      "<td>" +
+        '<button class="btn sub" onclick="openIssuerModal(\'' +
+        escapeJs(issuer.issuerId) +
+        '\')">詳細・編集</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("status").textContent =
+    filtered.length + "件を表示中";
+
+  document.getElementById("issuerTable").style.display =
+    "table";
+}
+
+function saveIssuer(){
+
+  const roleName =
+    document.getElementById("issuerModalRoleName").value.trim();
+
+  const issuerOrganization =
+    document.getElementById("issuerModalOrganization").value.trim();
+
+  const issuerPosition =
+    document.getElementById("issuerModalPosition").value.trim();
+
+  const issuerName =
+    document.getElementById("issuerModalName").value.trim();
+
+  if(!roleName || !issuerOrganization || !issuerPosition || !issuerName){
+    alert("役職名、発行者団体名、発行者役職、発行者氏名は必須です。");
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "保存中...";
+
+  jsonp(
+    "saveCertificateIssuerJsonp",
+    {
+      issuerId: document.getElementById("issuerId").value.trim(),
+      roleName: roleName,
+      issuerOrganization: issuerOrganization,
+      issuerPosition: issuerPosition,
+      issuerTitle: issuerOrganization,
+      issuerName: issuerName,
+      active: document.getElementById("issuerModalActive").value,
+      note: document.getElementById("issuerModalNote").value.trim()
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>';
+
+      closeAppModal();
+      loadIssuers();
+    }
+  );
+}
+
+function openIssuerModal(issuerId){
+
+  const issuer =
+    issuerId
+      ? allIssuers.find(function(item){
+          return item.issuerId === issuerId;
+        })
+      : null;
+
+  if(issuerId && !issuer){
+    alert("発行者が見つかりません。");
+    return;
+  }
+
+  const data =
+    issuer || {};
+
+  const body =
+    '<input type="hidden" id="issuerId" value="' +
+    escapeHtml(data.issuerId || "") +
+    '">' +
+
+    '<div class="muted">役職名は、修了証ルール設定画面の選択肢に表示するための名前です。</div>' +
+
+    buildDetailRows([
+      {
+        label:"発行者ID",
+        value:data.issuerId || "新規登録"
+      },
+      {
+        label:"役職名",
+        html:'<input id="issuerModalRoleName" value="' +
+          escapeHtml(data.roleName || "") +
+          '" placeholder="例：第十ブロック長">'
+      },
+      {
+        label:"発行者団体名",
+        html:'<input id="issuerModalOrganization" value="' +
+          escapeHtml(data.issuerOrganization || data.issuerTitle || "") +
+          '" placeholder="例：東京都宅地建物取引業協会 第十ブロック">'
+      },
+      {
+        label:"発行者役職",
+        html:'<input id="issuerModalPosition" value="' +
+          escapeHtml(data.issuerPosition || "") +
+          '" placeholder="例：ブロック長">'
+      },
+      {
+        label:"発行者氏名",
+        html:'<input id="issuerModalName" value="' +
+          escapeHtml(data.issuerName || "") +
+          '" placeholder="例：戸田　高廣">'
+      },
+      {
+        label:"有効",
+        html:'<select id="issuerModalActive">' +
+          buildFlagOptions(data.active || "TRUE") +
+        '</select>'
+      },
+      {
+        label:"備考",
+        html:'<textarea id="issuerModalNote" rows="3" placeholder="任期や引き継ぎメモなど。">' +
+          escapeHtml(data.note || "") +
+        '</textarea>'
+      }
+    ]) +
+
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveIssuer()">保存</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    issuerId ? "発行者詳細・編集" : "発行者新規登録",
+    body,
+    { wide:true }
+  );
+}
+
+loadIssuers();
+</script>
+
+</body>
+</html>

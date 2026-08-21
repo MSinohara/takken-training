@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>個人QR一括印刷</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+body{
+  background:#eef2f6;
+}
+
+main{
+  max-width:1100px;
+}
+
+.print-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.sheet{
+  display:block;
+  padding:24px;
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+
+.qr-card{
+  width:194mm;
+  min-height:277mm;
+  box-sizing:border-box;
+  border:1px solid #ccd3dc;
+  border-radius:8px;
+  padding:14mm;
+  display:flex;
+  flex-direction:column;
+  gap:10mm;
+  background:#fff;
+  color:#111;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  margin:0 auto 8mm;
+}
+
+.title-area{
+  border-bottom:2px solid #12345a;
+  padding-bottom:7mm;
+}
+
+.title-area h2{
+  margin:0;
+  font-size:24px;
+  line-height:1.4;
+}
+
+.title-area .subtitle{
+  margin-top:5px;
+  color:#555;
+  font-size:13px;
+}
+
+.person-name{
+  font-size:28px;
+  font-weight:bold;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+.company-name{
+  margin-top:6px;
+  font-size:20px;
+  font-weight:bold;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+
+.meta{
+  margin-top:10px;
+  font-size:16px;
+  line-height:1.7;
+  color:#333;
+}
+
+.qr-area{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:8mm;
+  padding:10mm;
+  border:1px solid #d7dce3;
+  border-radius:8px;
+  background:#f7f9fc;
+}
+
+.qr-image{
+  width:78mm;
+  height:78mm;
+}
+
+.qr-code-text{
+  font-size:14px;
+  color:#555;
+  overflow-wrap:anywhere;
+}
+
+.note{
+  font-size:14px;
+  line-height:1.8;
+  color:#555;
+}
+
+@media print{
+  @page{
+    size:A4;
+    margin:8mm;
+  }
+
+  body{
+    background:#fff;
+  }
+
+  header,
+  .global-nav,
+  .print-actions,
+  .muted{
+    display:none;
+  }
+
+  main{
+    max-width:none;
+    margin:0;
+  }
+
+  .sheet{
+    display:block;
+    padding:0;
+    box-shadow:none;
+    border-radius:0;
+  }
+
+  .qr-card{
+    margin:0;
+    border-color:#ccd3dc;
+    page-break-after:always;
+  }
+
+  .qr-card:last-child{
+    page-break-after:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>個人QR一括印刷</h1>
+</header>
+
+<main>
+  <div class="print-actions">
+    <button class="btn" onclick="window.print()">印刷する / PDF保存</button>
+    <a class="btn sub" href="personal-member-master.html">個人会員マスタへ戻る</a>
+  </div>
+
+  <p id="summary" class="muted"></p>
+
+  <div id="sheet" class="sheet"></div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+let members =
+  [];
+
+try{
+  members =
+    JSON.parse(params.get("members") || "[]");
+} catch(err){
+  members =
+    [];
+}
+
+document.getElementById("summary").textContent =
+  members.length + "件の個人QRを印刷します。";
+
+const sheet =
+  document.getElementById("sheet");
+
+if(members.length === 0){
+  sheet.innerHTML =
+    '<div class="status">印刷対象がありません。</div>';
+} else {
+  members.forEach(function(member){
+    sheet.appendChild(createQrCard(member));
+  });
+}
+
+function createQrCard(member){
+
+  const card =
+    document.createElement("div");
+
+  const personalId =
+    member.personalId || "";
+
+  const qrText =
+    "PERSONAL:" + personalId;
+
+  const qrUrl =
+    "https://quickchart.io/qr?size=480&text=" +
+    encodeURIComponent(qrText);
+
+  card.className =
+    "qr-card";
+
+  card.innerHTML =
+    '<div class="title-area">' +
+      '<h2>個人単位受付用QR</h2>' +
+      '<div class="subtitle">個人単位受付が有効な研修会で使用します。</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="person-name">' +
+        escapeHtml(member.personName || "氏名未指定") +
+      '</div>' +
+      '<div class="company-name">' +
+        escapeHtml(member.companyName || "会社名未指定") +
+      '</div>' +
+      '<div class="meta">' +
+        '個人ID：' + escapeHtml(personalId || "未指定") + '<br>' +
+        '業者番号：' + escapeHtml(member.memberNo || "未指定") + '<br>' +
+        '区分：' + escapeHtml(member.personType || "未指定") +
+      '</div>' +
+    '</div>' +
+    '<div class="qr-area">' +
+      '<img class="qr-image" alt="個人受付QR" src="' +
+      qrUrl +
+      '">' +
+      '<div class="qr-code-text">' +
+        escapeHtml(qrText) +
+      '</div>' +
+    '</div>' +
+    '<div class="note">' +
+      'このQRは会社QRとは別物です。会社単位受付の研修会では使用できません。<br>' +
+      '受付単位が「個人」の研修会で、受付担当者がQR受付画面から読み取ってください。' +
+    '</div>';
+
+  return card;
+}
+</script>
+
+</body>
+</html>

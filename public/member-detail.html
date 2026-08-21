@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会員詳細</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:900px;
+}
+
+.org-list label{
+  display:block;
+  padding:8px;
+  border-bottom:1px solid #eee;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会員詳細</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="status" class="info">読み込み中...</div>
+
+  <div id="detailArea" style="display:none;">
+
+    <h2 id="companyName"></h2>
+
+    <p>
+      業者番号：<span id="memberNoText"></span><br>
+      代表者名：<span id="representativeNameText"></span><br>
+      支部：<span id="branchText"></span>
+    </p>
+
+    <label>メールアドレス</label>
+    <input id="mail" placeholder="例：sample@example.com">
+    <div class="help">
+      変更すると会員マスタのメール欄が更新されます。
+    </div>
+
+    <label>送信対象</label>
+    <select id="target">
+      <option value="TRUE">送信する</option>
+      <option value="FALSE">送信しない</option>
+    </select>
+
+    <label>備考</label>
+    <textarea id="note" style="height:100px;"></textarea>
+
+    <h3>所属組織</h3>
+    <div id="orgList" class="org-list"></div>
+
+    <div class="actions">
+      <button class="btn" onclick="saveAll()">保存する</button>
+      <a class="btn sub" href="member-list.html">会員一覧へ戻る</a>
+      <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+    </div>
+
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const memberNo =
+  params.get("member") || "";
+
+let currentMember =
+  null;
+
+function loadDetail(){
+
+  if(!memberNo){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">業者番号が指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getMemberDetailJsonp",
+    { member: memberNo },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      currentMember =
+        res.member;
+
+      document.getElementById("status").style.display =
+        "none";
+
+      document.getElementById("detailArea").style.display =
+        "block";
+
+      document.getElementById("companyName").textContent =
+        currentMember.companyName || "";
+
+      document.getElementById("memberNoText").textContent =
+        currentMember.memberNo || "";
+
+      document.getElementById("representativeNameText").textContent =
+        currentMember.representativeName || "";
+
+      document.getElementById("mail").value =
+        currentMember.mail || "";
+
+      document.getElementById("branchText").textContent =
+        currentMember.branch || "";
+
+      document.getElementById("target").value =
+        currentMember.target === "FALSE" ? "FALSE" : "TRUE";
+
+      document.getElementById("note").value =
+        currentMember.note || "";
+
+      renderOrganizations(
+        res.organizations || []
+      );
+    }
+  );
+}
+
+function renderOrganizations(orgs){
+
+  const area =
+    document.getElementById("orgList");
+
+  area.innerHTML =
+    "";
+
+  orgs.forEach(function(o){
+
+    const label =
+      document.createElement("label");
+
+    label.innerHTML =
+      '<input type="checkbox" class="orgCheck" value="' +
+      escapeHtml(o.orgId) +
+      '"' +
+      (o.selected ? " checked" : "") +
+      '> ' +
+      escapeHtml(o.orgName) +
+      ' <span class="muted">ID:' +
+      escapeHtml(o.orgId) +
+      '</span>';
+
+    area.appendChild(label);
+  });
+}
+
+function saveAll(){
+
+  if(!currentMember){
+    alert("会員情報が読み込まれていません。");
+    return;
+  }
+
+  const target =
+    document.getElementById("target").value;
+
+  const mail =
+    document.getElementById("mail").value.trim();
+
+  const note =
+    document.getElementById("note").value.trim();
+
+  const orgIds =
+    Array.from(document.querySelectorAll(".orgCheck"))
+      .filter(function(c){ return c.checked; })
+      .map(function(c){ return c.value; });
+
+  if(mail && mail.indexOf("@") === -1){
+    alert("メールアドレスの形式を確認してください。");
+    return;
+  }
+
+  if(!confirm("会員設定、メールアドレス、所属組織を保存します。よろしいですか？")){
+    return;
+  }
+
+  showResult("保存中...");
+
+  jsonp(
+    "updateMemberSettingJsonp",
+    {
+      member: currentMember.memberNo,
+      mail: mail,
+      target: target,
+      note: note
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          '<span class="ng">会員設定の保存に失敗しました。</span>'
+        );
+        return;
+      }
+
+      jsonp(
+        "saveMemberOrganizationsJsonp",
+        {
+          member: currentMember.memberNo,
+          orgIds: orgIds.join(",")
+        },
+        function(res2){
+
+          if(!res2 || !res2.ok){
+            showResult(
+              '<span class="ng">所属組織の保存に失敗しました。</span>'
+            );
+            return;
+          }
+
+          showResult(
+            '<span class="ok">保存しました。</span>'
+          );
+
+          loadDetail();
+        }
+      );
+    }
+  );
+}
+
+function showResult(html){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.innerHTML =
+    html;
+}
+
+loadDetail();
+</script>
+
+</body>
+</html>

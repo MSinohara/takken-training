@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>受付画面</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:720px;
+}
+
+#code{
+  font-size:22px;
+  padding:14px;
+  margin-top:12px;
+}
+
+.checkin-result{
+  font-size:20px;
+  text-align:center;
+}
+
+.checkin-result .ok{
+  font-size:26px;
+}
+
+.checkin-result .ng{
+  font-size:24px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>受付画面</h1>
+</header>
+
+<main>
+  <div class="card">
+
+    <p class="muted">
+      QRコードまたはバーコードの読取値を入力してください。<br>
+      例：MEMBER:00000
+    </p>
+
+    <input id="code" placeholder="MEMBER:00000" autofocus autocomplete="off">
+
+    <div class="actions">
+      <button class="btn" onclick="checkin()">受付する</button>
+      <a class="btn sub" id="detailLink" href="checkin-select.html">受付メニューへ戻る</a>
+    </div>
+
+    <div id="result" class="result checkin-result"></div>
+
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+let currentTraining =
+  null;
+
+function setupBackLink(){
+
+  const link =
+    document.getElementById("detailLink");
+
+  if(returnTo === "detail" && eventId){
+    link.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId);
+
+    link.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  link.href =
+    "checkin-select.html";
+
+  link.textContent =
+    "受付メニューへ戻る";
+}
+
+function loadTraining(){
+
+  if(!eventId){
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+      if(res && res.ok){
+        currentTraining =
+          res.training || null;
+      }
+    }
+  );
+}
+
+function checkin(){
+
+  if(!eventId){
+    alert("研修IDが指定されていません。");
+    return;
+  }
+
+  const code =
+    document.getElementById("code").value.trim();
+
+  if(!code){
+    alert("読取値を入力してください。");
+    return;
+  }
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "受付処理中...";
+
+	jsonp(
+	  "registerCheckinJsonp",
+	  {
+	    event: eventId,
+	    code: code,
+	    method: code.indexOf("PLANNED:") === 0 ? "予定者QR" : "会社QR"
+	  },
+	  function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<div class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</div>';
+        return;
+      }
+
+      result.innerHTML =
+        '<div class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</div>' +
+
+        '<div>' +
+        escapeHtml(res.companyName || "") +
+        ' 様</div>' +
+
+        (
+          res.participantName
+            ? '<div>' + escapeHtml(res.participantName) + ' 様</div>'
+            : ''
+        ) +
+
+        (
+          res.memberNo
+            ? '<div>業者番号：' + escapeHtml(res.memberNo || "") + '</div>'
+            : ''
+        ) +
+
+        (
+          res.personalId
+            ? '<div>個人ID：' + escapeHtml(res.personalId) + '</div>'
+            : ''
+        ) +
+
+        (
+          res.checkedAt
+            ? '<div>受付日時：' + escapeHtml(res.checkedAt) + '</div>'
+            : ''
+        );
+
+      document.getElementById("code").value =
+        "";
+
+      document.getElementById("code").focus();
+    }
+  );
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+
+  const input =
+    document.getElementById("code");
+
+  input.focus();
+
+  input.addEventListener("keydown", function(e){
+
+    if(e.key === "Enter"){
+      e.preventDefault();
+      checkin();
+    }
+
+  });
+
+  document.body.addEventListener("click", function(){
+    input.focus();
+  });
+
+});
+
+setupBackLink();
+loadTraining();
+</script>
+
+</body>
+</html>

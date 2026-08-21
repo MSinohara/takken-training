@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会詳細</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+.row{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  border-bottom:1px solid #eee;
+  padding:10px 0;
+  gap:12px;
+}
+
+.label{
+  color:#666;
+  font-weight:bold;
+}
+
+.bodyText{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  max-width:100%;
+  line-height:1.8;
+  background:#f7f7f7;
+  padding:14px;
+  border-radius:8px;
+  margin-top:10px;
+}
+
+.reception-note{
+  margin-top:14px;
+  padding:14px;
+  border-radius:8px;
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  line-height:1.8;
+}
+
+.detail-hero{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+
+.detail-title{
+  margin:0;
+  font-size:24px;
+  line-height:1.4;
+}
+
+.detail-subline{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+
+.detail-chip{
+  display:inline-block;
+  background:#f0f2f5;
+  border-radius:8px;
+  padding:6px 8px;
+  font-size:13px;
+  line-height:1.4;
+}
+
+.detail-chip.strong{
+  background:#e7f0ff;
+  color:#12345a;
+  font-weight:bold;
+}
+
+.detail-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.detail-item{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+}
+
+.detail-label{
+  color:#666;
+  font-size:13px;
+  font-weight:bold;
+  line-height:1.4;
+}
+
+.detail-value{
+  margin-top:4px;
+  line-height:1.6;
+  overflow-wrap:anywhere;
+}
+
+.stats-summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;
+  margin:12px 0 18px;
+}
+
+.stats-reference{
+  grid-column:1 / -1;
+  border:2px solid #222;
+  border-radius:8px;
+  padding:12px;
+  background:#fff;
+}
+
+.stats-reference-title{
+  font-weight:bold;
+  margin-bottom:10px;
+  line-height:1.5;
+}
+
+.stats-reference-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;
+}
+
+.stats-reference-text{
+  line-height:1.8;
+  font-size:15px;
+}
+
+.stats-reference-text strong{
+  font-size:20px;
+}
+
+.stats-subsection{
+  grid-column:1 / -1;
+  border:1px solid #d6dee8;
+  border-radius:8px;
+  padding:12px;
+  background:#fff;
+}
+
+.stats-subsection-title{
+  font-weight:bold;
+  margin-bottom:10px;
+  line-height:1.5;
+}
+
+.stats-subsection-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;
+}
+
+.stats-item{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+}
+
+.stats-item.clickable{
+  cursor:pointer;
+}
+
+.stats-item.clickable:hover{
+  outline:2px solid #bfd7f0;
+}
+
+.stats-link{
+  margin-top:4px;
+  color:#555;
+  font-size:13px;
+}
+
+.stats-label{
+  color:#666;
+  font-size:13px;
+  line-height:1.4;
+}
+
+.stats-value{
+  margin-top:4px;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  align-items:start;
+}
+
+.stats-section h2{
+  margin:0 0 10px;
+  font-size:20px;
+}
+
+.stats-section table{
+  margin-top:0;
+}
+
+@media screen and (max-width:700px){
+  .row{
+    display:block;
+  }
+
+  .label{
+    margin-bottom:4px;
+  }
+
+  .stats-grid{
+    display:block;
+  }
+
+  .detail-hero{
+    display:block;
+  }
+
+  .stats-section{
+    margin-top:18px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会詳細</h1>
+</header>
+
+<main>
+  <div class="card">
+    <div id="status" class="status">
+      読み込み中...
+    </div>
+
+    <div id="detail" style="display:none;"></div>
+		<div id="stats" style="display:none; margin-top:18px;"></div>
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let currentTraining =
+  null;
+
+let detailTargetMembers =
+  [];
+
+let detailHistories =
+  [];
+
+let detailMemberListsLoaded =
+  false;
+
+let detailMemberListsLoading =
+  false;
+
+let detailMemberListsCallbacks =
+  [];
+
+let detailModalMembers =
+  [];
+
+let detailModalIncludeReception =
+  false;
+
+let detailModalDisplayLimit =
+  50;
+
+const DETAIL_MODAL_PAGE_SIZE =
+  50;
+
+let detailPagedListState =
+  {
+    type: "",
+    offset: 0,
+    limit: 50,
+    q: "",
+    branch: "",
+    district: "",
+    includeReception: false
+  };
+
+let checkinIndexJobTimer =
+  null;
+
+function loadStats(){
+
+  jsonp(
+    "getTrainingStatsSummaryJsonp",
+    { event: eventId },
+    function(res){
+
+      const statsBox =
+        document.getElementById("stats");
+
+      if(!res || !res.ok){
+        statsBox.style.display =
+          "block";
+
+        statsBox.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
+          '</span>';
+
+        return;
+      }
+
+      const s =
+        res.stats;
+
+      statsBox.style.display =
+        "block";
+
+      statsBox.innerHTML =
+        '<h2>参加状況集計</h2>' +
+
+        '<div class="stats-summary">' +
+          makeStatsSummaryHtml(s) +
+          makeReferenceParticipationItems(s) +
+        '</div>' +
+
+        makeStatsSummaryNoteHtml(s) +
+
+        '<div class="muted">支部別・地区別などの詳しい一覧は、必要な項目の「一覧を見る」から読み込みます。</div>';
+    }
+  );
+}
+
+function makeStatsSummaryHtml(stats){
+
+  if(String(stats.attendanceUnit || "会社") !== "個人"){
+    return (
+      makeStatsSummaryItem("対象人数", makeStatsCountText(stats.targetCount, "件", stats.targetCountText), "openDetailTargetMembersModal") +
+      makeStatsSummaryItem("送信成功", makeStatsCountText(stats.sentCount, "件", stats.sentCountText)) +
+      makeStatsSummaryItem("対象内参加", makeStatsCountText(stats.attendedCount, "件", stats.attendedCountText), "openDetailAttendedMembersModal") +
+      makeStatsSummaryItem("対象外参加", makeStatsCountText(stats.outsideAttendedCount, "件", stats.outsideAttendedCountText), "openDetailOutsideMembersModal") +
+      makeStatsSummaryItem("未参加人数", makeStatsCountText(stats.absentCount, "件", stats.absentCountText), "openDetailAbsentMembersModal") +
+      makeStatsSummaryItem("参加率", stats.attendanceRate)
+    );
+  }
+
+  const targetCompanyCount =
+    stats.targetCompanyCount === null || stats.targetCompanyCount === undefined
+      ? null
+      : Number(stats.targetCompanyCount || 0);
+
+  const attendedCompanyCount =
+    stats.attendedCompanyCount === null || stats.attendedCompanyCount === undefined
+      ? null
+      : Number(stats.attendedCompanyCount || 0);
+
+  const outsideCompanyCount =
+    stats.outsideAttendedCompanyCount === null || stats.outsideAttendedCompanyCount === undefined
+      ? null
+      : Number(stats.outsideAttendedCompanyCount || 0);
+
+  const absentCompanyCount =
+    targetCompanyCount === null || attendedCompanyCount === null
+      ? null
+      : Math.max(targetCompanyCount - attendedCompanyCount, 0);
+
+  return (
+    '<div class="stats-subsection">' +
+      '<div class="stats-subsection-title">人数集計</div>' +
+      '<div class="stats-subsection-grid">' +
+        makeStatsSummaryItem("対象人数", makeStatsCountText(stats.targetCount, "名", stats.targetCountText), "openDetailTargetMembersModal") +
+        makeStatsSummaryItem("送信成功", makeStatsCountText(stats.sentCount, "件", stats.sentCountText)) +
+        makeStatsSummaryItem("対象内参加", makeStatsCountText(stats.attendedCount, "名", stats.attendedCountText), "openDetailAttendedMembersModal") +
+        makeStatsSummaryItem("対象外参加", makeStatsCountText(stats.outsideAttendedCount, "名", stats.outsideAttendedCountText), "openDetailOutsideMembersModal") +
+        makeStatsSummaryItem("未参加人数", makeStatsCountText(stats.absentCount, "名", stats.absentCountText), "openDetailAbsentMembersModal") +
+        makeStatsSummaryItem("人数参加率", stats.attendanceRate) +
+      '</div>' +
+    '</div>' +
+    '<div class="stats-subsection">' +
+      '<div class="stats-subsection-title">会社集計</div>' +
+      '<div class="stats-subsection-grid">' +
+        makeStatsSummaryItem("対象会社", makeStatsCountText(targetCompanyCount, "社", stats.targetCompanyCountText)) +
+        makeStatsSummaryItem("参加会社", makeStatsCountText(attendedCompanyCount, "社", stats.attendedCompanyCountText)) +
+        makeStatsSummaryItem("対象外参加会社", makeStatsCountText(outsideCompanyCount, "社", stats.outsideAttendedCompanyCountText)) +
+        makeStatsSummaryItem("未参加会社", makeStatsCountText(absentCompanyCount, "社", stats.absentCompanyCountText)) +
+        makeStatsSummaryItem("会社参加率", stats.companyAttendanceRate || makeRateText(attendedCompanyCount, targetCompanyCount)) +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function makeStatsSummaryNoteHtml(stats){
+
+  if(!stats || !stats.summaryNote){
+    return "";
+  }
+
+  return '<div class="notice-box">' + escapeHtml(stats.summaryNote) + '</div>';
+}
+
+function makeRateText(numerator, denominator){
+
+  if(numerator === null || numerator === undefined || denominator === null || denominator === undefined){
+    return "-";
+  }
+
+  if(!denominator){
+    return "0.0%";
+  }
+
+  return (
+    Math.round((Number(numerator || 0) / Number(denominator || 0)) * 1000) / 10
+  ).toFixed(1) + "%";
+}
+
+function makeStatsCountText(value, unit, fallback){
+
+  if(value === null || value === undefined || value === ""){
+    return fallback || "-";
+  }
+
+  return String(value) + String(unit || "");
+}
+
+function makeReferenceParticipationItems(stats){
+
+  const referenceTotal =
+    Number(stats.outsideAttendedCount || 0);
+
+  if(referenceTotal === 0){
+    return "";
+  }
+
+  let text =
+    "参加率対象外 <strong>" +
+    escapeHtml(referenceTotal + "件") +
+    "</strong>";
+
+  return (
+    '<div class="stats-reference">' +
+      '<div class="stats-reference-title">参考参加（参加率には含めません）</div>' +
+      '<div class="stats-reference-text">' +
+        text +
+      '</div>' +
+    '</div>'
+  );
+}
+
+
+function makeStatsSummaryItem(label, value, action){
+
+  return (
+    '<div class="stats-item' +
+      (action ? " clickable" : "") +
+      '"' +
+      (action ? ' onclick="' + action + '()"' : "") +
+      '>' +
+      '<div class="stats-label">' +
+      escapeHtml(label) +
+      '</div>' +
+      '<div class="stats-value">' +
+      escapeHtml(value) +
+      '</div>' +
+      (action ? '<div class="stats-link">一覧を見る</div>' : "") +
+    '</div>'
+  );
+}
+
+function loadDetailMemberLists(callback){
+
+  if(detailMemberListsLoaded){
+    if(callback){
+      callback();
+    }
+    return;
+  }
+
+  if(callback){
+    detailMemberListsCallbacks.push(callback);
+  }
+
+  if(detailMemberListsLoading){
+    return;
+  }
+
+  detailMemberListsLoading =
+    true;
+
+  openAppModal(
+    "一覧を読み込み中",
+    '<div class="status">参加者一覧を読み込み中...</div>',
+    { wide:true }
+  );
+
+  jsonp(
+    "getCheckinMonitorJsonp",
+    { event: eventId },
+    function(res){
+
+      detailMemberListsLoading =
+        false;
+
+      if(!res || !res.ok){
+        detailTargetMembers =
+          [];
+
+        detailHistories =
+          [];
+
+        detailMemberListsLoaded =
+          false;
+
+        runDetailMemberListsCallbacks();
+        return;
+      }
+
+      detailTargetMembers =
+        ((res.filterOptions || {}).targetMembers || []);
+
+      detailHistories =
+        res.histories || [];
+
+      detailMemberListsLoaded =
+        true;
+
+      runDetailMemberListsCallbacks();
+    }
+  );
+}
+
+function runDetailMemberListsCallbacks(){
+
+  const callbacks =
+    detailMemberListsCallbacks.slice();
+
+  detailMemberListsCallbacks =
+    [];
+
+  callbacks.forEach(function(fn){
+    if(fn){
+      fn();
+    }
+  });
+}
+
+function clearDetailMemberListsCache(){
+
+  detailTargetMembers =
+    [];
+
+  detailHistories =
+    [];
+
+  detailMemberListsLoaded =
+    false;
+
+  detailMemberListsLoading =
+    false;
+
+  detailMemberListsCallbacks =
+    [];
+}
+
+function loadDetailTargetMembers(callback){
+
+  openAppModal(
+    "一覧を読み込み中",
+    '<div class="status">参加対象一覧を読み込み中...</div>',
+    { wide:true }
+  );
+
+  jsonp(
+    "getCheckinTargetMembersJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        openAppModal(
+          "参加対象一覧",
+          '<div class="error">参加対象一覧を取得できませんでした。</div>',
+          { wide:true }
+        );
+        return;
+      }
+
+      const members =
+        res.targetMembers || [];
+
+      detailTargetMembers =
+        members;
+
+      if(callback){
+        callback(members);
+      }
+    }
+  );
+}
+
+function openDetailPagedMembersModal(type, title, includeReception){
+
+  detailPagedListState =
+    {
+      type: type,
+      offset: 0,
+      limit: 50,
+      q: "",
+      branch: "",
+      district: "",
+      includeReception: !!includeReception
+    };
+
+  openAppModal(
+    title,
+    makeDetailPagedMembersShell("読み込み中です..."),
+    { wide:true }
+  );
+
+  loadDetailPagedMembers(title, includeReception);
+}
+
+function makeDetailPagedMembersShell(message){
+
+  return (
+    '<div class="form-row">' +
+      '<label>検索</label>' +
+      '<input id="detailPagedMemberSearchInput" type="search" ' +
+        'placeholder="会社名・参加者名・業者番号で検索">' +
+    '</div>' +
+    '<div class="form-grid two">' +
+      '<div>' +
+        '<label>支部</label>' +
+        '<select id="detailPagedMemberBranchSelect" onchange="handleDetailPagedMemberBranchChange()">' +
+          '<option value="">すべて</option>' +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label>地区</label>' +
+        '<select id="detailPagedMemberDistrictSelect">' +
+          '<option value="">すべて</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div style="margin:12px 0;">' +
+      '<button type="button" class="btn" onclick="searchDetailPagedMembers()">検索</button> ' +
+      '<button type="button" class="secondary" onclick="prevDetailPagedMembers()">前へ</button> ' +
+      '<button type="button" class="secondary" onclick="nextDetailPagedMembers()">次へ</button>' +
+    '</div>' +
+    '<div id="detailPagedMemberStatus" class="muted">' + escapeHtml(message || "") + '</div>' +
+    '<div id="detailPagedMemberBody"></div>'
+  );
+}
+
+function updateDetailPagedMemberFilters(filterOptions){
+
+  filterOptions =
+    filterOptions || {};
+
+  const branchSelect =
+    document.getElementById("detailPagedMemberBranchSelect");
+
+  if(branchSelect){
+    const current =
+      branchSelect.value || detailPagedListState.branch || "";
+
+    branchSelect.innerHTML =
+      '<option value="">すべて</option>' +
+      (filterOptions.branches || []).map(function(branch){
+        return '<option value="' + escapeHtml(branch) + '"' +
+          (branch === current ? ' selected' : '') +
+          '>' + escapeHtml(branch) + '</option>';
+      }).join("");
+  }
+
+  handleDetailPagedMemberBranchChange(filterOptions);
+}
+
+function handleDetailPagedMemberBranchChange(filterOptions){
+
+  filterOptions =
+    filterOptions || detailPagedListState.filterOptions || {};
+
+  const branchSelect =
+    document.getElementById("detailPagedMemberBranchSelect");
+
+  const districtSelect =
+    document.getElementById("detailPagedMemberDistrictSelect");
+
+  const branch =
+    branchSelect ? branchSelect.value : "";
+
+  if(districtSelect){
+    const current =
+      districtSelect.value || detailPagedListState.district || "";
+
+    const districts =
+      branch
+        ? (filterOptions.districts || {})[branch] || []
+        : [];
+
+    districtSelect.innerHTML =
+      '<option value="">すべて</option>' +
+      districts.map(function(district){
+        return '<option value="' + escapeHtml(district) + '"' +
+          (district === current ? ' selected' : '') +
+          '>' + escapeHtml(district) + '</option>';
+      }).join("");
+  }
+}
+
+function searchDetailPagedMembers(){
+
+  detailPagedListState.offset =
+    0;
+
+  loadDetailPagedMembers();
+}
+
+function prevDetailPagedMembers(){
+
+  detailPagedListState.offset =
+    Math.max(
+      0,
+      detailPagedListState.offset - detailPagedListState.limit
+    );
+
+  loadDetailPagedMembers();
+}
+
+function nextDetailPagedMembers(){
+
+  detailPagedListState.offset +=
+    detailPagedListState.limit;
+
+  loadDetailPagedMembers();
+}
+
+function loadDetailPagedMembers(title, includeReception){
+
+  if(includeReception !== undefined){
+    detailPagedListState.includeReception =
+      !!includeReception;
+  }
+
+  const statusBox =
+    document.getElementById("detailPagedMemberStatus");
+
+  const bodyBox =
+    document.getElementById("detailPagedMemberBody");
+
+  const searchInput =
+    document.getElementById("detailPagedMemberSearchInput");
+
+  const branchSelect =
+    document.getElementById("detailPagedMemberBranchSelect");
+
+  const districtSelect =
+    document.getElementById("detailPagedMemberDistrictSelect");
+
+  detailPagedListState.q =
+    searchInput ? searchInput.value || "" : detailPagedListState.q || "";
+
+  detailPagedListState.branch =
+    branchSelect ? branchSelect.value || "" : detailPagedListState.branch || "";
+
+  detailPagedListState.district =
+    districtSelect ? districtSelect.value || "" : detailPagedListState.district || "";
+
+  if(statusBox){
+    statusBox.textContent =
+      "読み込み中です...";
+  }
+
+  jsonp(
+    "getCheckinTargetMembersJsonp",
+    {
+      event: eventId,
+      paged: "1",
+      offset: detailPagedListState.offset,
+      limit: detailPagedListState.limit,
+      q: detailPagedListState.q,
+      branch: detailPagedListState.branch,
+      district: detailPagedListState.district,
+      status:
+        detailPagedListState.type === "attended"
+          ? "checked"
+          : detailPagedListState.type === "absent"
+            ? "absent"
+            : ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        if(statusBox){
+          statusBox.innerHTML =
+            '<span class="ng">一覧を取得できませんでした。</span>';
+        }
+        return;
+      }
+
+      detailPagedListState.filterOptions =
+        res.filterOptions || {};
+
+      updateDetailPagedMemberFilters(res.filterOptions || {});
+
+      const members =
+        res.targetMembers || [];
+
+      if(bodyBox){
+        bodyBox.innerHTML =
+          makeDetailMemberListTable(
+            members,
+            !!detailPagedListState.includeReception
+          );
+      }
+
+      const from =
+        res.total === 0
+          ? 0
+          : res.offset + 1;
+
+      const to =
+        Math.min(
+          res.offset + res.limit,
+          res.total
+        );
+
+      if(statusBox){
+        statusBox.textContent =
+          from + "～" + to + "件 / " + res.total + "件";
+      }
+    }
+  );
+}
+
+function getDetailCheckedMemberMap(){
+
+  const map = {};
+
+  detailHistories.forEach(function(h){
+
+    const key =
+      makeDetailPersonKey(h);
+
+    if(h.result === "受付完了" && key){
+      map[key] =
+        true;
+    }
+  });
+
+  return map;
+}
+
+function getDetailTargetMemberMap(){
+
+  const map = {};
+
+  detailTargetMembers.forEach(function(member){
+
+    const key =
+      makeDetailPersonKey(member);
+
+    if(key){
+      map[key] =
+        member;
+    }
+  });
+
+  return map;
+}
+
+function getDetailAttendedMembers(){
+
+  const targetMap =
+    getDetailTargetMemberMap();
+
+  return detailHistories
+    .filter(function(h){
+      return h.result === "受付完了" && targetMap[makeDetailPersonKey(h)];
+    })
+    .map(function(h){
+      const member =
+        targetMap[makeDetailPersonKey(h)] || {};
+
+      return {
+        memberNo: h.memberNo || "",
+        companyName: h.companyName || member.companyName || "",
+        personalId: h.personalId || member.personalId || "",
+        participantName: h.participantName || member.participantName || "",
+        branch: h.branch || member.branch || "",
+        district: h.district || member.district || "",
+        date: h.date || "",
+        method: h.method || ""
+      };
+    });
+}
+
+function getDetailOutsideMembers(){
+
+  const targetMap =
+    getDetailTargetMemberMap();
+
+  return detailHistories
+    .filter(function(h){
+      return h.result === "受付完了" && makeDetailPersonKey(h) && !targetMap[makeDetailPersonKey(h)];
+    })
+    .map(function(h){
+      return {
+        memberNo: h.memberNo || "",
+        companyName: h.companyName || "",
+        personalId: h.personalId || "",
+        participantName: h.participantName || "",
+        branch: h.branch || "",
+        district: h.district || "",
+        date: h.date || "",
+        method: h.method || ""
+      };
+    });
+}
+
+function getDetailAbsentMembers(){
+
+  const checkedMap =
+    getDetailCheckedMemberMap();
+
+  return detailTargetMembers.filter(function(member){
+    return !checkedMap[makeDetailPersonKey(member)];
+  });
+}
+
+function makeDetailPersonKey(item){
+
+  const personalId =
+    String(item && item.personalId || "").trim();
+
+  if(personalId){
+    return "P:" + personalId;
+  }
+
+  const memberNo =
+    String(item && item.memberNo || "").trim();
+
+  return memberNo
+    ? "M:" + memberNo
+    : "";
+}
+
+function makeDetailMemberListTable(members, includeReception){
+
+  if(members.length === 0){
+    return '<div class="muted">対象者はいません。</div>';
+  }
+
+  let html =
+    '<table>' +
+      '<thead><tr>' +
+        '<th>会社名</th>' +
+        '<th>参加者名</th>' +
+        '<th>個人ID</th>' +
+        '<th>業者番号</th>' +
+        '<th>支部</th>' +
+        '<th>地区</th>';
+
+  if(includeReception){
+    html +=
+        '<th>受付日時</th>' +
+        '<th>受付方法</th>';
+  }
+
+  html +=
+      '</tr></thead><tbody>';
+
+  members.forEach(function(member){
+
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(member.participantName || member.personName || "") + '</td>' +
+        '<td>' + escapeHtml(member.personalId || member.plannedId || "") + '</td>' +
+        '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+        '<td>' + escapeHtml(member.branch || "") + '</td>' +
+        '<td>' + escapeHtml(member.district || "") + '</td>';
+
+    if(includeReception){
+      html +=
+        '<td>' + escapeHtml(member.date || "") + '</td>' +
+        '<td>' + escapeHtml(getReceptionTypeLabel(member.method || "")) + '</td>';
+    }
+
+    html +=
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function makeDetailMemberListSearchHtml(title, members, includeReception){
+
+  detailModalMembers =
+    members || [];
+
+  detailModalIncludeReception =
+    !!includeReception;
+
+  detailModalDisplayLimit =
+    DETAIL_MODAL_PAGE_SIZE;
+
+  return (
+    '<div class="form-row">' +
+      '<label>検索</label>' +
+      '<input id="detailMemberSearchInput" type="text" ' +
+        'placeholder="会社名・参加者名・業者番号で検索" ' +
+        'oninput="renderDetailMemberSearchResult(true)">' +
+    '</div>' +
+    '<div class="form-grid two">' +
+      '<div>' +
+        '<label>支部</label>' +
+        '<select id="detailMemberBranchSelect" onchange="handleDetailMemberBranchChange()">' +
+          makeDetailMemberOptionHtml(getDetailMemberUniqueValues("branch"), "すべて") +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label>地区</label>' +
+        '<select id="detailMemberDistrictSelect" onchange="renderDetailMemberSearchResult(true)">' +
+          makeDetailMemberOptionHtml(getDetailMemberUniqueValues("district"), "すべて") +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div class="muted" id="detailMemberSearchCount">' +
+      escapeHtml(String(detailModalMembers.length || 0)) +
+      '件中 ' +
+      escapeHtml(String(Math.min(detailModalMembers.length || 0, detailModalDisplayLimit))) +
+      '件を表示' +
+    '</div>' +
+    '<div id="detailMemberSearchResult">' +
+      makeDetailMemberLimitedResultHtml(detailModalMembers) +
+    '</div>'
+  );
+}
+
+function makeDetailMemberLimitedResultHtml(filtered){
+
+  filtered =
+    filtered || [];
+
+  const visibleMembers =
+    filtered.slice(
+      0,
+      detailModalDisplayLimit
+    );
+
+  let html =
+    makeDetailMemberListTable(
+      visibleMembers,
+      detailModalIncludeReception
+    );
+
+  if(filtered.length > visibleMembers.length){
+    html +=
+      '<div style="margin-top:12px;">' +
+        '<button type="button" class="secondary" onclick="showMoreDetailMembers()">' +
+          'さらに50件表示' +
+        '</button>' +
+      '</div>';
+  }
+
+  return html;
+}
+
+function makeDetailMemberOptionHtml(values, allLabel){
+
+  let html =
+    '<option value="">' + escapeHtml(allLabel || "すべて") + '</option>';
+
+  values.forEach(function(value){
+    html +=
+      '<option value="' + escapeHtml(value) + '">' +
+      escapeHtml(value) +
+      '</option>';
+  });
+
+  return html;
+}
+
+function getDetailMemberUniqueValues(field, branchValue){
+
+  const map = {};
+
+  detailModalMembers.forEach(function(member){
+
+    if(
+      branchValue &&
+      String(member.branch || "") !== String(branchValue)
+    ){
+      return;
+    }
+
+    const value =
+      String(member[field] || "").trim();
+
+    if(value){
+      map[value] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort();
+}
+
+function handleDetailMemberBranchChange(){
+
+  const branchSelect =
+    document.getElementById("detailMemberBranchSelect");
+
+  const districtSelect =
+    document.getElementById("detailMemberDistrictSelect");
+
+  if(districtSelect){
+    districtSelect.innerHTML =
+      makeDetailMemberOptionHtml(
+        getDetailMemberUniqueValues(
+          "district",
+          branchSelect ? branchSelect.value : ""
+        ),
+        "すべて"
+      );
+  }
+
+  renderDetailMemberSearchResult(true);
+}
+
+function renderDetailMemberSearchResult(resetLimit){
+
+  if(resetLimit){
+    detailModalDisplayLimit =
+      DETAIL_MODAL_PAGE_SIZE;
+  }
+
+  const input =
+    document.getElementById("detailMemberSearchInput");
+
+  const branchSelect =
+    document.getElementById("detailMemberBranchSelect");
+
+  const districtSelect =
+    document.getElementById("detailMemberDistrictSelect");
+
+  const resultBox =
+    document.getElementById("detailMemberSearchResult");
+
+  const countBox =
+    document.getElementById("detailMemberSearchCount");
+
+  if(!resultBox){
+    return;
+  }
+
+  const keyword =
+    String(input && input.value || "").trim().toLowerCase();
+
+  const branch =
+    String(branchSelect && branchSelect.value || "").trim();
+
+  const district =
+    String(districtSelect && districtSelect.value || "").trim();
+
+  const filtered =
+    detailModalMembers.filter(function(member){
+
+      if(
+        branch &&
+        String(member.branch || "") !== branch
+      ){
+        return false;
+      }
+
+      if(
+        district &&
+        String(member.district || "") !== district
+      ){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          member.companyName,
+          member.participantName,
+          member.personName,
+          member.personalId,
+          member.memberNo,
+          member.branch,
+          member.district,
+          member.date,
+          getReceptionTypeLabel(member.method || "")
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  if(countBox){
+    const visibleCount =
+      Math.min(
+        filtered.length,
+        detailModalDisplayLimit
+      );
+
+    countBox.innerHTML =
+      escapeHtml(String(detailModalMembers.length || 0)) +
+      "件中 " +
+      escapeHtml(String(visibleCount || 0)) +
+      "件を表示" +
+      (
+        filtered.length > visibleCount
+          ? "（該当 " + escapeHtml(String(filtered.length)) + "件）"
+          : ""
+      );
+  }
+
+  resultBox.innerHTML =
+    makeDetailMemberLimitedResultHtml(filtered);
+}
+
+function showMoreDetailMembers(){
+
+  detailModalDisplayLimit +=
+    DETAIL_MODAL_PAGE_SIZE;
+
+  renderDetailMemberSearchResult(false);
+}
+
+function openDetailTargetMembersModal(){
+
+  openDetailPagedMembersModal(
+    "target",
+    "参加対象一覧",
+    false
+  );
+}
+
+function openDetailAttendedMembersModal(){
+
+  openDetailPagedMembersModal(
+    "attended",
+    "対象内参加一覧",
+    true
+  );
+}
+
+function openDetailOutsideMembersModal(){
+
+  loadDetailMemberLists(function(){
+
+    const members =
+      getDetailOutsideMembers();
+
+    openAppModal(
+      "対象外参加一覧 " + members.length + "件",
+      makeDetailMemberListSearchHtml("対象外参加一覧", members, true),
+      { wide:true }
+    );
+  });
+}
+
+function openDetailAbsentMembersModal(){
+
+  openDetailPagedMembersModal(
+    "absent",
+    "未参加一覧",
+    false
+  );
+}
+
+
+function makeStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  const hasOutside =
+    list.some(function(item){
+      return Number(item.outsideAttendedCount || 0) > 0;
+    });
+
+  let html =
+    '<div class="stats-section">' +
+    '<h2>' + escapeHtml(title) + '</h2>' +
+    '<table>';
+
+  if(hasOutside){
+
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>対象内参加</th>' +
+      '<th>対象外参加</th>' +
+      '<th>参加者合計</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+
+      const targetCount =
+        item.targetCount === null ||
+        item.targetCount === undefined
+          ? "-"
+          : item.targetCount;
+
+      const attendedCount =
+        item.attendedCount === null ||
+        item.attendedCount === undefined
+          ? "-"
+          : item.attendedCount;
+
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(targetCount) + '</td>' +
+        '<td>' + escapeHtml(attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.totalAttendedCount || item.attendedCount || item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+
+  } else {
+
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>参加</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(item.targetCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+  }
+
+  html +=
+    '</tbody></table></div>';
+
+  return html;
+}
+
+
+function makeMethodStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  let html =
+    '<div class="stats-section">' +
+    '<h2>' + escapeHtml(title) + '</h2>' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th>受付方法</th>' +
+    '<th>件数</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(item){
+
+    html +=
+      '<tr>' +
+      '<td>' + escapeHtml(item.name) + '</td>' +
+      '<td>' + escapeHtml(item.count) + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table></div>';
+
+  return html;
+}
+
+function loadDetail(){
+
+  if(!eventId){
+    document.getElementById("status").textContent =
+      "研修IDが指定されていません。";
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      const status =
+        document.getElementById("status");
+
+      const detail =
+        document.getElementById("detail");
+
+      if(!res || !res.ok){
+        status.textContent =
+          res && res.message
+            ? res.message
+            : "研修会詳細を取得できませんでした。";
+        return;
+      }
+
+      const t =
+        res.training;
+
+      currentTraining =
+        t;
+
+      status.style.display =
+        "none";
+
+      detail.style.display =
+        "block";
+
+      detail.innerHTML =
+        '<div class="detail-hero">' +
+          '<div>' +
+            '<h2 class="detail-title">' +
+              escapeHtml(t.title || "") +
+            '</h2>' +
+            '<div class="detail-subline">' +
+              makeDetailChip(t.eventId || "", false) +
+              makeDetailChip(t.hostType || "", false) +
+              makeDetailChip(t.eventDate || "", false) +
+              makeDetailChip(getReceptionTypeLabel(t.receptionType || ""), true) +
+              makeDetailChip(getAttendanceUnitLabel(t.attendanceUnit), false) +
+              makeDetailChip(getCheckinTargetModeLabel(t.checkinTargetMode), false) +
+              makeDetailChip(getLocationCheckLabel(t.locationCheckEnabled), false) +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        makeAttendanceStatusNote(res.attendanceItemCount || 0, t) +
+
+        '<div class="actions">' +
+          '<button class="btn sub" onclick="openTargetSettingModal()">対象設定</button>' +
+          '<button class="btn sub" onclick="openMailContentModal()">メール内容</button>' +
+        '</div>' +
+
+        makeReceptionNote(t.receptionType) +
+
+        '<div class="actions">' +
+          makeManagementButtons(t) +
+
+          makeReceptionButtons(t) +
+
+          '<a class="btn" href="staff-checkin.html?event=' +
+          encodeURIComponent(t.eventId) +
+          '&return=detail">係員用検索受付</a>' +
+
+          makeResetPosterButton(t) +
+
+          '<a class="btn" href="live-checkin.html?event=' +
+          encodeURIComponent(t.eventId) +
+          '&return=detail">受付モニター</a>' +
+
+          '<a class="btn sub" href="planned-attendees.html?event=' +
+          encodeURIComponent(t.eventId) +
+          '&return=detail">当日参加予定者</a>' +
+
+          makeAttendanceButtons(t) +
+
+          '<a class="btn" href="checkin-manage.html?event=' +
+          encodeURIComponent(t.eventId) +
+          '&return=detail">受付取消・復活</a>' +
+
+          '<a class="btn" href="history.html?event=' +
+          encodeURIComponent(t.eventId) +
+          '&return=detail">参加履歴</a>' +
+
+          makeBackupButton(t) +
+
+          makeBackButton(t) +
+        '</div>';
+      setTimeout(
+        loadStats,
+        100
+      );
+
+      loadCheckinIndexJobStatusOnOpen(t.eventId);
+    }
+  );
+}
+
+function loadCheckinIndexJobStatusOnOpen(targetEventId){
+
+  jsonp(
+    "getCheckinIndexJobStatusJsonp",
+    { event: targetEventId },
+    function(res){
+
+      if(!res || !res.ok || !res.exists){
+        return;
+      }
+
+      if(
+        res.status === "実行待ち" ||
+        res.status === "実行中" ||
+        res.status === "失敗"
+      ){
+        renderCheckinIndexJobStatus(res);
+      }
+
+      if(res.status === "実行待ち" || res.status === "実行中"){
+        pollCheckinIndexJobStatus(targetEventId);
+      }
+    },
+    30000
+  );
+}
+
+function makeAttendanceStatusNote(count, training){
+
+  const itemCount =
+    Number(count || 0);
+
+  const enabled =
+    training &&
+    (
+      training.attendanceConfirmEnabled === true ||
+      String(training.attendanceConfirmEnabled).toUpperCase() === "TRUE"
+    );
+
+  const publicText =
+    training &&
+    (
+      training.attendanceStatusPublic === true ||
+      String(training.attendanceStatusPublic).toUpperCase() === "TRUE"
+    )
+      ? "参加者にも出欠状況を表示"
+      : "参加者には出欠状況を非表示";
+
+  let text;
+
+  if(!enabled){
+    return "";
+  }else if(itemCount > 0){
+    text =
+      "使う（" + itemCount + "項目）。" + publicText + "。";
+  }else{
+    text =
+      "使う（項目未設定）。「出欠確認設定」から項目を作成してください。" + publicText + "。";
+  }
+
+  return (
+    '<div class="reception-note">' +
+      '<strong>出欠確認：</strong>' +
+      escapeHtml(text) +
+    '</div>'
+  );
+}
+
+function makeAttendanceButtons(training){
+
+  const enabled =
+    training &&
+    (
+      training.attendanceConfirmEnabled === true ||
+      String(training.attendanceConfirmEnabled).toUpperCase() === "TRUE"
+    );
+
+  if(!enabled){
+    return "";
+  }
+
+  return (
+    '<a class="btn sub" href="attendance-setting.html?event=' +
+    encodeURIComponent(training.eventId) +
+    '">出欠確認設定</a>' +
+    '<a class="btn sub" href="attendance-responses.html?event=' +
+    encodeURIComponent(training.eventId) +
+    '">出欠回答一覧</a>'
+  );
+}
+
+function makeDetailItem(label, value){
+
+  return (
+    '<div class="detail-item">' +
+      '<div class="detail-label">' +
+      escapeHtml(label) +
+      '</div>' +
+      '<div class="detail-value">' +
+      escapeHtml(value || "") +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function openTargetSettingModal(){
+
+  const t =
+    currentTraining;
+
+  if(!t){
+    return;
+  }
+
+  const body =
+    '<div class="detail-grid">' +
+      makeDetailItem("対象ブロック", t.targetBlock || "指定なし") +
+      makeDetailItem("対象支部", t.targetBranch || "指定なし") +
+      makeDetailItem("対象地区", t.targetDistrict || "指定なし") +
+      makeTargetOrgItem(t) +
+    '</div>';
+
+  openAppModal(
+    "対象設定",
+    body,
+    { wide:true }
+  );
+}
+
+function openMailContentModal(){
+
+  const t =
+    currentTraining;
+
+  if(!t){
+    return;
+  }
+
+  const body =
+    buildDetailRows([
+      { label:"件名", value:t.subject || "" }
+    ]) +
+    '<h3>本文</h3>' +
+    '<div class="bodyText">' +
+      escapeHtml(t.body || "") +
+    '</div>';
+
+  openAppModal(
+    "メール内容",
+    body,
+    { wide:true }
+  );
+}
+
+function makeDetailChip(value, strong){
+
+  if(!value){
+    return "";
+  }
+
+  return '<span class="detail-chip' +
+    (strong ? " strong" : "") +
+    '">' +
+    escapeHtml(value) +
+    '</span>';
+}
+
+function getLocationCheckLabel(value){
+
+  const enabled =
+    value === true ||
+    String(value).toUpperCase() === "TRUE";
+
+  return enabled
+    ? "位置情報受付: 使う" + getLocationCheckTimeLabel(currentTraining)
+    : "位置情報受付: 使わない";
+}
+
+function getAttendanceUnitLabel(value){
+
+  const text =
+    String(value || "").trim();
+
+  return text === "個人" || text === "個人単位"
+    ? "受付単位: 個人単位"
+    : "受付単位: 会社単位";
+}
+
+function getCheckinTargetModeLabel(value){
+
+  const text =
+    String(value || "").trim();
+
+  return text === "事前申込者のみ" ||
+    text === "事前申込" ||
+    text === "事前申込者" ||
+    text === "事前受付" ||
+    text === "planned" ||
+    text === "plannedOnly"
+    ? "受付対象: 事前申込者のみ"
+    : "受付対象: 対象設定";
+}
+
+function getLocationCheckTimeLabel(training){
+
+  if(!training){
+    return "";
+  }
+
+  if(!training.locationCheckinStart && !training.locationCheckinEnd){
+    return "";
+  }
+
+  return "（" +
+    (training.locationCheckinStart || "開始未設定") +
+    " から " +
+    (training.locationCheckinEnd || "終了未設定") +
+    "）";
+}
+
+function makeBackButton(t){
+
+  if(isReceptionUser_()){
+    return (
+      '<a class="btn sub" href="index.html">メニューへ戻る</a>'
+    );
+  }
+
+  const returnTo =
+    params.get("return") || "";
+
+  if(returnTo === "mail"){
+    return (
+      '<a class="btn sub" href="mail-send.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '">メール送信へ戻る</a>'
+    );
+  }
+
+  if(returnTo === "checkin"){
+    return (
+      '<a class="btn sub" href="checkin-select.html">受付画面へ戻る</a>'
+    );
+  }
+
+  if(returnTo === "history"){
+    return (
+      '<a class="btn sub" href="history.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '">参加履歴へ戻る</a>'
+    );
+  }
+
+  return (
+    '<a class="btn sub" href="training-list.html">一覧へ戻る</a>'
+  );
+}
+
+function isReceptionUser_(){
+
+  const user =
+    getCurrentAuthUser();
+
+  return user && user.role === "reception";
+}
+
+function makeManagementButtons(t){
+
+  if(isReceptionUser_()){
+    return "";
+  }
+
+  return (
+    '<a class="btn" href="training-form.html?event=' +
+    encodeURIComponent(t.eventId) +
+    '">編集</a>' +
+
+    '<a class="btn" href="mail-send.html?event=' +
+    encodeURIComponent(t.eventId) +
+    '&return=detail">メール送信</a>' +
+
+    '<button class="btn sub" onclick="buildCheckinIndex(\'' +
+    escapeJs(t.eventId) +
+    '\')">受付索引を更新</button>'
+  );
+}
+
+function makeBackupButton(t){
+
+  if(isReceptionUser_()){
+    return "";
+  }
+
+  return (
+    '<button class="btn sub" onclick="backupTraining(\'' +
+    escapeJs(t.eventId) +
+    '\')">この研修会をバックアップ</button>'
+  );
+}
+
+function buildCheckinIndex(targetEventId){
+
+  const status =
+    document.getElementById("status");
+
+  if(!confirm("この研修会の受付索引を更新します。\n受付済みの状態は保持されます。\n\nよろしいですか？")){
+    return;
+  }
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "受付索引の更新を開始しています...";
+
+  jsonp(
+    "startCheckinIndexJobJsonp",
+    { event: targetEventId },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付索引の更新を開始できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      renderCheckinIndexJobStatus(res);
+
+      pollCheckinIndexJobStatus(targetEventId);
+    },
+    60000
+  );
+}
+
+function pollCheckinIndexJobStatus(targetEventId){
+
+  if(checkinIndexJobTimer){
+    clearTimeout(checkinIndexJobTimer);
+  }
+
+  checkinIndexJobTimer =
+    setTimeout(function(){
+      jsonp(
+        "getCheckinIndexJobStatusJsonp",
+        { event: targetEventId },
+        function(res){
+
+          if(!res || !res.ok){
+            return;
+          }
+
+          renderCheckinIndexJobStatus(res);
+
+          if(res.status === "完了"){
+            clearDetailMemberListsCache();
+            loadStats();
+            return;
+          }
+
+          if(res.status === "失敗"){
+            return;
+          }
+
+          pollCheckinIndexJobStatus(targetEventId);
+        },
+        30000
+      );
+    }, 5000);
+}
+
+function renderCheckinIndexJobStatus(res){
+
+  const status =
+    document.getElementById("status");
+
+  status.style.display =
+    "block";
+
+  if(!res || !res.exists){
+    status.innerHTML =
+      '<span class="muted">受付索引ジョブはありません。</span>';
+    return;
+  }
+
+  const processed =
+    Number(res.processedCount || res.offset || 0);
+
+  const target =
+    Number(res.targetCount || 0);
+
+  const progressText =
+    target
+      ? processed + " / " + target + "件"
+      : processed + "件処理済み";
+
+  if(res.status === "完了"){
+    status.innerHTML =
+      '<span class="ok">受付索引の更新が完了しました。' +
+      escapeHtml(progressText) +
+      '</span>';
+    return;
+  }
+
+  if(res.status === "失敗"){
+    status.innerHTML =
+      '<span class="ng">受付索引の更新が途中で止まりました。もう一度「受付索引を更新」を押すと続きから再開します。</span>' +
+      '<br><span class="muted">' +
+      escapeHtml(progressText) +
+      (res.error ? " / " + res.error : "") +
+      '</span>';
+    return;
+  }
+
+  status.innerHTML =
+    '<span class="ok">受付索引を裏で更新中です。' +
+    escapeHtml(progressText) +
+    '</span><br>' +
+    '<span class="muted">画面を閉じても処理は続きます。数分後に再読み込みして確認できます。</span>';
+}
+
+function buildCheckinIndexChunk(targetEventId, offset, reset){
+
+  const status =
+    document.getElementById("status");
+
+  jsonp(
+    "buildCheckinIndexChunkJsonp",
+    {
+      event: targetEventId,
+      offset: offset,
+      limit: 300,
+      reset: reset ? "TRUE" : "FALSE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付索引を更新できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      if(!res.done){
+        status.innerHTML =
+          '<span class="ok">' +
+          escapeHtml(res.message || "受付索引を更新中...") +
+          '</span>';
+
+        setTimeout(function(){
+          buildCheckinIndexChunk(
+            targetEventId,
+            res.nextOffset || 0,
+            false
+          );
+        }, 300);
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付索引を更新しました。") +
+        '</span>';
+
+      clearDetailMemberListsCache();
+      loadStats();
+    },
+    60000
+  );
+}
+
+function backupTraining(targetEventId){
+
+  const status =
+    document.getElementById("status");
+
+  if(!targetEventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  if(!confirm("この研修会の研修会情報と参加履歴をバックアップします。\n別のスプレッドシートとして保存します。\n\nよろしいですか？")){
+    return;
+  }
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "バックアップを作成中...";
+
+  jsonp(
+    "backupTrainingJsonp",
+    { event: targetEventId },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "バックアップを作成できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "バックアップを作成しました。") +
+        '</span><br>' +
+        '参加履歴 ' +
+        escapeHtml(res.historyCount || 0) +
+        '件 / ' +
+        '<a href="' +
+        escapeHtml(res.url || "") +
+        '" target="_blank" rel="noopener">バックアップを開く</a>' +
+        (
+          res.warning
+            ? '<br><span class="ng">保存先フォルダへの移動に失敗しました。バックアップ自体は作成されています。詳細: ' +
+              escapeHtml(res.warning) +
+              '</span>'
+            : ''
+        );
+    },
+    60000
+  );
+}
+
+function makeTargetOrgItem(t){
+
+  if(!t.targetOrgIdsNew){
+    return "";
+  }
+
+  return makeDetailItem(
+    "対象組織",
+    t.targetOrgNames || t.targetOrgIdsNew
+  );
+}
+
+function makeReceptionButtons(t){
+
+  if(t.receptionType === "会社QR"){
+    return (
+      '<a class="btn" href="checkin.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '&return=detail">QRリーダー受付</a>' +
+
+      '<a class="btn" href="staff-qr-checkin.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '&return=detail">スマホカメラ受付</a>'
+    );
+  }
+
+  if(t.receptionType === "手入力"){
+    return (
+      '<a class="btn" href="poster.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '" target="_blank">会場QR印刷</a>'
+    );
+  }
+
+  if(t.receptionType === "スマホ登録"){
+    return (
+      '<a class="btn" href="poster.html?event=' +
+      encodeURIComponent(t.eventId) +
+      '" target="_blank">会場QR印刷</a>'
+    );
+  }
+
+  return "";
+}
+
+function makeResetPosterButton(t){
+
+  if(
+    t.receptionType !== "スマホ登録" &&
+    t.receptionType !== "手入力"
+  ){
+    return "";
+  }
+
+  return (
+    '<a class="btn" href="reset-poster.html?event=' +
+    encodeURIComponent(t.eventId) +
+    '" target="_blank">登録解除QR</a>'
+  );
+}
+
+function makeReceptionNote(receptionType){
+
+  if(receptionType === "会社QR"){
+    return (
+      '<div class="reception-note">' +
+      '<strong>受付方式：</strong>会社別QR方式<br>' +
+      '事前に送付した会社別QRコードを、当日受付担当者が読み取る方式です。' +
+      '</div>'
+    );
+  }
+
+  if(receptionType === "手入力"){
+    return (
+      '<div class="reception-note">' +
+      '<strong>受付方式：</strong>会場QR＋手入力方式<br>' +
+      '会場に掲示したQRコードを読み取り、会社名または業者番号で検索して受付します。' +
+      '</div>'
+    );
+  }
+
+  if(receptionType === "スマホ登録"){
+    return (
+      '<div class="reception-note">' +
+      '<strong>受付方式：</strong>スマホ登録＋会場QR方式<br>' +
+      '事前にスマホ登録を行い、当日は会場QRを読み取って受付します。' +
+      '</div>'
+    );
+  }
+
+  return "";
+}
+
+loadDetail();
+</script>
+
+</body>
+</html>

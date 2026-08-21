@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出欠確認設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1000px;
+}
+
+.item-card{
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:14px;
+  margin:12px 0;
+  background:#fff;
+}
+
+.item-grid{
+  display:grid;
+  grid-template-columns:1.2fr 1fr 1.4fr 120px;
+  gap:10px;
+  align-items:end;
+}
+
+.item-note{
+  margin-top:8px;
+  color:#666;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.target-box{
+  margin-top:12px;
+  padding:10px;
+  border:1px solid #e1e5ea;
+  border-radius:8px;
+  background:#fafafa;
+}
+
+.target-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:6px 12px;
+  margin-top:8px;
+  max-height:180px;
+  overflow:auto;
+}
+
+.target-grid label{
+  display:flex;
+  gap:6px;
+  align-items:flex-start;
+  margin:0;
+  font-weight:normal;
+  line-height:1.4;
+}
+
+.target-grid input{
+  width:auto;
+  margin-top:3px;
+}
+
+.target-search{
+  margin-top:8px;
+}
+
+.selected-target-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.selected-target-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#eef3f8;
+  font-size:13px;
+}
+
+.selected-target-chip button{
+  border:0;
+  background:transparent;
+  color:#9b0018;
+  cursor:pointer;
+  font-weight:bold;
+  padding:0 2px;
+}
+
+@media (max-width:800px){
+  .item-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>出欠確認設定</h1>
+  <p>イベントごとに、会議・懇親会などの出欠項目を設定します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="content" style="display:none;">
+    <div class="actions">
+      <button class="btn" onclick="addItem()">項目を追加</button>
+      <button id="saveButton" class="btn" onclick="saveItems()">保存</button>
+      <button class="btn sub" type="button" onclick="closeAttendanceSettingWindow()">この画面を閉じる</button>
+      <a id="responsesLink" class="btn sub" href="#">回答一覧を見る</a>
+      <a id="detailLink" class="btn sub" href="#">イベント詳細へ戻る</a>
+    </div>
+
+    <h2 id="trainingTitle"></h2>
+    <div id="topResult" class="result"></div>
+    <div id="items"></div>
+    <div id="result" class="result"></div>
+  </div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let items =
+  [];
+
+let organizations =
+  [];
+
+let targetMembers =
+  [];
+
+let lastMessageHtml =
+  "";
+
+function loadConfig(){
+
+  if(!eventId){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">イベントIDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getAttendanceConfigJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "出欠確認設定を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      items =
+        res.items || [];
+
+      organizations =
+        res.organizations || [];
+
+      targetMembers =
+        res.targetMembers || [];
+
+      if(items.length === 0){
+        items =
+          [
+            {
+              itemName:(res.training && res.training.title ? res.training.title : "会議"),
+              answerType:"出欠",
+              options:"出席,欠席,未定",
+              targetScope:"全員",
+              targetKeys:"",
+              active:"TRUE"
+            },
+            {
+              itemName:"懇親会",
+              answerType:"参加",
+              options:"参加,不参加",
+              targetScope:"全員",
+              targetKeys:"",
+              active:"TRUE"
+            }
+          ];
+      }
+
+      document.getElementById("trainingTitle").textContent =
+        (res.training && res.training.title ? res.training.title : eventId);
+
+      document.getElementById("responsesLink").href =
+        "attendance-responses.html?event=" + encodeURIComponent(eventId);
+
+      document.getElementById("detailLink").href =
+        "training-detail.html?event=" + encodeURIComponent(eventId);
+
+      document.getElementById("status").style.display =
+        "none";
+
+      document.getElementById("content").style.display =
+        "block";
+
+      renderItems();
+
+      if(lastMessageHtml){
+        showSaveResult(lastMessageHtml, false);
+      }
+    }
+  );
+}
+
+function renderItems(){
+
+  const box =
+    document.getElementById("items");
+
+  box.innerHTML =
+    "";
+
+  items.forEach(function(item, index){
+
+    const div =
+      document.createElement("div");
+
+    div.className =
+      "item-card";
+
+    div.innerHTML =
+      '<div class="item-grid">' +
+        '<label>項目名' +
+          '<input class="item-name" value="' + escapeHtml(item.itemName || "") + '">' +
+        '</label>' +
+        '<label>回答形式' +
+          '<select class="item-answer-type" onchange="items[' + index + '].answerType=this.value; syncDefaultOptions(' + index + ')">' +
+            buildOption("出欠", item.answerType || "出欠") +
+            buildOption("参加", item.answerType || "出欠") +
+            buildOption("自由記入", item.answerType || "出欠") +
+          '</select>' +
+        '</label>' +
+        '<label>選択肢（カンマ区切り）' +
+          '<input class="item-options" value="' + escapeHtml(item.options || "") + '">' +
+        '</label>' +
+        '<label>有効' +
+          '<select class="item-active">' +
+            buildOption("TRUE", item.active || "TRUE", "有効") +
+            buildOption("FALSE", item.active || "TRUE", "無効") +
+          '</select>' +
+        '</label>' +
+      '</div>' +
+      '<div class="item-note">' +
+        '表示対象を選ぶと、この項目に関係する人だけ回答できます。' +
+        '<button class="btn sub" type="button" onclick="removeItem(' + index + ')" style="float:right;">削除</button>' +
+      '</div>' +
+      renderTargetControl(item, index);
+
+    box.appendChild(div);
+  });
+}
+
+function renderTargetControl(item, index){
+
+  const scope =
+    item.targetScope || "全員";
+
+  let html =
+    '<div class="target-box">' +
+      '<label>この項目の対象' +
+        '<select class="item-target-scope" onchange="items[' + index + '].targetScope=this.value; items[' + index + '].targetKeys=adjustTargetKeysForScope(this.value, items[' + index + '].targetKeys); renderItems();">' +
+          buildOption("全員", scope) +
+          buildOption("対象組織と同じ", scope) +
+          buildOption("組織指定", scope) +
+          buildOption("個別指定", scope) +
+          buildOption("組織指定＋個別追加", scope) +
+        '</select>' +
+      '</label>';
+
+  if(scope === "対象組織と同じ"){
+    html +=
+      '<div class="item-note">イベント作成時に選んだ対象組織と同じ人だけに表示します。対象組織が未設定の場合は全員扱いです。</div>';
+  }
+
+  if(scope === "組織指定"){
+    html +=
+      '<div class="item-note">この出欠項目を表示する組織を選んでください。</div>' +
+      renderOrganizationTargetChecks(item, index);
+  }
+
+  if(scope === "個別指定"){
+    html +=
+      '<div class="item-note">このイベントの対象者から、この出欠項目を表示する人を選んでください。</div>' +
+      renderMemberTargetChecks(item, index);
+  }
+
+  if(scope === "組織指定＋個別追加"){
+    html +=
+      '<div class="item-note">選んだ組織の人に加えて、個別に追加した人にも表示します。</div>' +
+      '<strong>対象組織</strong>' +
+      renderOrganizationTargetChecks(item, index, true) +
+      '<strong style="display:block;margin-top:12px;">個別追加</strong>' +
+      renderMemberTargetChecks(item, index);
+  }
+
+  html +=
+    '</div>';
+
+  return html;
+}
+
+function renderOrganizationTargetChecks(item, index, mixedMode){
+
+  if(organizations.length === 0){
+    return '<div class="muted">組織は登録されていません。</div>';
+  }
+
+  const selected =
+    mixedMode
+      ? makeSelectedMap(extractMixedKeys(item.targetKeys, "ORG"))
+      : makeSelectedMap(item.targetKeys);
+
+  let html =
+    '<div class="target-grid">';
+
+  organizations.forEach(function(org){
+    const checked =
+      selected[org.orgId]
+        ? " checked"
+        : "";
+
+    const value =
+      mixedMode
+        ? "ORG:" + (org.orgId || "")
+        : (org.orgId || "");
+
+    html +=
+      '<label>' +
+        '<input type="checkbox" class="target-key-' + index + '" value="' + escapeHtml(value) + '"' + checked + '>' +
+        '<span>' + escapeHtml(org.orgName || org.orgId || "") + '</span>' +
+      '</label>';
+  });
+
+  html +=
+    '</div>';
+
+  return html;
+}
+
+function renderMemberTargetChecks(item, index){
+
+  if(targetMembers.length === 0){
+    return '<div class="muted">対象者はいません。</div>';
+  }
+
+  const selected =
+    makeSelectedMap(item.targetKeys);
+
+  const selectedKeys =
+    Object.keys(selected);
+
+  let html =
+    '<input class="target-search" id="targetSearch_' + index + '" placeholder="会社名・氏名・業者番号で検索" oninput="renderMemberTargetCandidates(' + index + ')">' +
+    '<div id="selectedTargetList_' + index + '" class="selected-target-list">' +
+      renderSelectedTargetChips(index, selectedKeys) +
+    '</div>' +
+    '<div class="item-note">検索すると候補が表示されます。選択済みは上に残ります。</div>' +
+    '<div id="targetCandidateList_' + index + '" class="target-grid"></div>';
+
+  setTimeout(function(){
+    renderMemberTargetCandidates(index);
+  }, 0);
+
+  return html;
+}
+
+function renderSelectedTargetChips(index, selectedKeys){
+
+  if(!selectedKeys || selectedKeys.length === 0){
+    return '<span class="muted">個別追加は未選択です。</span>';
+  }
+
+  return selectedKeys.map(function(key){
+    const member =
+      findTargetMemberByKey(key);
+
+    return (
+      '<span class="selected-target-chip">' +
+        escapeHtml(makeTargetMemberLabel(member, key)) +
+        '<button type="button" onclick="removeSelectedTargetKey(' + index + ',\'' + escapeJs(key) + '\')">×</button>' +
+        '<input type="hidden" class="target-key-' + index + '" value="' + escapeHtml(key) + '">' +
+      '</span>'
+    );
+  }).join("");
+}
+
+function renderMemberTargetCandidates(index){
+
+  const box =
+    document.getElementById("targetCandidateList_" + index);
+
+  const input =
+    document.getElementById("targetSearch_" + index);
+
+  if(!box || !input){
+    return;
+  }
+
+  const keyword =
+    input.value.trim().toLowerCase();
+
+  if(!keyword){
+    box.innerHTML =
+      '<div class="muted">検索すると候補が表示されます。</div>';
+    return;
+  }
+
+  const selected =
+    makeSelectedMap(getSelectedTargetKeys(index));
+
+  const candidates =
+    targetMembers
+      .filter(function(member){
+        const text =
+          [
+            member.memberNo || "",
+            member.companyName || "",
+            member.participantName || "",
+            member.mail || "",
+            member.branch || "",
+            member.district || ""
+          ].join(" ").toLowerCase();
+
+        return text.indexOf(keyword) !== -1;
+      })
+      .slice(0, 30);
+
+  if(candidates.length === 0){
+    box.innerHTML =
+      '<div class="muted">該当者はいません。</div>';
+    return;
+  }
+
+  box.innerHTML =
+    candidates.map(function(member){
+      const key =
+        member.respondentKey || "";
+
+      const checked =
+        selected[key]
+          ? " checked"
+          : "";
+
+      return (
+        '<label>' +
+          '<input type="checkbox" onchange="toggleSelectedTargetKey(' + index + ',this.value,this.checked)" value="' + escapeHtml(key) + '"' + checked + '>' +
+          '<span>' + escapeHtml(makeTargetMemberLabel(member, key)) + '</span>' +
+        '</label>'
+      );
+    }).join("");
+}
+
+function toggleSelectedTargetKey(index, key, checked){
+
+  const selected =
+    makeSelectedMap(getSelectedTargetKeys(index));
+
+  if(checked){
+    selected[key] =
+      true;
+  }else{
+    delete selected[key];
+  }
+
+  setSelectedTargetKeys(index, Object.keys(selected));
+}
+
+function removeSelectedTargetKey(index, key){
+
+  const selected =
+    makeSelectedMap(getSelectedTargetKeys(index));
+
+  delete selected[key];
+
+  setSelectedTargetKeys(index, Object.keys(selected));
+}
+
+function setSelectedTargetKeys(index, keys){
+
+  const list =
+    document.getElementById("selectedTargetList_" + index);
+
+  if(list){
+    list.innerHTML =
+      renderSelectedTargetChips(index, keys || []);
+  }
+
+  renderMemberTargetCandidates(index);
+}
+
+function findTargetMemberByKey(key){
+
+  for(let i = 0; i < targetMembers.length; i++){
+    if(targetMembers[i].respondentKey === key){
+      return targetMembers[i];
+    }
+  }
+
+  return null;
+}
+
+function makeTargetMemberLabel(member, key){
+
+  if(!member){
+    return key || "";
+  }
+
+  return [
+    member.companyName || "",
+    member.participantName || "",
+    member.memberNo || "",
+    member.branch || ""
+  ].filter(Boolean).join(" / ");
+}
+
+function makeSelectedMap(text){
+
+  const map = {};
+
+  String(text || "")
+    .split(",")
+    .forEach(function(value){
+      value =
+        String(value || "").trim();
+
+      if(value){
+        map[value] =
+          true;
+      }
+    });
+
+  return map;
+}
+
+function extractMixedKeys(text, type){
+
+  const values =
+    [];
+
+  String(text || "")
+    .split(",")
+    .forEach(function(value){
+      value =
+        String(value || "").trim();
+
+      if(type === "ORG" && value.indexOf("ORG:") === 0){
+        values.push(value.substring(4));
+      }
+
+      if(type === "PERSON" && (value.indexOf("M:") === 0 || value.indexOf("P:") === 0)){
+        values.push(value);
+      }
+    });
+
+  return values.join(",");
+}
+
+function adjustTargetKeysForScope(scope, currentKeys){
+
+  if(scope === "組織指定" || scope === "個別指定" || scope === "組織指定＋個別追加"){
+    return currentKeys || "";
+  }
+
+  return "";
+}
+
+function buildOption(value, current, label){
+
+  return '<option value="' + escapeHtml(value) + '"' +
+    (String(value) === String(current) ? " selected" : "") +
+    '>' +
+    escapeHtml(label || value) +
+    '</option>';
+}
+
+function syncDefaultOptions(index){
+
+  if(items[index].answerType === "出欠"){
+    items[index].options =
+      "出席,欠席,未定";
+  }else if(items[index].answerType === "参加"){
+    items[index].options =
+      "参加,不参加";
+  }else{
+    items[index].options =
+      "";
+  }
+
+  renderItems();
+}
+
+function addItem(){
+
+  items.push({
+    itemName:"",
+    answerType:"出欠",
+    options:"出席,欠席,未定",
+    targetScope:"全員",
+    targetKeys:"",
+    active:"TRUE"
+  });
+
+  renderItems();
+}
+
+function removeItem(index){
+
+  if(!confirm("この出欠項目を削除しますか？")){
+    return;
+  }
+
+  items.splice(index, 1);
+  renderItems();
+}
+
+function saveItems(){
+
+  syncItemsFromForm();
+
+  const saveItems =
+    items
+      .map(function(item, index){
+        return {
+          itemId: item.itemId || "",
+          itemName: item.itemName || "",
+          answerType: item.answerType || "出欠",
+          options: item.options || "",
+          targetScope: item.targetScope || "全員",
+          targetKeys: item.targetKeys || "",
+          active: item.active || "TRUE",
+          displayOrder: index + 1
+        };
+      })
+      .filter(function(item){
+        return String(item.itemName || "").trim() !== "";
+      });
+
+  for(let i = 0; i < saveItems.length; i++){
+    if(
+      (
+        saveItems[i].targetScope === "組織指定" ||
+        saveItems[i].targetScope === "個別指定" ||
+        saveItems[i].targetScope === "組織指定＋個別追加"
+      ) &&
+      !saveItems[i].targetKeys
+    ){
+      alert(saveItems[i].itemName + " の対象を選択してください。");
+      return;
+    }
+  }
+
+  const saveButton =
+    document.getElementById("saveButton");
+
+  if(saveButton){
+    saveButton.disabled =
+      true;
+
+    saveButton.textContent =
+      "保存中...";
+  }
+
+  showSaveResult("保存中...", true);
+
+  jsonp(
+    "saveAttendanceConfigJsonp",
+    {
+      event: eventId,
+      itemsJson: JSON.stringify(saveItems)
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        if(saveButton){
+          saveButton.disabled =
+            false;
+
+          saveButton.textContent =
+            "保存";
+        }
+
+        showSaveResult(
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存できませんでした。") +
+          '</span>',
+          false
+        );
+        return;
+      }
+
+      lastMessageHtml =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>' +
+        '<div class="actions">' +
+          '<button class="btn" type="button" onclick="closeAttendanceSettingWindow()">この画面を閉じる</button>' +
+        '</div>' +
+        '<div class="help">研修会の編集画面が別タブに残っている場合は、そちらに戻ってください。</div>';
+
+      showSaveResult(
+        lastMessageHtml,
+        false
+      );
+
+      if(saveButton){
+        saveButton.textContent =
+          "保存しました";
+
+        setTimeout(function(){
+          saveButton.disabled =
+            false;
+
+          saveButton.textContent =
+            "保存";
+        }, 1800);
+      }
+
+      loadConfig();
+    },
+    60000
+  );
+}
+
+function syncItemsFromForm(){
+
+  const cards =
+    document.querySelectorAll(".item-card");
+
+  cards.forEach(function(card, index){
+
+    if(!items[index]){
+      return;
+    }
+
+    const nameInput =
+      card.querySelector(".item-name");
+
+    const typeSelect =
+      card.querySelector(".item-answer-type");
+
+    const optionsInput =
+      card.querySelector(".item-options");
+
+    const activeSelect =
+      card.querySelector(".item-active");
+
+    const targetScopeSelect =
+      card.querySelector(".item-target-scope");
+
+    items[index].itemName =
+      nameInput ? nameInput.value.trim() : "";
+
+    items[index].answerType =
+      typeSelect ? typeSelect.value : "出欠";
+
+    items[index].options =
+      optionsInput ? optionsInput.value.trim() : "";
+
+    items[index].active =
+      activeSelect ? activeSelect.value : "TRUE";
+
+    items[index].targetScope =
+      targetScopeSelect ? targetScopeSelect.value : (items[index].targetScope || "全員");
+
+    items[index].targetKeys =
+      getSelectedTargetKeys(index);
+  });
+}
+
+function getSelectedTargetKeys(index){
+
+  const scope =
+    items[index] && items[index].targetScope
+      ? items[index].targetScope
+      : "全員";
+
+  if(scope !== "組織指定" && scope !== "個別指定" && scope !== "組織指定＋個別追加"){
+    return "";
+  }
+
+  const values = [];
+  const seen = {};
+
+  Array.prototype.slice.call(
+    document.querySelectorAll(".target-key-" + index)
+  ).forEach(function(input){
+
+    if(
+      input.type !== "hidden" &&
+      !input.checked
+    ){
+      return;
+    }
+
+    const value =
+      input.value || "";
+
+    if(value && !seen[value]){
+      seen[value] =
+        true;
+
+      values.push(value);
+    }
+  });
+
+  return values.join(",");
+}
+
+function showSaveResult(html, plain){
+
+  const top =
+    document.getElementById("topResult");
+
+  const bottom =
+    document.getElementById("result");
+
+  if(plain){
+    top.textContent =
+      html;
+
+    bottom.textContent =
+      html;
+  }else{
+    top.innerHTML =
+      html;
+
+    bottom.innerHTML =
+      html;
+  }
+}
+
+function closeAttendanceSettingWindow(){
+
+  window.close();
+
+  setTimeout(function(){
+    showSaveResult(
+      '<span class="ok">保存済みです。</span>' +
+      '<div class="help">ブラウザの制限で自動で閉じられない場合は、このタブを閉じて研修会の編集画面に戻ってください。</div>',
+      false
+    );
+  }, 300);
+}
+
+loadConfig();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>受付モニター</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1280px;
+}
+
+.monitor-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(118px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+
+.monitor-card{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:9px 10px;
+  min-height:70px;
+}
+
+.monitor-label{
+  color:#666;
+  font-size:12px;
+  line-height:1.2;
+}
+
+.monitor-value{
+  font-size:24px;
+  font-weight:bold;
+  margin-top:3px;
+  line-height:1.1;
+}
+
+.live-list{
+  margin-top:10px;
+}
+
+.live-item{
+  display:grid;
+  grid-template-columns:150px 1fr 180px 120px;
+  gap:10px;
+  align-items:center;
+  padding:12px;
+  border-bottom:1px solid #eee;
+}
+
+.refresh{
+  color:#666;
+  font-size:12px;
+  margin-top:6px;
+}
+
+.filter-panel{
+  margin-top:8px;
+  padding:8px 10px;
+  background:#f7f7f7;
+  border-radius:8px;
+}
+
+.filter-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-weight:bold;
+  margin-bottom:8px;
+  cursor:pointer;
+}
+
+.filter-summary{
+  color:#555;
+  font-size:13px;
+  font-weight:normal;
+}
+
+.filter-toggle{
+  border:0;
+  background:#666;
+  color:#fff;
+  border-radius:6px;
+  padding:6px 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.filter-panel.collapsed .filter-body{
+  display:none;
+}
+
+.monitor-card.clickable{
+  cursor:pointer;
+}
+
+.monitor-card.clickable:hover{
+  outline:2px solid #bfd7f0;
+}
+
+.monitor-link{
+  color:#555;
+  font-size:11px;
+  margin-top:2px;
+}
+
+.filter-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.filter-button{
+  border:1px solid #ccc;
+  background:#fff;
+  color:#222;
+  border-radius:6px;
+  padding:7px 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.filter-button.active{
+  background:#12345a;
+  color:#fff;
+  border-color:#12345a;
+}
+
+.live-list{
+  margin-top:12px;
+}
+
+.live-item{
+  display:grid;
+  grid-template-columns:110px 1fr 260px;
+  gap:14px;
+  align-items:center;
+  padding:14px 12px;
+  border-bottom:1px solid #e5e5e5;
+}
+
+.live-time{
+  color:#555;
+  font-size:14px;
+  line-height:1.6;
+}
+
+.company{
+  font-size:20px;
+  font-weight:bold;
+  line-height:1.5;
+}
+
+.live-meta{
+  color:#555;
+  font-size:14px;
+  line-height:1.7;
+  text-align:right;
+}
+
+.result-ok{
+  display:inline-block;
+  color:#007a2f;
+  font-weight:bold;
+}
+
+.result-ng{
+  display:inline-block;
+  color:#b00020;
+  font-weight:bold;
+}
+
+.member-list-tools{
+  display:grid;
+  grid-template-columns:1fr auto auto auto;
+  gap:8px;
+  align-items:end;
+  margin-bottom:10px;
+}
+
+.member-list-tools input,
+.member-list-tools select{
+  width:100%;
+  padding:9px;
+  font-size:15px;
+}
+
+.member-list-pager{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:10px 0;
+}
+
+.member-list-pager .muted{
+  flex:1;
+}
+
+@media screen and (max-width:760px){
+  .member-list-tools{
+    grid-template-columns:1fr;
+  }
+}
+
+@media screen and (max-width:760px){
+  .live-item{
+    display:block;
+  }
+
+  .live-meta{
+    text-align:left;
+    margin-top:6px;
+  }
+
+  .company{
+    margin-top:4px;
+  }
+}
+
+@media screen and (max-width:800px){
+  .monitor-grid{
+    grid-template-columns:repeat(2,minmax(130px,1fr));
+  }
+
+  .live-item{
+    display:block;
+  }
+
+  .live-item div{
+    margin:4px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>受付モニター</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="trainingInfo" class="info">
+    研修会情報を読み込み中...
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="loadAll()">今すぐ更新</button>
+    <button class="btn sub" onclick="toggleAutoRefresh()" id="autoButton">自動更新開始</button>
+    <a class="btn sub" id="manageLink" href="checkin-select.html">受付取消・復活</a>
+    <a class="btn sub" id="detailLink" href="checkin-select.html">受付メニューへ戻る</a>
+  </div>
+
+  <div class="monitor-grid">
+    <div class="monitor-card clickable" onclick="openTargetMembersModal()">
+      <div class="monitor-label">参加対象</div>
+      <div class="monitor-value" id="targetCount">0</div>
+      <div class="monitor-link">一覧を見る</div>
+    </div>
+
+    <div class="monitor-card clickable" onclick="openCheckedMembersModal()">
+      <div class="monitor-label">対象者受付</div>
+      <div class="monitor-value" id="checkedCount">0</div>
+      <div class="monitor-link">一覧を見る</div>
+    </div>
+
+    <div class="monitor-card">
+      <div class="monitor-label">受付合計</div>
+      <div class="monitor-value" id="totalCheckedCount">0</div>
+    </div>
+
+    <div class="monitor-card clickable" onclick="openPlannedMembersModal()">
+      <div class="monitor-label">当日予定者</div>
+      <div class="monitor-value" id="plannedCount">0</div>
+      <div class="monitor-link">一覧を見る</div>
+    </div>
+
+    <div class="monitor-card clickable" onclick="openPlannedCheckedMembersModal()">
+      <div class="monitor-label">予定者受付</div>
+      <div class="monitor-value" id="plannedCheckedCount">0</div>
+      <div class="monitor-link">一覧を見る</div>
+    </div>
+
+    <div class="monitor-card clickable" onclick="openAbsentMembersModal()">
+      <div class="monitor-label">未受付</div>
+      <div class="monitor-value" id="absentCount">0</div>
+      <div class="monitor-link">一覧を見る</div>
+    </div>
+
+    <div class="monitor-card">
+      <div class="monitor-label">該当なし</div>
+      <div class="monitor-value" id="notFoundCount">0</div>
+    </div>
+  </div>
+
+  <div class="refresh" id="refreshNote">
+    自動更新は停止中です。最終更新：<span id="lastUpdated">-</span>
+  </div>
+
+  <div id="filterPanel" class="filter-panel collapsed">
+    <div class="filter-title" onclick="toggleFilterPanel()">
+      <span>
+        表示範囲
+        <span id="filterSummary" class="filter-summary">全体</span>
+      </span>
+      <button type="button" id="filterToggleButton" class="filter-toggle">開く</button>
+    </div>
+    <div class="filter-body">
+      <div id="branchFilters" class="filter-buttons"></div>
+      <div id="districtFilters" class="filter-buttons"></div>
+    </div>
+  </div>
+
+  <h2>直近の受付</h2>
+
+  <div id="liveList" class="live-list">
+    読み込み中...
+  </div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+let currentTraining =
+  null;
+
+let autoRefresh =
+  false;
+
+let timerId =
+  null;
+
+let currentHistories =
+  [];
+
+let historyRequestSeq =
+  0;
+
+let historyLoading =
+  false;
+
+let lastHistoryLoaded =
+  false;
+
+let selectedBranch =
+  "";
+
+let selectedDistrict =
+  "";
+
+let monitorFilterOptions =
+  {
+    branches: [],
+    districts: {}
+  };
+
+let plannedSummary =
+  {
+    total: 0,
+    checked: 0,
+    unchecked: 0
+  };
+
+let plannedAttendees =
+  [];
+
+let plannedLoaded =
+  false;
+
+let targetMembersLoaded =
+  false;
+
+let memberListState =
+  {
+    type: "",
+    offset: 0,
+    limit: 50,
+    q: ""
+  };
+
+document.getElementById("detailLink").href =
+  "checkin-select.html";
+
+document.getElementById("manageLink").href =
+  "checkin-manage.html?event=" + encodeURIComponent(eventId) + "&return=monitor";
+
+function setupBackLink(){
+
+  const link =
+    document.getElementById("detailLink");
+
+  if(returnTo === "detail" && eventId){
+    link.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId);
+
+    link.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  link.href =
+    "checkin-select.html";
+
+  link.textContent =
+    "受付メニューへ戻る";
+}
+
+function loadTraining(){
+
+  if(!eventId){
+    document.getElementById("trainingInfo").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("trainingInfo").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training;
+
+      document.getElementById("trainingInfo").innerHTML =
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining.title || "") +
+        '<br>' +
+        escapeHtml(
+          currentTraining.eventDate
+            ? "開催日：" + currentTraining.eventDate
+            : ""
+        );
+
+      loadHistory(true);
+    }
+  );
+}
+
+
+function loadAll(){
+
+  loadHistory(true);
+}
+
+
+function loadHistory(force){
+
+  if(!eventId){
+    return;
+  }
+
+  if(historyLoading && !force){
+    return;
+  }
+
+  historyLoading =
+    true;
+
+  const requestSeq =
+    ++historyRequestSeq;
+
+  jsonp(
+    "getCheckinMonitorJsonp",
+    {
+      event: eventId,
+      light: force ? "0" : "1"
+    },
+    function(res){
+
+      if(requestSeq !== historyRequestSeq){
+        return;
+      }
+
+      historyLoading =
+        false;
+
+      if(!res || !res.ok){
+        if(!lastHistoryLoaded){
+          document.getElementById("liveList").innerHTML =
+            '<span class="ng">受付履歴を取得できませんでした。</span>';
+        } else {
+          const lastUpdated =
+            document.getElementById("lastUpdated");
+
+          if(lastUpdated){
+            lastUpdated.textContent =
+              "前回表示を継続中";
+          }
+        }
+
+        return;
+      }
+
+      lastHistoryLoaded =
+        true;
+
+      currentHistories =
+        res.histories || [];
+
+      if(res.filterOptions){
+        monitorFilterOptions =
+          Object.assign(
+            {},
+            monitorFilterOptions,
+            res.filterOptions
+          );
+      }
+
+      if(res.plannedSummary){
+        plannedSummary =
+          res.plannedSummary;
+      }
+
+      renderFilters();
+      renderHistory();
+    }
+  );
+}
+
+function loadPlannedAttendees(callback){
+
+  if(!eventId){
+    plannedAttendees =
+      [];
+
+    plannedLoaded =
+      true;
+
+    if(callback){
+      callback();
+    }
+
+    return;
+  }
+
+  jsonp(
+    "getPlannedAttendeesJsonp",
+    { event: eventId },
+    function(res){
+
+      plannedAttendees =
+        res && res.ok
+          ? res.attendees || []
+          : [];
+
+      plannedLoaded =
+        true;
+
+      if(callback){
+        callback();
+      }
+    }
+  );
+}
+
+function loadTargetMembers(callback){
+
+  const members =
+    monitorFilterOptions.targetMembers || [];
+
+  if(targetMembersLoaded && members.length > 0){
+    if(callback){
+      callback();
+    }
+
+    return;
+  }
+
+  if(!eventId){
+    if(callback){
+      callback();
+    }
+
+    return;
+  }
+
+  jsonp(
+    "getCheckinTargetMembersJsonp",
+    { event: eventId },
+    function(res){
+
+      if(res && res.ok){
+        monitorFilterOptions =
+          Object.assign(
+            {},
+            monitorFilterOptions,
+            res.filterOptions || {}
+          );
+
+        monitorFilterOptions.targetMembers =
+          res.targetMembers || [];
+
+        targetMembersLoaded =
+          true;
+
+        renderFilters();
+        renderHistory();
+      }
+
+      if(callback){
+        callback();
+      }
+    }
+  );
+}
+
+
+function renderFilters(){
+
+  const targetBranches =
+    monitorFilterOptions.branches || [];
+
+  const hasOther =
+    currentHistories.some(function(h){
+      return h.branch && targetBranches.indexOf(h.branch) === -1;
+    });
+
+  const branchValues =
+    targetBranches.slice();
+
+  if(hasOther){
+    branchValues.push("その他");
+  }
+
+  const districtValues =
+    selectedBranch && selectedBranch !== "その他"
+      ? (monitorFilterOptions.districts || {})[selectedBranch] || []
+      : [];
+
+  renderFilterButtons(
+    "branchFilters",
+    "支部",
+    branchValues,
+    selectedBranch,
+    function(value){
+      selectedBranch =
+        value;
+
+      selectedDistrict =
+        "";
+
+      renderFilters();
+      renderHistory();
+    }
+  );
+
+  renderFilterButtons(
+    "districtFilters",
+    "地区",
+    districtValues,
+    selectedDistrict,
+    function(value){
+      selectedDistrict =
+        value;
+
+      renderFilters();
+      renderHistory();
+    }
+  );
+
+  updateFilterSummary();
+}
+
+
+function renderFilterButtons(id, label, values, selectedValue, onSelect){
+
+  let html =
+    '<button type="button" class="filter-button ' +
+    (!selectedValue ? "active" : "") +
+    '" data-value="">全' +
+    escapeHtml(label) +
+    '</button>';
+
+  values.forEach(function(value){
+
+    html +=
+      '<button type="button" class="filter-button ' +
+      (selectedValue === value ? "active" : "") +
+      '" data-value="' +
+      escapeHtml(value) +
+      '">' +
+      escapeHtml(value) +
+      '</button>';
+  });
+
+  const box =
+    document.getElementById(id);
+
+  box.innerHTML =
+    html;
+
+  Array.prototype.forEach.call(
+    box.querySelectorAll("button"),
+    function(button){
+      button.onclick = function(){
+        onSelect(
+          button.getAttribute("data-value") || ""
+        );
+      };
+    }
+  );
+}
+
+
+function getFilteredHistories(){
+
+  const targetBranches =
+    monitorFilterOptions.branches || [];
+
+  return currentHistories.filter(function(h){
+
+    if(
+      selectedBranch &&
+      selectedBranch !== "その他" &&
+      h.branch !== selectedBranch
+    ){
+      return false;
+    }
+
+    if(
+      selectedBranch === "その他" &&
+      (!h.branch || targetBranches.indexOf(h.branch) !== -1)
+    ){
+      return false;
+    }
+
+    if(selectedDistrict && h.district !== selectedDistrict){
+      return false;
+    }
+
+    return true;
+  });
+}
+
+
+function getFilteredTargetMembers(){
+
+  const members =
+    monitorFilterOptions.targetMembers || [];
+
+  return members.filter(function(member){
+
+    if(selectedBranch && member.branch !== selectedBranch){
+      return false;
+    }
+
+    if(selectedDistrict && member.district !== selectedDistrict){
+      return false;
+    }
+
+    return true;
+  });
+}
+
+
+function getCheckedMemberMap(){
+
+  const map =
+    {};
+
+  currentHistories.forEach(function(h){
+
+    if(h.result !== "受付完了"){
+      return;
+    }
+
+    const key =
+      getAttendanceKey(h);
+
+    if(key){
+      map[key] =
+        true;
+    }
+  });
+
+  return map;
+}
+
+function getAttendanceKey(item){
+
+  if(item && item.personalId){
+    return "personal:" + String(item.personalId);
+  }
+
+  if(item && item.memberNo){
+    return "member:" + String(item.memberNo);
+  }
+
+  return "";
+}
+
+
+function getAbsentMembers(){
+
+  const checkedMap =
+    getCheckedMemberMap();
+
+  return getFilteredTargetMembers().filter(function(member){
+    return !checkedMap[getAttendanceKey(member)];
+  });
+}
+
+function getCheckedMembers(){
+
+  const memberMap = {};
+
+  getFilteredTargetMembers().forEach(function(member){
+    memberMap[getAttendanceKey(member)] =
+      member;
+  });
+
+  return getFilteredHistories()
+    .filter(function(h){
+      return h.result === "受付完了";
+    })
+    .map(function(h){
+      const member =
+        memberMap[getAttendanceKey(h)] || {};
+
+      return {
+        memberNo: h.memberNo || "",
+        companyName: h.companyName || member.companyName || "",
+        personalId: h.personalId || "",
+        participantName: h.participantName || "",
+        branch: h.branch || member.branch || "",
+        district: h.district || member.district || "",
+        date: h.date || "",
+        method: h.method || ""
+      };
+    });
+}
+
+
+function updateFilterSummary(){
+
+  const parts =
+    [];
+
+  if(selectedBranch){
+    parts.push(selectedBranch);
+  }
+
+  if(selectedDistrict){
+    parts.push(selectedDistrict);
+  }
+
+  document.getElementById("filterSummary").textContent =
+    parts.length
+      ? parts.join(" / ")
+      : "全体";
+}
+
+
+function toggleFilterPanel(){
+
+  const panel =
+    document.getElementById("filterPanel");
+
+  const collapsed =
+    panel.classList.toggle("collapsed");
+
+  document.getElementById("filterToggleButton").textContent =
+    collapsed
+      ? "開く"
+      : "閉じる";
+}
+
+
+function getCurrentTargetCount(){
+
+  if(selectedBranch === "その他"){
+    return null;
+  }
+
+  if(selectedBranch && selectedDistrict){
+    return (
+      (monitorFilterOptions.districtCounts || {})[selectedBranch] || {}
+    )[selectedDistrict] || 0;
+  }
+
+  if(selectedBranch){
+    return (
+      monitorFilterOptions.branchCounts || {}
+    )[selectedBranch] || 0;
+  }
+
+  return monitorFilterOptions.targetCount || 0;
+}
+
+function getCurrentTargetCheckedCount(){
+
+  if(selectedBranch === "その他"){
+    return null;
+  }
+
+  if(selectedBranch && selectedDistrict){
+    return (
+      (monitorFilterOptions.districtCheckedCounts || {})[selectedBranch] || {}
+    )[selectedDistrict] || 0;
+  }
+
+  if(selectedBranch){
+    return (
+      monitorFilterOptions.branchCheckedCounts || {}
+    )[selectedBranch] || 0;
+  }
+
+  return monitorFilterOptions.checkedTargetCount || 0;
+}
+
+
+function renderHistory(){
+
+  const histories =
+    getFilteredHistories();
+
+  const targetCount =
+    getCurrentTargetCount();
+
+  const targetCheckedFromTargets =
+    getCurrentTargetCheckedCount();
+
+  let checkedCount =
+    0;
+
+  let targetCheckedCount =
+    0;
+
+  let notFoundCount =
+    0;
+
+  histories.forEach(function(h){
+
+    if(h.result === "受付完了"){
+      checkedCount++;
+
+      if(h.memberNo){
+        targetCheckedCount++;
+      }
+    }
+
+    if(h.result === "該当なし"){
+      notFoundCount++;
+    }
+  });
+
+  const displayedTargetCheckedCount =
+    targetCheckedFromTargets === null
+      ? targetCheckedCount
+      : Math.max(
+          targetCheckedFromTargets,
+          targetCheckedCount
+        );
+
+  document.getElementById("targetCount").textContent =
+    targetCount === null
+      ? "-"
+      : targetCount;
+
+  document.getElementById("checkedCount").textContent =
+    targetCount === null
+      ? "-"
+      : displayedTargetCheckedCount + " / " + targetCount;
+
+  document.getElementById("totalCheckedCount").textContent =
+    Math.max(
+      checkedCount,
+      displayedTargetCheckedCount || 0
+    );
+
+  document.getElementById("plannedCount").textContent =
+    plannedSummary.total || 0;
+
+  document.getElementById("plannedCheckedCount").textContent =
+    (plannedSummary.checked || 0) + " / " + (plannedSummary.total || 0);
+
+  document.getElementById("absentCount").textContent =
+    targetCount === null
+      ? "-"
+      : Math.max(
+          targetCount - displayedTargetCheckedCount,
+          0
+        );
+
+  document.getElementById("notFoundCount").textContent =
+    notFoundCount;
+
+  const lastUpdated =
+    document.getElementById("lastUpdated");
+
+  if(lastUpdated){
+    lastUpdated.textContent =
+      formatTimeOnly(
+        new Date()
+      );
+  }
+
+  const list =
+    histories.slice(0, 30);
+
+  if(list.length === 0){
+    document.getElementById("liveList").textContent =
+      "受付履歴はまだありません。";
+    return;
+  }
+
+  let html =
+    "";
+
+  list.forEach(function(h){
+
+    const resultClass =
+      h.result === "受付完了"
+        ? "result-ok"
+        : "result-ng";
+
+    const areaText =
+      [
+        h.block || "",
+        h.branch || "",
+        h.district || ""
+      ].filter(function(v){
+        return String(v || "").trim() !== "";
+      }).join(" / ");
+
+    const primaryName =
+      h.companyName
+        ? h.companyName
+        : h.participantName
+          ? "参加者名：" + h.participantName + " 様"
+          : h.result === "該当なし"
+            ? "該当なし"
+            : h.readValue || "";
+
+    html +=
+      '<div class="live-item">' +
+
+        '<div class="live-time">' +
+          '<div>' + escapeHtml(h.date || "") + '</div>' +
+          '<div class="' + resultClass + '">' +
+            escapeHtml(h.result || "") +
+          '</div>' +
+        '</div>' +
+
+        '<div class="company">' +
+          escapeHtml(primaryName) +
+          (
+            h.participantName && h.companyName
+              ? '<div class="muted">' + escapeHtml(h.participantName + " 様") + '</div>'
+              : ''
+          ) +
+          (
+            h.personalId
+              ? '<div class="muted">個人ID：' + escapeHtml(h.personalId) + '</div>'
+              : ''
+          ) +
+          (
+            h.result === "該当なし"
+              ? '<div class="muted">読み取り内容は参加履歴で確認できます。</div>'
+              : ''
+          ) +
+          (
+            h.note && h.result === "受付完了"
+              ? '<div class="muted">' + escapeHtml(h.note) + '</div>'
+              : ''
+          ) +
+        '</div>' +
+
+        '<div class="live-meta">' +
+          (
+            h.receptionCategory
+              ? '<div>' + escapeHtml(h.receptionCategory) + '</div>'
+              : ''
+          ) +
+          (
+            areaText
+              ? '<div>' + escapeHtml(areaText) + '</div>'
+              : ''
+          ) +
+          '<div>' +
+            escapeHtml(getReceptionTypeLabel(h.method || "")) +
+          '</div>' +
+        '</div>' +
+
+      '</div>';
+  });
+
+  document.getElementById("liveList").innerHTML =
+    html;
+}
+
+
+function openAbsentMembersModal(){
+
+  openPagedMemberModal("absent");
+}
+
+function makeMemberListTable(members, includeReception){
+
+  if(members.length === 0){
+    return '<div class="muted">対象者はいません。</div>';
+  }
+
+  let html =
+    '<div class="muted">現在の支部・地区指定で表示しています。</div>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th>会社名</th>' +
+        '<th>参加者名</th>' +
+        '<th>個人ID</th>' +
+        '<th>業者番号</th>' +
+        '<th>支部</th>' +
+        '<th>地区</th>';
+
+  if(includeReception){
+    html +=
+        '<th>受付日時</th>' +
+        '<th>受付方法</th>';
+  }
+
+  html +=
+      '</tr></thead><tbody>';
+
+  members.forEach(function(member){
+
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(member.participantName || "") + '</td>' +
+        '<td>' + escapeHtml(member.personalId || "") + '</td>' +
+        '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+        '<td>' + escapeHtml(member.branch || "") + '</td>' +
+        '<td>' + escapeHtml(member.district || "") + '</td>';
+
+    if(includeReception){
+      html +=
+        '<td>' + escapeHtml(member.date || "") + '</td>' +
+        '<td>' + escapeHtml(getReceptionTypeLabel(member.method || "")) + '</td>';
+    }
+
+    html +=
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function openTargetMembersModal(){
+
+  openPagedMemberModal("target");
+}
+
+function openCheckedMembersModal(){
+
+  const members =
+    getCheckedMembers();
+
+  openAppModal(
+    "受付完了一覧 " + members.length + "件",
+    makeMemberListTable(members, true),
+    { wide:true }
+  );
+}
+
+function openPagedMemberModal(type){
+
+  memberListState =
+    {
+      type: type,
+      offset: 0,
+      limit: 50,
+      q: ""
+    };
+
+  openAppModal(
+    type === "absent" ? "未受付者一覧" : "参加対象一覧",
+    makePagedMemberListShell("読み込み中です..."),
+    { wide:true }
+  );
+
+  loadPagedMemberList();
+}
+
+function makePagedMemberListShell(message){
+
+  const branchOptions =
+    (monitorFilterOptions.branches || []).map(function(branch){
+      return '<option value="' + escapeHtml(branch) + '"' +
+        (branch === selectedBranch ? ' selected' : '') +
+        '>' + escapeHtml(branch) + '</option>';
+    }).join("");
+
+  const districtOptions =
+    (
+      selectedBranch
+        ? (monitorFilterOptions.districts || {})[selectedBranch] || []
+        : []
+    ).map(function(district){
+      return '<option value="' + escapeHtml(district) + '"' +
+        (district === selectedDistrict ? ' selected' : '') +
+        '>' + escapeHtml(district) + '</option>';
+    }).join("");
+
+  return '' +
+    '<div class="member-list-tools">' +
+      '<input id="memberListSearch" type="search" placeholder="会社名・参加者名・業者番号で検索">' +
+      '<select id="memberListBranch" onchange="onPagedMemberBranchChange()">' +
+        '<option value="">全支部</option>' +
+        branchOptions +
+      '</select>' +
+      '<select id="memberListDistrict">' +
+        '<option value="">全地区</option>' +
+        districtOptions +
+      '</select>' +
+      '<button class="btn" type="button" onclick="searchPagedMemberList()">検索</button>' +
+    '</div>' +
+    '<div id="memberListStatus" class="muted">' + escapeHtml(message || "") + '</div>' +
+    '<div id="memberListBody"></div>' +
+    '<div class="member-list-pager">' +
+      '<button class="btn sub" type="button" onclick="prevPagedMemberList()">前へ</button>' +
+      '<button class="btn sub" type="button" onclick="nextPagedMemberList()">次へ</button>' +
+      '<span id="memberListPageInfo" class="muted"></span>' +
+    '</div>';
+}
+
+function onPagedMemberBranchChange(){
+
+  const branch =
+    document.getElementById("memberListBranch").value;
+
+  const districts =
+    branch
+      ? (monitorFilterOptions.districts || {})[branch] || []
+      : [];
+
+  document.getElementById("memberListDistrict").innerHTML =
+    '<option value="">全地区</option>' +
+    districts.map(function(district){
+      return '<option value="' + escapeHtml(district) + '">' +
+        escapeHtml(district) +
+        '</option>';
+    }).join("");
+}
+
+function searchPagedMemberList(){
+
+  memberListState.offset =
+    0;
+
+  memberListState.q =
+    document.getElementById("memberListSearch").value || "";
+
+  loadPagedMemberList();
+}
+
+function prevPagedMemberList(){
+
+  memberListState.offset =
+    Math.max(
+      0,
+      memberListState.offset - memberListState.limit
+    );
+
+  loadPagedMemberList();
+}
+
+function nextPagedMemberList(){
+
+  memberListState.offset +=
+    memberListState.limit;
+
+  loadPagedMemberList();
+}
+
+function loadPagedMemberList(){
+
+  const branch =
+    document.getElementById("memberListBranch")
+      ? document.getElementById("memberListBranch").value
+      : selectedBranch || "";
+
+  const district =
+    document.getElementById("memberListDistrict")
+      ? document.getElementById("memberListDistrict").value
+      : selectedDistrict || "";
+
+  document.getElementById("memberListStatus").textContent =
+    "読み込み中です...";
+
+  jsonp(
+    "getCheckinTargetMembersJsonp",
+    {
+      event: eventId,
+      paged: "1",
+      offset: memberListState.offset,
+      limit: memberListState.limit,
+      q: memberListState.q,
+      branch: branch,
+      district: district
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("memberListStatus").innerHTML =
+          '<span class="ng">一覧を取得できませんでした。</span>';
+        return;
+      }
+
+      monitorFilterOptions =
+        Object.assign(
+          {},
+          monitorFilterOptions,
+          res.filterOptions || {}
+        );
+
+      let members =
+        res.targetMembers || [];
+
+      if(memberListState.type === "absent"){
+        const checkedMap =
+          getCheckedMemberMap();
+
+        members =
+          members.filter(function(member){
+            return !checkedMap[getAttendanceKey(member)];
+          });
+      }
+
+      document.getElementById("memberListBody").innerHTML =
+        makeMemberListTable(members, false);
+
+      document.getElementById("memberListStatus").textContent =
+        memberListState.type === "absent"
+          ? "未受付者を50件ずつ表示します。"
+          : "参加対象者を50件ずつ表示します。";
+
+      const from =
+        res.total === 0
+          ? 0
+          : res.offset + 1;
+
+      const to =
+        Math.min(
+          res.offset + res.limit,
+          res.total
+        );
+
+      document.getElementById("memberListPageInfo").textContent =
+        from + "～" + to + "件 / " + res.total + "件";
+    }
+  );
+}
+
+function getFilteredPlannedAttendees(){
+
+  return plannedAttendees.filter(function(item){
+
+    if(selectedBranch && item.branch !== selectedBranch){
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function makePlannedMemberListTable(members){
+
+  if(members.length === 0){
+    return '<div class="muted">対象者はいません。</div>';
+  }
+
+  let html =
+    '<div class="muted">現在の支部指定で表示しています。</div>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th>状態</th>' +
+        '<th>受付区分</th>' +
+        '<th>会社・団体名</th>' +
+        '<th>参加者名</th>' +
+        '<th>所属</th>' +
+        '<th>受付日時</th>' +
+      '</tr></thead><tbody>';
+
+  members.forEach(function(member){
+
+    const area =
+      [member.block || "", member.branch || ""].filter(function(v){ return v; }).join(" / ");
+
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(member.status || "") + '</td>' +
+        '<td>' + escapeHtml(member.receptionCategory || "") + '</td>' +
+        '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(member.participantName || "") + '</td>' +
+        '<td>' + escapeHtml(area) + '</td>' +
+        '<td>' + escapeHtml(member.checkedAt || "") + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function openPlannedMembersModal(){
+
+  if(plannedLoaded){
+
+    const members =
+      getFilteredPlannedAttendees();
+
+    openAppModal(
+      "当日予定者一覧 " + members.length + "件",
+      makePlannedMemberListTable(members),
+      { wide:true }
+    );
+
+    return;
+  }
+
+  loadPlannedAttendees(openPlannedMembersModal);
+}
+
+function openPlannedCheckedMembersModal(){
+
+  if(plannedLoaded){
+
+    const members =
+      getFilteredPlannedAttendees().filter(function(member){
+        return member.status === "受付済み";
+      });
+
+    openAppModal(
+      "予定者受付済み一覧 " + members.length + "件",
+      makePlannedMemberListTable(members),
+      { wide:true }
+    );
+
+    return;
+  }
+
+  loadPlannedAttendees(openPlannedCheckedMembersModal);
+}
+
+
+function toggleAutoRefresh(){
+
+  autoRefresh =
+    !autoRefresh;
+
+  document.getElementById("autoButton").textContent =
+    autoRefresh
+      ? "自動更新停止"
+      : "自動更新開始";
+
+  document.getElementById("refreshNote").textContent =
+    "";
+
+  document.getElementById("refreshNote").innerHTML =
+    (
+      autoRefresh
+        ? "5秒ごとに自動更新します。"
+        : "自動更新は停止中です。"
+    ) +
+    " 最終更新：<span id=\"lastUpdated\">-</span>";
+}
+
+
+function startTimer(){
+
+  timerId =
+    setInterval(function(){
+
+      if(autoRefresh){
+        loadHistory();
+      }
+
+    }, 5000);
+}
+
+
+function formatTimeOnly(value){
+
+  const d =
+    new Date(value);
+
+  const hh =
+    String(d.getHours()).padStart(2, "0");
+
+  const mm =
+    String(d.getMinutes()).padStart(2, "0");
+
+  const ss =
+    String(d.getSeconds()).padStart(2, "0");
+
+  return hh + ":" + mm + ":" + ss;
+}
+
+setupBackLink();
+loadTraining();
+startTimer();
+</script>
+
+</body>
+</html>

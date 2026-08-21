@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>修了証発行履歴</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1220px;
+}
+
+.filters{
+  display:grid;
+  grid-template-columns:1.5fr 150px 1fr 1fr 140px;
+  gap:10px;
+  margin:16px 0;
+  align-items:end;
+}
+
+.summary-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+
+.summary-chip{
+  background:#f0f2f5;
+  border-radius:8px;
+  padding:8px 10px;
+  font-size:14px;
+}
+
+.state{
+  display:inline-block;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:12px;
+  font-weight:bold;
+  background:#eee;
+  color:#555;
+}
+
+.state.issued{
+  background:#e8f5ed;
+  color:#0a7a2f;
+}
+
+.state.sent{
+  background:#e7f0ff;
+  color:#12345a;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+@media screen and (max-width:980px){
+  .filters{
+    display:block;
+  }
+
+  .filters input,
+  .filters select,
+  .filters button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>修了証発行履歴</h1>
+  <p>発行済みPDF、送信状況、ルール別の発行履歴を確認します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn sub" onclick="loadHistory()">再読み込み</button>
+    <button class="btn" onclick="sendFilteredUnsentCertificates()">未送信を一括送信</button>
+    <a class="btn sub" href="certificate.html">修了証発行へ</a>
+    <a class="btn sub" href="certificate-menu.html">修了証管理へ戻る</a>
+  </div>
+
+  <div class="filters">
+    <div>
+      <label>検索</label>
+      <input id="keyword" placeholder="会社名・業者番号・ルール名・送信先で検索" oninput="onFilterChanged()">
+    </div>
+    <div>
+      <label>年度</label>
+      <select id="yearFilter" onchange="onFilterChanged()">
+        <option value="">読み込み中</option>
+      </select>
+    </div>
+    <div>
+      <label>ルール</label>
+      <select id="ruleFilter" onchange="onFilterChanged()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+    <div>
+      <label>状態</label>
+      <select id="stateFilter" onchange="onFilterChanged()">
+        <option value="">すべて</option>
+        <option value="unsent">未送信</option>
+        <option value="sent">送信済み</option>
+      </select>
+    </div>
+    <button class="btn" onclick="loadHistory()">再検索</button>
+  </div>
+
+  <div id="summary" class="summary-row"></div>
+  <div id="status" class="status">読み込み中...</div>
+
+  <table id="historyTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>会社名</th>
+        <th>参加者</th>
+        <th>業者番号</th>
+        <th>ルール</th>
+        <th>証書タイトル</th>
+        <th>PDF</th>
+        <th>発行日時</th>
+        <th>送信状況</th>
+        <th>送信先メール</th>
+        <th>詳細</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allItems =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  20;
+
+function isCertificateIssued(item){
+  return !!(item && item.pdfUrl);
+}
+
+function loadHistory(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  document.getElementById("historyTable").style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getCertificateTargetsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">修了証履歴を取得できませんでした。</span>';
+        return;
+      }
+
+      allItems =
+        (res.targets || []).filter(function(item){
+          return isCertificateIssued(item);
+        });
+
+      buildRuleFilter();
+      buildYearFilter();
+
+      currentPage =
+        1;
+
+      renderHistory();
+    }
+  );
+}
+
+function buildRuleFilter(){
+
+  const select =
+    document.getElementById("ruleFilter");
+
+  const currentValue =
+    select.value;
+
+  const map = {};
+
+  allItems.forEach(function(item){
+    const ruleKey =
+      item.ruleId || item.ruleName || "従来条件";
+
+    const ruleLabel =
+      item.ruleName || item.ruleId || "従来条件";
+
+    map[ruleKey] =
+      ruleLabel;
+  });
+
+  select.innerHTML =
+    '<option value="">すべて</option>';
+
+  Object.keys(map).sort().forEach(function(ruleKey){
+    const option =
+      document.createElement("option");
+
+    option.value =
+      ruleKey;
+
+    option.textContent =
+      map[ruleKey];
+
+    select.appendChild(option);
+  });
+
+  select.value =
+    currentValue;
+}
+
+function buildYearFilter(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const currentValue =
+    select.value;
+
+  const years =
+    getHistoryYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    currentValue && (currentValue === "all" || years.indexOf(currentValue) >= 0)
+      ? currentValue
+      : years.indexOf(currentYear) >= 0
+        ? currentYear
+        : "all";
+}
+
+function getHistoryYears(){
+
+  const map = {};
+
+  allItems.forEach(function(item){
+
+    const year =
+      getItemFiscalYear(item);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+function getFilteredItems(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const ruleValue =
+    document.getElementById("ruleFilter").value;
+
+  const yearValue =
+    document.getElementById("yearFilter").value;
+
+  const stateValue =
+    document.getElementById("stateFilter").value;
+
+  return allItems.filter(function(item){
+
+    if(yearValue && yearValue !== "all" && getItemFiscalYear(item) !== yearValue){
+      return false;
+    }
+
+    const ruleKey =
+      item.ruleId || item.ruleName || "従来条件";
+
+    if(ruleValue && ruleKey !== ruleValue){
+      return false;
+    }
+
+    const sent =
+      !!item.sentAt;
+
+    if(stateValue === "unsent" && sent){
+      return false;
+    }
+
+    if(stateValue === "sent" && !sent){
+      return false;
+    }
+
+    if(!keyword){
+      return true;
+    }
+
+    const text =
+      [
+        item.memberNo,
+        item.companyName,
+        item.ruleName,
+        item.ruleId,
+        item.certificateTitle,
+        item.sendToMail,
+        item.sendResult
+      ].join(" ").toLowerCase();
+
+    return text.indexOf(keyword) !== -1;
+  });
+}
+
+function getItemFiscalYear(item){
+
+  const eventIdsText =
+    String(item && item.eventIds ? item.eventIds : "").trim();
+
+  if(eventIdsText){
+    const eventIds =
+      eventIdsText.split(",").map(function(value){
+        return String(value || "").trim();
+      });
+
+    for(let i = 0; i < eventIds.length; i++){
+      const year =
+        getFiscalYearFromEventId(eventIds[i]);
+
+      if(year){
+        return year;
+      }
+    }
+  }
+
+  return getFiscalYearFromDateText(
+    item && (item.issuedAt || item.sentAt || item.createdAt)
+  );
+}
+
+function getFiscalYearFromEventId(eventId){
+
+  const match =
+    String(eventId || "").trim().match(/^(\d{4})-/);
+
+  return match ? match[1] : "";
+}
+
+function getFiscalYearFromDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  const match =
+    text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+
+  if(!match){
+    return "";
+  }
+
+  const year =
+    Number(match[1]);
+
+  const month =
+    Number(match[2]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function renderSummary(items){
+
+  const total =
+    items.length;
+
+  const sent =
+    items.filter(function(item){ return !!item.sentAt; }).length;
+
+  const unsent =
+    total - sent;
+
+  document.getElementById("summary").innerHTML =
+    '<div class="summary-chip">対象 ' + escapeHtml(total) + '件</div>' +
+    '<div class="summary-chip">未送信 ' + escapeHtml(unsent) + '件</div>' +
+    '<div class="summary-chip">送信済み ' + escapeHtml(sent) + '件</div>';
+}
+
+function renderHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const filtered =
+    getFilteredItems();
+
+  renderSummary(filtered);
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "条件に一致する修了証履歴はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(item){
+
+    const itemIndex =
+      allItems.indexOf(item);
+
+    const sent =
+      !!item.sentAt;
+
+    const pdf =
+      item.pdfUrl
+        ? '<a href="' + escapeHtml(item.pdfUrl) + '" target="_blank">PDFを開く</a>'
+        : "";
+
+    const sentState =
+      sent
+        ? '<span class="state sent">送信済み</span>'
+        : '<span class="state">未送信</span>';
+
+    const operation =
+      item.rowNo
+        ? '<button class="btn sub" onclick="sendCertificate(' +
+          escapeHtml(item.rowNo) +
+          ', ' +
+          (sent ? 'true' : 'false') +
+          ')">' +
+          (sent ? '再送' : '送信') +
+          '</button> ' +
+          '<button class="btn warn" onclick="reissuePdf(' +
+          escapeHtml(item.rowNo) +
+          ')">再発行</button>'
+        : "";
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(item.companyName || "") + "</td>" +
+      "<td>" +
+        escapeHtml(item.participantName || "") +
+        (item.judgmentUnit ? "<br><span class=\"muted\">" + escapeHtml(item.judgmentUnit) + "</span>" : "") +
+      "</td>" +
+      "<td>" + escapeHtml(item.memberNo || "") + "</td>" +
+      "<td>" + escapeHtml(item.ruleName || item.ruleId || "従来条件") + "</td>" +
+      "<td>" + escapeHtml(item.certificateTitle || "") + "</td>" +
+      "<td>" + pdf + "</td>" +
+      "<td>" + escapeHtml(item.issuedAt || "") + "</td>" +
+      "<td>" + sentState + "<br>" + escapeHtml(item.sendResult || "") + "</td>" +
+      "<td>" + escapeHtml(item.sendToMail || "") + "</td>" +
+      "<td>" +
+        '<button class="btn sub" onclick="showCertificateHistoryDetail(' +
+        itemIndex +
+        ')">詳細</button>' +
+      "</td>" +
+      "<td>" + operation + "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function onFilterChanged(){
+  currentPage =
+    1;
+
+  renderHistory();
+}
+
+function prevPage(){
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+  renderHistory();
+}
+
+function nextPage(){
+  const totalPages =
+    Math.ceil(getFilteredItems().length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+  renderHistory();
+}
+
+function showCertificateHistoryDetail(index){
+
+  const item =
+    allItems[index];
+
+  if(!item){
+    return;
+  }
+
+  const pdfHtml =
+    item.pdfUrl
+      ? '<a href="' + escapeHtml(item.pdfUrl) + '" target="_blank">PDFを開く</a>'
+      : "";
+
+  const reissueHtml =
+    item.rowNo
+      ? '<div class="actions"><button class="btn" onclick="closeAppModal(); sendCertificate(' +
+        escapeHtml(item.rowNo) +
+        ', ' +
+        (item.sentAt ? 'true' : 'false') +
+        ')">' +
+        (item.sentAt ? 'PDFを再送' : 'PDFを送信') +
+        '</button><button class="btn warn" onclick="closeAppModal(); reissuePdf(' +
+        escapeHtml(item.rowNo) +
+        ')">PDFを再発行</button></div>'
+      : "";
+
+  const body =
+    buildDetailRows([
+      { label:"会社名", value:item.companyName || "" },
+      { label:"参加者名", value:item.participantName || "" },
+      { label:"業者番号", value:item.memberNo || "" },
+      { label:"個人ID", value:item.personalId || "" },
+      { label:"判定単位", value:item.judgmentUnit || "会社単位" },
+      { label:"ルール", value:item.ruleName || item.ruleId || "従来条件" },
+      { label:"証書タイトル", value:item.certificateTitle || "" },
+      { label:"PDF", html:pdfHtml },
+      { label:"PDFファイルID", value:item.pdfFileId || "" },
+      { label:"発行日時", value:item.issuedAt || "" },
+      { label:"送信状態", value:item.sentAt ? "送信済み" : "未送信" },
+      { label:"送信日時", value:item.sentAt || "" },
+      { label:"送信先メール", value:item.sendToMail || "" },
+      { label:"送信結果", value:item.sendResult || "" },
+      { label:"備考", value:item.note || "" }
+    ]) +
+    reissueHtml;
+
+  openAppModal(
+    "修了証履歴詳細",
+    body,
+    { wide:true }
+  );
+}
+
+function reissuePdf(rowNo){
+
+  if(!confirm("この会社の修了証PDFを再発行します。\n既存のPDF URLと発行日時が更新される場合があります。\n\nよろしいですか？")){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "PDF再発行中...";
+
+  jsonp(
+    "createCertificatePdfJsonp",
+    { rowNo: rowNo },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "PDF再発行に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "PDFを再発行しました。") +
+        '</span>';
+
+      loadHistory();
+    }
+  );
+}
+
+function sendCertificate(rowNo, alreadySent){
+
+  const message =
+    alreadySent
+      ? "この修了証PDFを再送します。\nよろしいですか？"
+      : "この修了証PDFを送信します。\nよろしいですか？";
+
+  if(!confirm(message)){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "修了証PDFを送信中...";
+
+  jsonp(
+    "sendCertificatePdfJsonp",
+    {
+      rowNo: rowNo,
+      force: alreadySent ? "TRUE" : "FALSE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "修了証PDFの送信に失敗しました。") +
+          '</span>';
+        loadHistory();
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "修了証PDFを送信しました。") +
+        '</span>';
+
+      loadHistory();
+    }
+  );
+}
+
+function sendFilteredUnsentCertificates(){
+
+  const filtered =
+    getFilteredItems();
+
+  const unsent =
+    filtered.filter(function(item){
+      return item.rowNo && item.pdfUrl && !item.sentAt;
+    });
+
+  if(unsent.length === 0){
+    alert("現在の検索条件に、未送信の修了証PDFはありません。");
+    return;
+  }
+
+  const ruleValue =
+    document.getElementById("ruleFilter").value;
+
+  if(
+    !confirm(
+      "現在の検索条件のうち、未送信の修了証PDF " +
+      unsent.length +
+      "件を一括送信します。\n\nよろしいですか？"
+    )
+  ){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "修了証PDFを一括送信中...";
+
+  jsonp(
+    "sendCertificatePdfBulkJsonp",
+    {
+      ruleId: ruleValue || "",
+      rowNos: unsent.map(function(item){ return item.rowNo; }).join(","),
+      onlyUnsent: "TRUE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        const errors =
+          res && res.errors && res.errors.length
+            ? "<br>" + res.errors.map(escapeHtml).join("<br>")
+            : "";
+
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "一括送信に失敗しました。") +
+          '</span>' +
+          errors;
+
+        loadHistory();
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "一括送信が完了しました。") +
+        '</span>';
+
+      loadHistory();
+    }
+  );
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>

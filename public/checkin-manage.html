@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>受付取消・復活</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1180px;
+}
+
+.toolbar{
+  display:grid;
+  grid-template-columns:1fr 180px 140px;
+  gap:10px;
+  align-items:end;
+  margin:16px 0;
+}
+
+.summary-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:12px 0;
+}
+
+.summary-chip{
+  background:#f0f2f5;
+  border-radius:8px;
+  padding:7px 10px;
+  font-size:14px;
+}
+
+.reason-select{
+  min-width:150px;
+}
+
+.pager{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+.pager-info{
+  color:#666;
+  font-weight:bold;
+}
+
+@media screen and (max-width:860px){
+  .toolbar{
+    display:block;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>受付取消・復活</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="trainingInfo" class="info">
+    研修会情報を読み込み中...
+  </div>
+
+  <div class="actions">
+    <button class="btn sub" type="button" onclick="loadHistory()">再読み込み</button>
+    <a class="btn sub" id="monitorLink" href="checkin-select.html">受付モニター</a>
+    <a class="btn sub" id="detailLink" href="training-list.html">研修会詳細へ戻る</a>
+  </div>
+
+  <div class="toolbar">
+    <div>
+      <label>検索</label>
+      <input id="keyword" placeholder="会社名・業者番号・受付方法で検索" oninput="onSearchChanged()">
+    </div>
+    <div>
+      <label>表示</label>
+      <select id="statusFilter" onchange="onSearchChanged()">
+        <option value="active">受付済み</option>
+        <option value="canceled">取消済み</option>
+        <option value="all">すべて</option>
+      </select>
+    </div>
+    <button class="btn" type="button" onclick="loadHistory()">再検索</button>
+  </div>
+
+  <div id="summary" class="summary-row"></div>
+  <div id="status" class="status">読み込み中...</div>
+
+  <table id="historyTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>受付日時</th>
+        <th>会社名</th>
+        <th>業者番号</th>
+        <th>受付方法</th>
+        <th>結果</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pageInfo" class="pager-info">1 / 1ページ</span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+let histories =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  20;
+
+document.getElementById("detailLink").href =
+  "training-detail.html?event=" + encodeURIComponent(eventId);
+
+document.getElementById("monitorLink").href =
+  "live-checkin.html?event=" + encodeURIComponent(eventId) + "&return=detail";
+
+function setupBackLink(){
+
+  const detailLink =
+    document.getElementById("detailLink");
+
+  if(returnTo === "monitor" && eventId){
+    detailLink.href =
+      "live-checkin.html?event=" + encodeURIComponent(eventId) + "&return=detail";
+
+    detailLink.textContent =
+      "受付モニターへ戻る";
+
+    return;
+  }
+
+  if(returnTo === "detail" && eventId){
+    detailLink.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId);
+
+    detailLink.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  detailLink.href =
+    "training-detail.html?event=" + encodeURIComponent(eventId);
+
+  detailLink.textContent =
+    "研修会詳細へ戻る";
+}
+
+function loadTraining(){
+
+  if(!eventId){
+    document.getElementById("trainingInfo").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("trainingInfo").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      const t =
+        res.training || {};
+
+      document.getElementById("trainingInfo").innerHTML =
+        '<strong>' + escapeHtml(t.title || "") + '</strong><br>' +
+        escapeHtml(t.eventId || "") + " / " +
+        escapeHtml(t.hostType || "") + " / " +
+        escapeHtml(t.eventDate || "");
+    }
+  );
+}
+
+function loadHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  status.textContent =
+    "読み込み中...";
+
+  document.getElementById("historyTable").style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getCheckinHistoryJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付履歴を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      histories =
+        res.histories || [];
+
+      currentPage =
+        1;
+
+      renderHistory();
+    }
+  );
+}
+
+function getFilteredHistories(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filterValue =
+    document.getElementById("statusFilter").value;
+
+  return histories.filter(function(item){
+
+    if(filterValue === "active" && item.result !== "受付完了"){
+      return false;
+    }
+
+    if(filterValue === "canceled" && item.result !== "受付取消"){
+      return false;
+    }
+
+    if(!keyword){
+      return true;
+    }
+
+    const text =
+      [
+        item.date,
+        item.companyName,
+        item.memberNo,
+        item.method,
+        item.result
+      ].join(" ").toLowerCase();
+
+    return text.indexOf(keyword) !== -1;
+  });
+}
+
+function renderSummary(){
+
+  const activeCount =
+    histories.filter(function(item){
+      return item.result === "受付完了";
+    }).length;
+
+  const canceledCount =
+    histories.filter(function(item){
+      return item.result === "受付取消";
+    }).length;
+
+  document.getElementById("summary").innerHTML =
+    '<div class="summary-chip">受付済み ' + escapeHtml(activeCount) + '件</div>' +
+    '<div class="summary-chip">取消済み ' + escapeHtml(canceledCount) + '件</div>';
+}
+
+function renderHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const filtered =
+    getFilteredHistories();
+
+  renderSummary();
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "該当する受付履歴はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(item){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      '<td>' + escapeHtml(item.date || "") + '</td>' +
+      '<td>' + escapeHtml(item.companyName || "") + '</td>' +
+      '<td>' + escapeHtml(item.memberNo || "") + '</td>' +
+      '<td>' + escapeHtml(item.method || "") + '</td>' +
+      '<td>' + escapeHtml(item.result || "") + '</td>' +
+      '<td>' + makeActionCell(item) + '</td>';
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pageInfo").textContent =
+    currentPage + " / " + totalPages + "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function makeActionCell(item){
+
+  if(!item.rowNo){
+    return '<span class="muted">操作不可</span>';
+  }
+
+  if(item.result === "受付完了"){
+    return (
+      '<select class="reason-select" id="cancelReason-' + escapeHtml(item.rowNo) + '">' +
+        '<option value="会社選択間違い">会社選択間違い</option>' +
+        '<option value="二重受付">二重受付</option>' +
+        '<option value="本人申出">本人申出</option>' +
+        '<option value="テスト受付">テスト受付</option>' +
+        '<option value="その他">その他</option>' +
+      '</select> ' +
+      '<button class="btn danger" type="button" onclick="cancelCheckin(' + escapeHtml(item.rowNo) + ')">受付取消</button>'
+    );
+  }
+
+  if(item.result === "受付取消"){
+    return (
+      '<select class="reason-select" id="restoreReason-' + escapeHtml(item.rowNo) + '">' +
+        '<option value="取消操作間違い">取消操作間違い</option>' +
+        '<option value="再確認済み">再確認済み</option>' +
+        '<option value="その他">その他</option>' +
+      '</select> ' +
+      '<button class="btn" type="button" onclick="restoreCheckin(' + escapeHtml(item.rowNo) + ')">受付復活</button>'
+    );
+  }
+
+  return '<span class="muted">操作なし</span>';
+}
+
+function cancelCheckin(rowNo){
+
+  const reason =
+    document.getElementById("cancelReason-" + rowNo).value;
+
+  if(!confirm("この受付を取り消します。\n理由：" + reason + "\n\nよろしいですか？")){
+    return;
+  }
+
+  updateCheckinStatus(rowNo, "cancel", reason);
+}
+
+function restoreCheckin(rowNo){
+
+  const reason =
+    document.getElementById("restoreReason-" + rowNo).value;
+
+  if(!confirm("この受付を復活します。\n理由：" + reason + "\n\nよろしいですか？")){
+    return;
+  }
+
+  updateCheckinStatus(rowNo, "restore", reason);
+}
+
+function updateCheckinStatus(rowNo, mode, reason){
+
+  const user =
+    getCurrentAuthUser() || {};
+
+  jsonp(
+    "updateCheckinStatusJsonp",
+    {
+      event: eventId,
+      rowNo: rowNo,
+      mode: mode,
+      reason: reason,
+      operator: user.loginId || user.name || user.userId || ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        alert(res && res.message ? res.message : "受付状態を更新できませんでした。");
+        return;
+      }
+
+      loadHistory();
+    }
+  );
+}
+
+function onSearchChanged(){
+  currentPage =
+    1;
+
+  renderHistory();
+}
+
+function prevPage(){
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+  renderHistory();
+}
+
+function nextPage(){
+  const totalPages =
+    Math.ceil(getFilteredHistories().length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+  renderHistory();
+}
+
+setupBackLink();
+loadTraining();
+loadHistory();
+</script>
+
+</body>
+</html>

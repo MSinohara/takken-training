@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会作成・編集</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:900px;
+}
+
+textarea{
+  height:240px;
+}
+
+.help{
+  margin-top:6px;
+  color:#666;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.readonly{
+  background:#eee;
+}
+
+.org-box{
+  margin-top:8px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.org-main{
+  padding:8px 0 12px;
+  border-bottom:1px solid #ddd;
+  margin-bottom:10px;
+}
+
+.org-main label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-weight:bold;
+  margin-top:0;
+}
+
+.org-sub-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:8px 14px;
+  margin-top:8px;
+}
+
+.org-sub-grid label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 10px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-weight:normal;
+  margin-top:0;
+}
+
+.org-box input[type="checkbox"]{
+  width:auto;
+  margin:0;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会作成・編集</h1>
+</header>
+
+<main>
+  <div class="card">
+
+		<label>研修ID</label>
+		<input id="eventId" placeholder="例：2026-001">
+		<div class="actions">
+		  <button class="btn sub" type="button" onclick="setNextTrainingId()">研修IDを自動発番</button>
+		</div>
+		<div class="help">新規作成時は自動発番できます。編集時は変更できません。</div>
+
+    <label>研修名</label>
+    <input id="title" placeholder="例：AI初心者コース">
+
+    <label>イベント種別</label>
+    <select id="eventType" onchange="onEventTypeChanged()">
+      <option value="研修会">研修会</option>
+    </select>
+    <div class="help">
+      基本は研修会のままで使います。会議・行事などに広げる場合は、設定画面で種別を追加できます。
+    </div>
+
+		<label>主催区分</label>
+		<select id="hostType">
+		  <option value="第十ブロック">第十ブロック</option>
+		  <option value="杉並支部">杉並支部</option>
+		  <option value="中野支部">中野支部</option>
+		  <option value="世田谷支部">世田谷支部</option>
+		</select>
+		<div class="help">
+		  ブロック・支部は固定表示、青年部・レディス部・委員会などは組織設定で「主催区分」を使うにすると追加表示されます。
+		</div>
+
+    <label>受付方式</label>
+    <select id="receptionType">
+			<option value="会社QR">会社別QR受付（事前に会社別QRを送り、当日受付担当者が読み取ります）</option>
+			<option value="手入力">会場QR＋検索受付（会場QRから会社名などを検索して受付します）</option>
+			<option value="スマホ登録">スマホ事前登録＋会場QR受付（事前登録後、当日会場QRから受付します）</option>
+    </select>
+
+    <div class="notice">
+      <strong>受付方式について</strong><br>
+      会社QR：メール等で会社別QRを送り、当日受付担当者が読み取ります。<br>
+      会場QR＋手入力：会場掲示QRから会社名・業者番号を検索して受付します。<br>
+      スマホ登録＋会場QR：事前にスマホ登録し、当日は会場QRから受付します。<br>
+      ※どの方式でも、係員用受付から手動受付・QR再表示・メール再送ができます。
+    </div>
+
+    <label>受付単位（会社・個人）</label>
+    <select id="attendanceUnit">
+      <option value="会社">会社単位（1社を1件として受付）</option>
+      <option value="個人">個人単位（参加者ごとに受付）</option>
+    </select>
+    <div class="help">
+      研修会ごとに受付の数え方を選択します。会社単位は業者番号・会社QRで受付し、個人単位は個人会員マスタの個人QRで受付します。
+    </div>
+
+    <label>受付対象</label>
+    <select id="checkinTargetMode">
+      <option value="通常対象">対象設定から作成</option>
+      <option value="事前申込者のみ">事前申込者のみ</option>
+    </select>
+    <div class="help">
+      通常は対象ブロック・支部・地区・組織から受付対象を作成します。事前申込制で人数を絞る場合は「事前申込者のみ」を選び、研修会詳細の「当日参加予定者」から登録した方だけを受付対象にします。
+    </div>
+
+    <label>開催日</label>
+    <input id="eventDate" type="date">
+
+    <label>研修会場</label>
+    <select id="venuePreset" onchange="applyVenuePreset()">
+      <option value="">会場マスタを読み込み中...</option>
+    </select>
+    <div id="venueInfo" class="info" style="display:none;"></div>
+    <input id="venueId" type="hidden">
+    <input id="venueName" type="hidden">
+    <input id="venueAddress" type="hidden">
+    <input id="venueContactName" type="hidden">
+    <input id="venueContactPhone" type="hidden">
+    <input id="venueContactMail" type="hidden">
+    <input id="venueUrl" type="hidden">
+    <input id="venueCapacity" type="hidden">
+    <div class="help">
+      会場が決まっている場合は会場マスタから選択します。未定の場合は空欄のままで保存できます。
+      <a href="venue-master.html" target="_blank" onclick="markVenueMasterOpened()">会場マスタを開く</a>
+    </div>
+
+    <label>位置情報受付</label>
+    <select id="locationCheckEnabled">
+      <option value="FALSE">使わない</option>
+      <option value="TRUE">使う</option>
+    </select>
+    <div class="help">
+      「使う」にすると、案内メールに位置情報受付URLを追加し、会場マスタの緯度・経度を使って受付判定します。不要になった場合は「使わない」に戻します。
+    </div>
+
+    <label>位置情報受付開始</label>
+    <input id="locationCheckinStart" type="datetime-local">
+
+    <label>位置情報受付終了</label>
+    <input id="locationCheckinEnd" type="datetime-local">
+    <div class="help">
+      未入力の場合は、研修開始30分前から研修終了2時間後まで利用できます。終了時刻が未入力の場合は当日23:59までです。
+    </div>
+
+		<div class="notice">
+		  <strong>対象者設定</strong><br>
+		  ブロック・支部・地区は会員マスタの情報で絞り込みます。<br>
+		  青年部・レディス部・委員会などの任意グループだけ、対象組織で選択します。<br>
+		  何も選択しない場合は、会員マスタの全員が対象になります。
+		</div>
+
+		<label>対象ブロック</label>
+		<select id="targetBlock">
+		  <option value="">指定なし</option>
+		  <option value="第十ブロック">第十ブロック</option>
+		</select>
+
+		<label>対象支部</label>
+		<select id="targetBranch" onchange="updateTargetDistrictOptions()">
+		  <option value="">指定なし</option>
+		  <option value="杉並支部">杉並支部</option>
+		  <option value="中野支部">中野支部</option>
+		  <option value="世田谷支部">世田谷支部</option>
+		</select>
+
+		<label>対象地区</label>
+		<select id="targetDistrict">
+		  <option value="">指定なし</option>
+		</select>
+		<div class="help">
+		  対象支部を選択すると、その支部の地区だけを選択できます。
+		</div>
+
+		<label>対象組織</label>
+
+		<div id="targetOrgArea" class="org-box">
+		  組織一覧を読み込み中...
+		</div>
+
+		<div class="help">
+		  青年部・レディス部・役員・委員会など、会員マスタに無い任意グループを選択します。複数選択できます。
+		</div>
+
+    <label>集計表示組織</label>
+    <select id="statsOrgMode" onchange="onStatsOrgModeChanged()">
+      <option value="none">なし（所属組織別集計を表示しない）</option>
+      <option value="target">対象組織と同じ</option>
+      <option value="custom">個別に選択</option>
+    </select>
+    <div id="statsOrgCustomArea" style="display:none;">
+      <div id="statsOrgArea" class="org-box">
+        組織一覧を読み込み中...
+      </div>
+    </div>
+    <div class="help">
+      参加状況集計の「所属組織別」に表示する組織です。後から研修会を編集して変更できます。
+    </div>
+
+    <label>差出人組織</label>
+    <select id="senderOrgId">
+      <option value="">従来どおり主催区分から判定</option>
+    </select>
+    <div class="help">
+      メールの差出人名義に使用します。未選択の場合は従来どおり主催区分から判定します。
+    </div>
+
+    <label>メール署名</label>
+    <select id="mailSignatureId">
+      <option value="">署名なし</option>
+    </select>
+    <div class="help">
+      案内メールの末尾に自動で追加する署名です。
+      <a href="mail-signature-setting.html" target="_blank">メール署名設定を開く</a>
+    </div>
+
+    <div id="certificateField">
+      <label>修了証発行</label>
+      <select id="certificateEnabled">
+        <option value="TRUE">修了証対象</option>
+        <option value="FALSE">修了証なし</option>
+      </select>
+      <div class="help">
+        研修会として修了証対象にする場合は「修了証対象」にします。会議・行事では表示されません。
+      </div>
+    </div>
+
+    <label>メール件名</label>
+    <input id="subject" placeholder="例：研修会のご案内">
+
+		<label>メール本文</label>
+		<textarea id="body" placeholder="ここに案内文を入力してください。" oninput="updateBodyCount()"></textarea>
+		<div class="help">
+		  詳細な案内や資料はPDF添付をご利用ください。
+		</div>
+		<div id="bodyCount" class="help">本文文字数：0文字</div>
+
+    <label>出欠回答</label>
+    <select id="attendanceConfirmEnabled" onchange="onAttendanceConfirmChanged()">
+      <option value="FALSE">使わない</option>
+      <option value="TRUE">使う</option>
+    </select>
+    <div class="help">
+      「使う」にすると、メール本文に出欠回答URLの案内文を入れます。出欠項目は保存後に別画面で設定できます。
+    </div>
+
+    <div id="attendanceSettingActions" class="actions" style="display:none;">
+      <a id="attendanceSettingLink" class="btn sub" href="#" target="_blank" rel="noopener">出欠確認設定を開く</a>
+      <a id="attendanceResponsesLink" class="btn sub" href="#" target="_blank" rel="noopener">出欠回答一覧を開く</a>
+    </div>
+
+    <div id="attendanceStatusPublicArea" style="display:none;">
+      <label>出欠状況の共有</label>
+      <select id="attendanceStatusPublic">
+        <option value="FALSE">参加者には見せない</option>
+        <option value="TRUE">参加者にも出欠状況を知らせる</option>
+      </select>
+      <div class="help">
+        「参加者にも出欠状況を知らせる」にすると、回答ページで他の参加者の出欠状況も確認できます。
+      </div>
+    </div>
+
+    <label>添付ファイル</label>
+
+    <div class="actions">
+      <button class="btn sub" type="button" onclick="openPdfUploadPage()">
+        ファイルを添付（PCから）
+      </button>
+
+      <button class="btn danger" type="button" onclick="deletePdfFile()">
+        添付を削除
+      </button>
+    </div>
+
+    <select id="pdfSelect" onchange="selectPdfFile()" style="display:none;">
+      <option value="">添付ファイルを選択してください</option>
+    </select>
+
+    <div id="pdfInfo" class="info" style="display:none;"></div>
+
+    <input id="pdfFileId" type="hidden">
+
+    <div class="help">
+      PCから添付した後は自動で反映されます。削除するとDrive上の添付ファイルも削除されます。
+    </div>
+
+    <label>有効</label>
+    <select id="active">
+      <option value="TRUE">有効</option>
+      <option value="FALSE">無効</option>
+    </select>
+
+    <div class="actions">
+      <button class="btn" onclick="saveTraining()">保存する</button>
+      <a id="detailAction" class="btn" href="#" style="display:none;">研修会詳細へ戻る</a>
+      <a class="btn sub" href="training-list.html">一覧へ戻る</a>
+    </div>
+
+    <div id="result" class="result"></div>
+
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const editEventId =
+  params.get("event") || "";
+
+let organizationList =
+  [];
+
+let venueList =
+  [];
+
+let lastVenueReloadAt =
+  0;
+
+let districtMap =
+  {};
+
+let mailSignatureList =
+  [];
+
+let eventTypeList =
+  [];
+
+let statsOrgModeTouched =
+  false;
+
+let attendanceConfirmTouched =
+  false;
+
+function setNextTrainingId(){
+
+  if(editEventId){
+    alert("編集中の研修IDは変更できません。");
+    return;
+  }
+
+  jsonp(
+    "getNextTrainingIdJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        alert("研修IDを取得できませんでした。");
+        return;
+      }
+
+      document.getElementById("eventId").value =
+        res.eventId || "";
+    }
+  );
+}
+
+function saveTraining(){
+
+  const data = {
+    eventId: document.getElementById("eventId").value.trim(),
+    title: document.getElementById("title").value.trim(),
+    eventType: document.getElementById("eventType").value || "研修会",
+    hostType: document.getElementById("hostType").value,
+    receptionType: document.getElementById("receptionType").value,
+    attendanceUnit: document.getElementById("attendanceUnit").value,
+    checkinTargetMode: document.getElementById("checkinTargetMode").value,
+    eventDate: document.getElementById("eventDate").value,
+    venueId: document.getElementById("venueId").value.trim(),
+    venueName: document.getElementById("venueName").value.trim(),
+    venueAddress: document.getElementById("venueAddress").value.trim(),
+    venueContactName: document.getElementById("venueContactName").value.trim(),
+    venueContactPhone: document.getElementById("venueContactPhone").value.trim(),
+    venueContactMail: document.getElementById("venueContactMail").value.trim(),
+    venueUrl: document.getElementById("venueUrl").value.trim(),
+    venueCapacity: document.getElementById("venueCapacity").value.trim(),
+    locationCheckEnabled: document.getElementById("locationCheckEnabled").value,
+    locationCheckinStart: document.getElementById("locationCheckinStart").value,
+    locationCheckinEnd: document.getElementById("locationCheckinEnd").value,
+    attendanceConfirmEnabled: document.getElementById("attendanceConfirmEnabled").value,
+    attendanceStatusPublic: document.getElementById("attendanceStatusPublic").value,
+    subject: document.getElementById("subject").value.trim(),
+    body: document.getElementById("body").value,
+    pdfFileId: document.getElementById("pdfFileId").value.trim(),
+    active: document.getElementById("active").value,
+
+		targetBlock: document.getElementById("targetBlock").value,
+		targetBranch: document.getElementById("targetBranch").value,
+		targetDistrict: document.getElementById("targetDistrict").value.trim(),
+		targetOrgIdsNew: getSelectedTargetOrgIds().join(","),
+    statsOrgMode: document.getElementById("statsOrgMode").value,
+    statsOrgIds: getSelectedStatsOrgIds().join(","),
+
+		targetOrgIds: "",
+		senderOrgId: document.getElementById("senderOrgId").value,
+    mailSignatureId: document.getElementById("mailSignatureId").value,
+    certificateEnabled:
+      dataEventTypeAllowsCertificate(document.getElementById("eventType").value)
+        ? document.getElementById("certificateEnabled").value
+        : "FALSE"
+  };
+
+  if(!data.eventId || !data.title || !data.subject){
+    alert("研修ID、研修名、メール件名は必須です。");
+    return;
+  }
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "保存中...";
+
+	jsonpWithLongBody(
+	  "saveTrainingJsonp",
+	  data,
+	  function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      const detailAction =
+        document.getElementById("detailAction");
+
+      detailAction.href =
+        "training-detail.html?event=" +
+        encodeURIComponent(data.eventId);
+
+      detailAction.textContent =
+        editEventId
+          ? "研修会詳細へ戻る"
+          : "研修会詳細を開く";
+
+      detailAction.style.display =
+        "inline-block";
+
+      updateAttendanceSettingLinks(
+        data.eventId
+      );
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>';
+    }
+  );
+}
+
+function setupDetailAction(){
+
+  if(!editEventId){
+    syncStatsOrgModeDefault();
+    return;
+  }
+
+  const detailAction =
+    document.getElementById("detailAction");
+
+  detailAction.href =
+    "training-detail.html?event=" +
+    encodeURIComponent(editEventId);
+
+  detailAction.textContent =
+    "研修会詳細へ戻る";
+
+  detailAction.style.display =
+    "inline-block";
+}
+
+function loadTrainingForEdit(){
+
+  if(!editEventId){
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: editEventId },
+    function(res){
+
+      if(!res || !res.ok){
+        alert("研修会情報を読み込めませんでした。");
+        return;
+      }
+
+      const t =
+        res.training;
+
+      document.getElementById("eventId").value =
+        t.eventId || "";
+
+      document.getElementById("eventId").readOnly =
+        true;
+
+      document.getElementById("eventId").classList.add(
+        "readonly"
+      );
+
+      document.getElementById("title").value =
+        t.title || "";
+
+      setEventTypeValue(
+        t.eventType || "研修会"
+      );
+
+      document.getElementById("hostType").value =
+        t.hostType || "杉並支部";
+
+      document.getElementById("receptionType").value =
+        normalizeReceptionType(t.receptionType);
+
+      document.getElementById("attendanceUnit").value =
+        normalizeAttendanceUnit(t.attendanceUnit);
+
+      document.getElementById("checkinTargetMode").value =
+        normalizeCheckinTargetMode(t.checkinTargetMode);
+
+      document.getElementById("eventDate").value =
+        formatDateInput(t.eventDate);
+
+      setTrainingVenue(
+        {
+          venueId: t.venueId || "",
+          venueName: t.venueName || "",
+          venueAddress: t.venueAddress || "",
+          venueContactName: t.venueContactName || "",
+          venueContactPhone: t.venueContactPhone || "",
+          venueContactMail: t.venueContactMail || "",
+          venueUrl: t.venueUrl || "",
+          venueCapacity: t.venueCapacity || ""
+        }
+      );
+
+      document.getElementById("locationCheckEnabled").value =
+        t.locationCheckEnabled === true ||
+        String(t.locationCheckEnabled).toUpperCase() === "TRUE"
+          ? "TRUE"
+          : "FALSE";
+
+      document.getElementById("locationCheckinStart").value =
+        formatDateTimeLocalInput(t.locationCheckinStart);
+
+      document.getElementById("locationCheckinEnd").value =
+        formatDateTimeLocalInput(t.locationCheckinEnd);
+
+      document.getElementById("subject").value =
+        t.subject || "";
+
+      document.getElementById("body").value =
+        t.body || "";
+
+			updateBodyCount();
+
+      document.getElementById("attendanceConfirmEnabled").value =
+        t.attendanceConfirmEnabled === true ||
+        String(t.attendanceConfirmEnabled).toUpperCase() === "TRUE"
+          ? "TRUE"
+          : "FALSE";
+
+      document.getElementById("attendanceStatusPublic").value =
+        t.attendanceStatusPublic === true ||
+        String(t.attendanceStatusPublic).toUpperCase() === "TRUE"
+          ? "TRUE"
+          : "FALSE";
+
+      attendanceConfirmTouched =
+        true;
+
+      updateAttendanceConfirmView();
+
+      document.getElementById("pdfFileId").value =
+        t.pdfFileId || "";
+
+      showTrainingPdfInfo(t);
+
+      document.getElementById("active").value =
+        String(t.active).toUpperCase() === "FALSE"
+          ? "FALSE"
+          : "TRUE";
+			document.getElementById("targetBlock").value =
+			  t.targetBlock || "";
+
+			document.getElementById("targetBranch").value =
+			  t.targetBranch || "";
+
+			updateTargetDistrictOptions(
+			  t.targetDistrict || ""
+			);
+
+			setSelectedTargetOrgIds(
+			  t.targetOrgIdsNew || ""
+			);
+
+      document.getElementById("statsOrgMode").value =
+        getInitialStatsOrgMode(t);
+
+      setSelectedStatsOrgIds(
+        t.statsOrgIds || ""
+      );
+
+      updateStatsOrgModeView();
+
+      statsOrgModeTouched =
+        false;
+
+      document.getElementById("senderOrgId").value =
+        t.senderOrgId || "";
+
+      document.getElementById("mailSignatureId").value =
+        t.mailSignatureId || "";
+
+      document.getElementById("certificateEnabled").value =
+        t.certificateEnabled === false
+          ? "FALSE"
+          : "TRUE";
+
+      updateCertificateFieldForEventType();
+    }
+  );
+}
+
+function normalizeReceptionType(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(text === "WEBフォーム"){
+    return "手入力";
+  }
+
+  if(text === "会社QR" || text === "手入力" || text === "スマホ登録"){
+    return text;
+  }
+
+  return "会社QR";
+}
+
+function normalizeAttendanceUnit(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(text === "個人" || text === "個人単位"){
+    return "個人";
+  }
+
+  return "会社";
+}
+
+function normalizeCheckinTargetMode(value){
+
+  const text =
+    String(value || "").trim();
+
+  return text === "事前申込者のみ" ||
+    text === "事前申込" ||
+    text === "事前申込者" ||
+    text === "事前受付" ||
+    text === "planned" ||
+    text === "plannedOnly"
+    ? "事前申込者のみ"
+    : "通常対象";
+}
+
+function formatDateInput(value){
+
+  if(!value){
+    return "";
+  }
+
+  const text =
+    String(value);
+
+  if(text.includes("/")){
+    const parts =
+      text.split("/");
+
+    return parts[0] +
+      "-" +
+      String(parts[1]).padStart(2,"0") +
+      "-" +
+      String(parts[2]).padStart(2,"0");
+  }
+
+  if(text.includes("-")){
+    return text.substring(0,10);
+  }
+
+  return "";
+}
+
+function updateTargetDistrictOptions(selectedValue){
+
+  const branch =
+    document.getElementById("targetBranch").value;
+
+  const districtSelect =
+    document.getElementById("targetDistrict");
+
+  const currentValue =
+    selectedValue !== undefined
+      ? selectedValue
+      : districtSelect.value;
+
+  districtSelect.innerHTML =
+    '<option value="">指定なし</option>';
+
+  const districts =
+    districtMap[branch] || [];
+
+  districts.forEach(function(district){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      district;
+
+    option.textContent =
+      district;
+
+    districtSelect.appendChild(option);
+  });
+
+  districtSelect.value =
+    currentValue;
+
+  if(districtSelect.value !== currentValue){
+    districtSelect.value =
+      "";
+  }
+}
+
+function loadEventTypes(){
+
+  jsonp(
+    "getEventTypesJsonp",
+    {},
+    function(res){
+
+      eventTypeList =
+        (res && res.ok)
+          ? (res.eventTypes || [])
+          : [];
+
+      renderEventTypeOptions(
+        document.getElementById("eventType").value || "研修会"
+      );
+    }
+  );
+}
+
+function renderEventTypeOptions(selectedValue){
+
+  const select =
+    document.getElementById("eventType");
+
+  const value =
+    selectedValue || "研修会";
+
+  select.innerHTML =
+    "";
+
+  const activeList =
+    eventTypeList.filter(function(item){
+      return item.active !== "FALSE";
+    });
+
+  const hasTraining =
+    activeList.some(function(item){
+      return item.eventTypeName === "研修会";
+    });
+
+  if(!hasTraining){
+    const option =
+      document.createElement("option");
+
+    option.value =
+      "研修会";
+
+    option.textContent =
+      "研修会";
+
+    select.appendChild(option);
+  }
+
+  activeList.forEach(function(item){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      item.eventTypeName;
+
+    option.textContent =
+      item.eventTypeName;
+
+    option.setAttribute(
+      "data-attendance-confirm-default",
+      item.attendanceConfirmDefault || "FALSE"
+    );
+
+    select.appendChild(option);
+  });
+
+  setEventTypeValue(value);
+  applyAttendanceDefaultForEventType();
+}
+
+function setEventTypeValue(value){
+
+  const select =
+    document.getElementById("eventType");
+
+  const target =
+    value || "研修会";
+
+  const exists =
+    Array.prototype.some.call(select.options, function(option){
+      return option.value === target;
+    });
+
+  if(!exists){
+    const option =
+      document.createElement("option");
+
+    option.value =
+      target;
+
+    option.textContent =
+      target + "（現在は無効）";
+
+    select.appendChild(option);
+  }
+
+  select.value =
+    target;
+
+  updateCertificateFieldForEventType();
+}
+
+function onEventTypeChanged(){
+
+  applyAttendanceDefaultForEventType();
+  updateCertificateFieldForEventType();
+}
+
+
+function dataEventTypeAllowsCertificate(eventType){
+
+  return String(eventType || "研修会").trim() === "研修会";
+}
+
+
+function updateCertificateFieldForEventType(){
+
+  const field =
+    document.getElementById("certificateField");
+
+  const select =
+    document.getElementById("certificateEnabled");
+
+  if(!field || !select){
+    return;
+  }
+
+  const enabled =
+    dataEventTypeAllowsCertificate(
+      document.getElementById("eventType").value
+    );
+
+  field.style.display =
+    enabled
+      ? ""
+      : "none";
+
+  if(!enabled){
+    select.value =
+      "FALSE";
+  }
+}
+
+function applyAttendanceDefaultForEventType(){
+
+  if(editEventId || attendanceConfirmTouched){
+    return;
+  }
+
+  const select =
+    document.getElementById("eventType");
+
+  const option =
+    select.options[select.selectedIndex];
+
+  const defaultValue =
+    option
+      ? option.getAttribute("data-attendance-confirm-default") || "FALSE"
+      : "FALSE";
+
+  document.getElementById("attendanceConfirmEnabled").value =
+    defaultValue === "TRUE"
+      ? "TRUE"
+      : "FALSE";
+
+  updateAttendanceConfirmView();
+}
+
+function loadDistricts(){
+
+  jsonp(
+    "getDistrictsJsonp",
+    {},
+    function(res){
+
+      if(res && res.ok){
+        districtMap =
+          res.districts || {};
+      }
+
+      loadOrganizations();
+    }
+  );
+}
+
+function loadPdfFiles(){
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.textContent =
+    "添付ファイル一覧を読み込み中...";
+
+  jsonp(
+    "getPdfFilesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        pdfInfo.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "添付ファイル一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      pdfSelect.innerHTML =
+        '<option value="">添付ファイルを選択してください</option>';
+
+      res.files.forEach(function(file){
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          file.id;
+
+        option.textContent =
+          file.name;
+
+        option.setAttribute(
+          "data-name",
+          file.name
+        );
+
+				option.setAttribute(
+				  "data-url",
+				  file.url
+				);
+
+        pdfSelect.appendChild(option);
+      });
+
+      pdfSelect.style.display =
+        "block";
+
+      pdfInfo.innerHTML =
+        '<span class="ok">添付ファイル一覧を読み込みました。</span><br>' +
+        res.files.length +
+        "件";
+    }
+  );
+}
+
+
+function selectPdfFile(){
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  const fileId =
+    pdfSelect.value;
+
+  const selected =
+    pdfSelect.options[pdfSelect.selectedIndex];
+
+  const fileName =
+    selected
+      ? selected.getAttribute("data-name") || ""
+      : "";
+
+	const fileUrl =
+	  selected
+	    ? selected.getAttribute("data-url") || ""
+	    : "";
+
+  document.getElementById("pdfFileId").value =
+    fileId;
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  if(!fileId){
+    pdfInfo.style.display =
+      "none";
+    return;
+  }
+
+  pdfInfo.style.display =
+    "block";
+
+pdfInfo.innerHTML =
+  '<span class="ok">選択中の添付ファイル</span><br>' +
+  escapeHtml(fileName) +
+  '<br>' +
+  '<a class="btn sub" href="' +
+  escapeHtml(fileUrl) +
+  '" target="_blank">添付ファイルを開く</a>' +
+  '<br><br>' +
+  '<span class="muted">このファイルがメールに添付されます。</span>';
+}
+
+function formatDateTimeLocalInput(value){
+
+  if(!value){
+    return "";
+  }
+
+  const text =
+    String(value).trim();
+
+  const match =
+    text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2}))?/);
+
+  if(!match){
+    return "";
+  }
+
+  return match[1] +
+    "-" +
+    String(match[2]).padStart(2, "0") +
+    "-" +
+    String(match[3]).padStart(2, "0") +
+    "T" +
+    String(match[4] || "00").padStart(2, "0") +
+    ":" +
+    String(match[5] || "00").padStart(2, "0");
+}
+
+function loadVenueMasters(){
+
+  jsonp(
+    "getVenueMastersJsonp",
+    {},
+    function(res){
+
+      venueList =
+        res && res.ok
+          ? (res.venues || []).filter(function(venue){
+              return String(venue.active || "TRUE").toUpperCase() !== "FALSE";
+            })
+          : [];
+
+      renderVenueOptions();
+    }
+  );
+}
+
+function markVenueMasterOpened(){
+
+  try {
+    sessionStorage.setItem(
+      "trainingFormVenueMasterOpenedAt",
+      String(Date.now())
+    );
+  } catch (err) {
+  }
+}
+
+function reloadVenueMastersAfterMasterEdit(){
+
+  let openedAt =
+    "";
+
+  try {
+    openedAt =
+      sessionStorage.getItem("trainingFormVenueMasterOpenedAt") || "";
+  } catch (err) {
+    openedAt =
+      "";
+  }
+
+  if(!openedAt){
+    return;
+  }
+
+  const openedTime =
+    Number(openedAt);
+
+  if(
+    openedTime &&
+    Date.now() - openedTime > 10 * 60 * 1000
+  ){
+    try {
+      sessionStorage.removeItem("trainingFormVenueMasterOpenedAt");
+    } catch (err) {
+    }
+    return;
+  }
+
+  if(Date.now() - lastVenueReloadAt < 1500){
+    return;
+  }
+
+  lastVenueReloadAt =
+    Date.now();
+
+  loadVenueMasters();
+}
+
+function renderVenueOptions(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(!select){
+    return;
+  }
+
+  select.innerHTML =
+    '<option value="">会場未定・指定なし</option>';
+
+  venueList.forEach(function(venue, index){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      String(index);
+
+    option.textContent =
+      venue.venueAddress
+        ? venue.venueName + " / " + venue.venueAddress
+        : venue.venueName;
+
+    select.appendChild(option);
+  });
+
+  selectVenueOptionByHiddenValue();
+}
+
+function applyVenuePreset(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(select.value === ""){
+    setTrainingVenue({});
+    return;
+  }
+
+  const venue =
+    venueList[Number(select.value)];
+
+  if(!venue){
+    return;
+  }
+
+  setTrainingVenue(venue);
+}
+
+function setTrainingVenue(venue){
+
+  venue =
+    venue || {};
+
+  document.getElementById("venueId").value =
+    venue.venueId || "";
+
+  document.getElementById("venueName").value =
+    venue.venueName || "";
+
+  document.getElementById("venueAddress").value =
+    venue.venueAddress || "";
+
+  document.getElementById("venueContactName").value =
+    venue.venueContactName || "";
+
+  document.getElementById("venueContactPhone").value =
+    venue.venueContactPhone || "";
+
+  document.getElementById("venueContactMail").value =
+    venue.venueContactMail || "";
+
+  document.getElementById("venueUrl").value =
+    venue.venueUrl || "";
+
+  document.getElementById("venueCapacity").value =
+    venue.venueCapacity || "";
+
+  renderVenueInfo();
+  selectVenueOptionByHiddenValue();
+}
+
+function renderVenueInfo(){
+
+  const info =
+    document.getElementById("venueInfo");
+
+  const venueName =
+    document.getElementById("venueName").value.trim();
+
+  if(!venueName){
+    info.style.display =
+      "none";
+    info.innerHTML =
+      "";
+    return;
+  }
+
+  const venueAddress =
+    document.getElementById("venueAddress").value.trim();
+
+  const contactName =
+    document.getElementById("venueContactName").value.trim();
+
+  const contactPhone =
+    document.getElementById("venueContactPhone").value.trim();
+
+  const capacity =
+    document.getElementById("venueCapacity").value.trim();
+
+  let html =
+    '<span class="ok">選択中の会場</span><br>' +
+    escapeHtml(venueName);
+
+  if(venueAddress){
+    html +=
+      '<br>' + escapeHtml(venueAddress);
+  }
+
+  if(contactName || contactPhone){
+    html +=
+      '<br>' + escapeHtml([contactName, contactPhone].filter(Boolean).join(" / "));
+  }
+
+  if(capacity){
+    html +=
+      '<br>定員 ' + escapeHtml(capacity) + '名';
+  }
+
+  info.style.display =
+    "block";
+
+  info.innerHTML =
+    html;
+}
+
+function selectVenueOptionByHiddenValue(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(!select){
+    return;
+  }
+
+  const venueId =
+    document.getElementById("venueId").value.trim();
+
+  const venueName =
+    document.getElementById("venueName").value.trim();
+
+  const venueAddress =
+    document.getElementById("venueAddress").value.trim();
+
+  select.value =
+    "";
+
+  for(let i = 0; i < venueList.length; i++){
+
+    const venue =
+      venueList[i];
+
+    if(
+      venueId &&
+      String(venue.venueId || "") === venueId
+    ){
+      select.value =
+        String(i);
+      return;
+    }
+
+    if(
+      !venueId &&
+      venueName &&
+      String(venue.venueName || "") === venueName &&
+      String(venue.venueAddress || "") === venueAddress
+    ){
+      select.value =
+        String(i);
+      return;
+    }
+  }
+}
+
+function showTrainingPdfInfo(training){
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  if(!training || !training.pdfFileId){
+    pdfInfo.innerHTML =
+      "現在、添付ファイルは設定されていません。";
+    return;
+  }
+
+  let html =
+    '<span class="ok">現在の添付ファイル</span><br>';
+
+  if(training.pdfFiles && training.pdfFiles.length){
+    training.pdfFiles.forEach(function(file){
+      html +=
+        escapeHtml(file.name || "添付ファイル") +
+        (file.url
+          ? ' <a href="' + escapeHtml(file.url) + '" target="_blank">開く</a>'
+          : "") +
+        "<br>";
+    });
+  } else if(training.pdfFileName){
+    html +=
+      escapeHtml(training.pdfFileName) +
+      "<br>";
+  } else {
+    html +=
+      "添付ファイルが設定されています。<br>";
+  }
+
+  if(training.pdfFileUrl && !(training.pdfFiles && training.pdfFiles.length)){
+    html +=
+      '<a class="btn sub" href="' +
+      escapeHtml(training.pdfFileUrl) +
+      '" target="_blank">添付ファイルを開く</a><br><br>';
+  }
+
+  html +=
+    '<span class="muted">このファイルがメールに添付されます。</span>';
+
+  pdfInfo.innerHTML =
+    html;
+}
+
+function reloadTrainingPdfInfo(){
+
+  if(!document.getElementById("eventId").value.trim()){
+    alert("先に研修IDを入力してください。");
+    return;
+  }
+
+  loadTrainingForEdit();
+}
+
+function clearPdfFile(){
+
+  if(!confirm("この研修会メールから添付ファイルを外します。\nよろしいですか？\n\n※Google Drive上のファイル自体は削除されません。")){
+    return;
+  }
+
+  document.getElementById("pdfFileId").value =
+    "";
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  if(pdfSelect){
+    pdfSelect.value =
+      "";
+  }
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.innerHTML =
+    '<span class="ng">添付ファイルを外しました。</span><br>' +
+    'この変更を反映するには「保存する」を押してください。';
+}
+
+function deletePdfFile(){
+
+  const eventId =
+    document.getElementById("eventId").value.trim();
+
+  const pdfFileId =
+    document.getElementById("pdfFileId").value.trim();
+
+  if(!eventId){
+    alert("先に研修IDを入力してください。");
+    return;
+  }
+
+  if(!pdfFileId){
+    alert("削除する添付ファイルがありません。");
+    return;
+  }
+
+  if(!confirm("添付ファイルをGoogle Driveから削除し、この研修会メールからも外します。\nよろしいですか？\n\n※同じファイルを他の研修会でも使っている場合、そのファイルも開けなくなります。")){
+    return;
+  }
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.textContent =
+    "添付ファイルを削除中...";
+
+  jsonp(
+    "deleteTrainingPdfJsonp",
+    {
+      event: eventId,
+      pdfFileId: pdfFileId
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        pdfInfo.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "添付ファイルを削除できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("pdfFileId").value =
+        "";
+
+      pdfInfo.innerHTML =
+        '<span class="ok">添付ファイルをDriveから削除し、研修会から外しました。</span>';
+    }
+  );
+}
+
+function openPdfUploadPage(){
+
+  const eventId =
+    document.getElementById("eventId").value.trim();
+
+  if(!eventId){
+    alert("先に研修IDを入力してください。");
+    return;
+  }
+
+  window.open(
+    GAS_WEB_APP_URL +
+    "?page=pdfUpload&event=" +
+    encodeURIComponent(eventId),
+    "_blank"
+  );
+}
+
+function loadOrganizations(){
+
+  jsonp(
+    "getOrganizationsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("targetOrgArea").innerHTML =
+          '<span class="ng">組織一覧を取得できませんでした。</span>';
+        document.getElementById("statsOrgArea").innerHTML =
+          '<span class="ng">組織一覧を取得できませんでした。</span>';
+        loadTrainingForEdit();
+        return;
+      }
+
+      organizationList =
+        (res.organizations || []).filter(function(o){
+          return o.active !== "FALSE";
+        });
+
+      renderOrganizationInputs();
+
+      loadTrainingForEdit();
+    }
+  );
+}
+
+function loadMailSignatures(){
+
+  jsonp(
+    "getMailSignaturesJsonp",
+    {},
+    function(res){
+
+      mailSignatureList =
+        (res && res.ok)
+          ? (res.signatures || []).filter(function(signature){
+              return signature.active !== "FALSE";
+            })
+          : [];
+
+      renderMailSignatureOptions();
+    }
+  );
+}
+
+function renderMailSignatureOptions(){
+
+  const select =
+    document.getElementById("mailSignatureId");
+
+  const currentValue =
+    select.value;
+
+  select.innerHTML =
+    '<option value="">署名なし</option>';
+
+  mailSignatureList.forEach(function(signature){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      signature.signatureId || "";
+
+    option.textContent =
+      signature.signatureName || signature.signatureId || "";
+
+    select.appendChild(option);
+  });
+
+  select.value =
+    currentValue || "";
+}
+
+
+function renderOrganizationInputs(){
+
+  const targetArea =
+    document.getElementById("targetOrgArea");
+
+  const statsArea =
+    document.getElementById("statsOrgArea");
+
+  const senderSelect =
+    document.getElementById("senderOrgId");
+
+  const hostSelect =
+    document.getElementById("hostType");
+
+  targetArea.innerHTML =
+    "";
+
+  statsArea.innerHTML =
+    "";
+
+  senderSelect.innerHTML =
+    '<option value="">従来どおり主催区分から判定</option>';
+
+  hostSelect.innerHTML =
+    '<option value="第十ブロック">第十ブロック</option>' +
+    '<option value="杉並支部">杉並支部</option>' +
+    '<option value="中野支部">中野支部</option>' +
+    '<option value="世田谷支部">世田谷支部</option>';
+
+  const subBox =
+    document.createElement("div");
+
+  subBox.className =
+    "org-sub-grid";
+
+  const statsSubBox =
+    document.createElement("div");
+
+  statsSubBox.className =
+    "org-sub-grid";
+
+  organizationList.forEach(function(o){
+
+    const label =
+      document.createElement("label");
+
+    label.innerHTML =
+      '<span>' +
+      escapeHtml(o.orgName) +
+      '</span>' +
+      '<input type="checkbox" class="targetOrgCheck" onchange="syncStatsOrgModeDefault()" value="' +
+      escapeHtml(o.orgId) +
+      '">';
+
+    subBox.appendChild(label);
+
+    const statsLabel =
+      document.createElement("label");
+
+    statsLabel.innerHTML =
+      '<span>' +
+      escapeHtml(o.orgName) +
+      '</span>' +
+      '<input type="checkbox" class="statsOrgCheck" value="' +
+      escapeHtml(o.orgId) +
+      '">';
+
+    statsSubBox.appendChild(statsLabel);
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      o.orgId;
+
+    option.textContent =
+      o.orgName + " / " + o.senderName;
+
+    senderSelect.appendChild(option);
+
+    if(o.hostAvailable === "TRUE"){
+
+      const exists =
+        Array.from(hostSelect.options).some(function(option){
+          return option.value === o.orgName;
+        });
+
+      if(!exists){
+
+        const hostOption =
+          document.createElement("option");
+
+        hostOption.value =
+          o.orgName;
+
+        hostOption.textContent =
+          o.orgName;
+
+        hostSelect.appendChild(hostOption);
+      }
+    }
+  });
+
+  if(subBox.children.length === 0){
+
+    targetArea.innerHTML =
+      '<span class="muted">対象組織は登録されていません。</span>';
+
+    statsArea.innerHTML =
+      '<span class="muted">集計表示組織は登録されていません。</span>';
+
+  } else {
+
+    targetArea.appendChild(subBox);
+    statsArea.appendChild(statsSubBox);
+  }
+
+  updateStatsOrgModeView();
+}
+
+
+function getSelectedTargetOrgIds(){
+
+  return Array.from(
+    document.querySelectorAll(".targetOrgCheck")
+  )
+    .filter(function(check){
+      return check.checked;
+    })
+    .map(function(check){
+      return check.value;
+    });
+}
+
+
+function setSelectedTargetOrgIds(text){
+
+  const ids =
+    String(text || "")
+      .split(",")
+      .map(function(v){
+        return v.trim();
+      })
+      .filter(function(v){
+        return v !== "";
+      });
+
+  document.querySelectorAll(".targetOrgCheck").forEach(function(check){
+    check.checked =
+      ids.indexOf(check.value) !== -1;
+  });
+}
+
+function updateStatsOrgModeView(){
+
+  const mode =
+    document.getElementById("statsOrgMode").value;
+
+  document.getElementById("statsOrgCustomArea").style.display =
+    mode === "custom"
+      ? "block"
+      : "none";
+}
+
+function onStatsOrgModeChanged(){
+
+  statsOrgModeTouched =
+    true;
+
+  updateStatsOrgModeView();
+}
+
+function getInitialStatsOrgMode(training){
+
+  const mode =
+    String(training && training.statsOrgMode || "").trim();
+
+  if(mode === "custom" || mode === "target"){
+    return mode;
+  }
+
+  if(
+    mode === "none" &&
+    (!training || (!training.statsOrgIds && !training.targetOrgIdsNew))
+  ){
+    return "none";
+  }
+
+  if(training && training.statsOrgIds){
+    return "custom";
+  }
+
+  if(training && training.targetOrgIdsNew){
+    return "target";
+  }
+
+  return "none";
+}
+
+function syncStatsOrgModeDefault(){
+
+  if(statsOrgModeTouched){
+    return;
+  }
+
+  const hasTargetOrg =
+    getSelectedTargetOrgIds().length > 0;
+
+  document.getElementById("statsOrgMode").value =
+    hasTargetOrg
+      ? "target"
+      : "none";
+
+  updateStatsOrgModeView();
+}
+
+function getSelectedStatsOrgIds(){
+
+  const mode =
+    document.getElementById("statsOrgMode").value;
+
+  if(mode !== "custom"){
+    return [];
+  }
+
+  return Array.from(
+    document.querySelectorAll(".statsOrgCheck")
+  )
+    .filter(function(check){
+      return check.checked;
+    })
+    .map(function(check){
+      return check.value;
+    });
+}
+
+function setSelectedStatsOrgIds(text){
+
+  const ids =
+    String(text || "")
+      .split(",")
+      .map(function(v){
+        return v.trim();
+      })
+      .filter(function(v){
+        return v !== "";
+      });
+
+  document.querySelectorAll(".statsOrgCheck").forEach(function(check){
+    check.checked =
+      ids.indexOf(check.value) !== -1;
+  });
+}
+
+function updateBodyCount(){
+
+  const body =
+    document.getElementById("body").value;
+
+  document.getElementById("bodyCount").textContent =
+    "本文文字数：" + body.length + "文字";
+}
+
+function onAttendanceConfirmChanged(){
+
+  attendanceConfirmTouched =
+    true;
+
+  updateAttendanceConfirmView();
+}
+
+function updateAttendanceConfirmView(){
+
+  const enabled =
+    document.getElementById("attendanceConfirmEnabled").value === "TRUE";
+
+  document.getElementById("attendanceStatusPublicArea").style.display =
+    enabled
+      ? "block"
+      : "none";
+
+  if(!enabled){
+    document.getElementById("attendanceStatusPublic").value =
+      "FALSE";
+  }
+
+  updateAttendanceSettingLinks(
+    document.getElementById("eventId").value.trim()
+  );
+}
+
+function updateAttendanceSettingLinks(eventId){
+
+  const area =
+    document.getElementById("attendanceSettingActions");
+
+  const settingLink =
+    document.getElementById("attendanceSettingLink");
+
+  const responsesLink =
+    document.getElementById("attendanceResponsesLink");
+
+  const enabled =
+    document.getElementById("attendanceConfirmEnabled").value === "TRUE";
+
+  if(!area || !settingLink || !responsesLink){
+    return;
+  }
+
+  if(!enabled || !eventId){
+    area.style.display =
+      "none";
+    return;
+  }
+
+  settingLink.href =
+    "attendance-setting.html?event=" +
+    encodeURIComponent(eventId);
+
+  responsesLink.href =
+    "attendance-responses.html?event=" +
+    encodeURIComponent(eventId);
+
+  area.style.display =
+    "flex";
+}
+
+setupDetailAction();
+loadEventTypes();
+loadMailSignatures();
+loadVenueMasters();
+loadDistricts();
+updateAttendanceConfirmView();
+
+window.addEventListener("focus", reloadVenueMastersAfterMasterEdit);
+window.addEventListener("pageshow", reloadVenueMastersAfterMasterEdit);
+
+function handleTrainingAttachmentUpdated(event){
+
+  if(!event || event.key !== "trainingAttachmentUpdated"){
+    return;
+  }
+
+  refreshAttachmentIfCurrentTraining(event.newValue);
+}
+
+function refreshAttachmentIfCurrentTraining(value){
+
+  let data;
+
+  try {
+    data =
+      JSON.parse(value || "{}");
+  } catch (err) {
+    return;
+  }
+
+  const currentEventId =
+    document.getElementById("eventId").value.trim();
+
+  if(!currentEventId || data.eventId !== currentEventId){
+    return;
+  }
+
+  loadTrainingForEdit();
+}
+
+window.addEventListener("storage", handleTrainingAttachmentUpdated);
+window.addEventListener("focus", function(){
+  try {
+    refreshAttachmentIfCurrentTraining(
+      localStorage.getItem("trainingAttachmentUpdated")
+    );
+  } catch (err) {}
+});
+</script>
+
+</body>
+</html>

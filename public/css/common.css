@@ -1,0 +1,302 @@
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+  background:#f4f6f8;
+  color:#222;
+}
+
+header{
+  background:#12345a;
+  color:#fff;
+  padding:20px 28px;
+}
+
+header h1{
+  margin:0;
+  font-size:24px;
+}
+
+header p{
+  margin:8px 0 0;
+  font-size:14px;
+  opacity:0.9;
+}
+
+.global-nav{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:#eef2f6;
+  border-bottom:1px solid #d8dde5;
+  padding:8px 28px;
+}
+
+.global-nav-inner{
+  max-width:1200px;
+  margin:0 auto;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+.global-nav a{
+  display:inline-block;
+  padding:7px 10px;
+  border-radius:8px;
+  background:#fff;
+  color:#12345a;
+  border:1px solid #d8dde5;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.global-nav a.primary{
+  background:#12345a;
+  border-color:#12345a;
+  color:#fff;
+}
+
+.global-nav-logout{
+  margin-left:auto;
+  padding:7px 10px;
+  border-radius:8px;
+  background:#7a1f1f;
+  color:#fff;
+  border:1px solid #7a1f1f;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+main{
+  max-width:1040px;
+  margin:28px auto;
+  padding:0 18px;
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  margin-bottom:18px;
+}
+
+.actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:18px;
+}
+
+.btn{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:8px;
+  background:#12345a;
+  color:#fff;
+  text-decoration:none;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.btn.sub{
+  background:#666;
+}
+
+.btn.warn{
+  background:#9a4b00;
+}
+
+.btn.danger{
+  background:#9a0000;
+}
+
+.btn:disabled{
+  background:#aaa;
+  cursor:not-allowed;
+}
+
+.status{
+  color:#666;
+  line-height:1.8;
+  margin:12px 0;
+}
+
+.result{
+  margin-top:18px;
+  padding:14px;
+  border-radius:8px;
+  background:#f7f7f7;
+  line-height:1.8;
+  display:none;
+}
+
+.ok{
+  color:#0a7a2f;
+  font-weight:bold;
+}
+
+.ng{
+  color:#b00020;
+  font-weight:bold;
+}
+
+label{
+  display:block;
+  margin-top:14px;
+  font-weight:bold;
+}
+
+input,
+select,
+textarea{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px;
+  font-size:16px;
+  margin-top:6px;
+}
+
+textarea{
+  line-height:1.7;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+
+th,
+td{
+  border-bottom:1px solid #ddd;
+  padding:9px;
+  text-align:left;
+  font-size:14px;
+  vertical-align:top;
+}
+
+th{
+  background:#f0f2f5;
+}
+
+.notice{
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+  padding:14px;
+  line-height:1.8;
+  margin:16px 0;
+}
+
+.info{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+  line-height:1.8;
+  margin:16px 0;
+}
+
+.muted{
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+
+.mail-body,
+.preview-box,
+.body-preview,
+.info,
+.result {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.app-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,0,0,0.45);
+}
+
+.app-modal-backdrop.open{
+  display:flex;
+}
+
+.app-modal{
+  width:min(760px,100%);
+  max-height:88vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:10px;
+  padding:18px;
+  box-shadow:0 12px 34px rgba(0,0,0,0.25);
+}
+
+.app-modal.wide{
+  width:min(980px,100%);
+}
+
+.app-modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.app-modal-header h2{
+  margin:0;
+  font-size:22px;
+}
+
+.app-modal-close{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border:0;
+  border-radius:7px;
+  background:#666;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.app-modal-body{
+  line-height:1.8;
+}
+
+.app-detail-grid{
+  display:grid;
+  grid-template-columns:150px 1fr;
+  gap:8px 14px;
+  margin-top:8px;
+}
+
+.app-detail-label{
+  color:#555;
+  font-weight:bold;
+}
+
+.app-detail-value{
+  overflow-wrap:anywhere;
+}
+
+@media (max-width:640px){
+  .app-detail-grid{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+}

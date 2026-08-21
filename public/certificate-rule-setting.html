@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>修了証ルール設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 150px 130px;
+  gap:12px;
+  align-items:end;
+}
+
+.condition-card{
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:14px;
+  margin-top:14px;
+  background:#fff;
+}
+
+.condition-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.condition-title{
+  font-weight:bold;
+}
+
+.condition-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px 12px;
+}
+
+.event-select-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:end;
+}
+
+.org-box{
+  margin-top:8px;
+  padding:12px;
+  border-radius:8px;
+  background:#f7f7f7;
+}
+
+.org-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:8px 12px;
+}
+
+.org-grid label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 10px;
+  margin-top:0;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+  font-weight:normal;
+}
+
+.org-grid input[type="checkbox"]{
+  width:auto;
+  margin:0;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 160px;
+  gap:10px;
+  margin:16px 0;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+.help{
+  margin-top:6px;
+  color:#666;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.advanced-details{
+  margin-top:14px;
+  padding:0;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fafafa;
+}
+
+.advanced-details summary{
+  padding:12px;
+  cursor:pointer;
+  font-weight:bold;
+  list-style:none;
+}
+
+.advanced-details summary::-webkit-details-marker{
+  display:none;
+}
+
+.advanced-details summary::after{
+  content:"開く";
+  float:right;
+  color:#666;
+  font-weight:normal;
+}
+
+.advanced-details[open] summary::after{
+  content:"閉じる";
+}
+
+.advanced-body{
+  padding:0 12px 12px;
+}
+
+@media screen and (max-width:900px){
+  .form-grid,
+  .condition-grid,
+  .event-select-row,
+  .search{
+    display:block;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid button,
+  .condition-grid input,
+  .condition-grid select,
+  .event-select-row button,
+  .search input,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>修了証ルール設定</h1>
+  <p>回数条件、必須研修、支部・ブロック・組織別の修了条件を登録します。</p>
+</header>
+
+<main>
+
+<div id="ruleFormBackdrop" class="app-modal-backdrop" onclick="onRuleFormBackdropClick(event)">
+<div class="app-modal wide" onclick="event.stopPropagation()">
+
+  <div class="app-modal-header">
+    <h2 id="ruleFormTitle">修了証ルール</h2>
+    <button type="button" class="app-modal-close" onclick="closeRuleFormModal()">閉じる</button>
+  </div>
+
+  <input type="hidden" id="ruleId">
+
+  <div id="editStatus" class="info" style="display:none;"></div>
+
+  <div class="form-grid">
+    <div>
+      <label>ルール名</label>
+      <input id="ruleName" placeholder="例：杉並支部 修了証">
+    </div>
+
+    <div>
+      <label>対象年度</label>
+      <input id="targetYear" placeholder="例：2026">
+    </div>
+
+    <div>
+      <label>有効</label>
+      <select id="active">
+        <option value="TRUE">有効</option>
+        <option value="FALSE">無効</option>
+      </select>
+    </div>
+
+    <div>
+      <label>判定単位</label>
+      <select id="judgmentUnit">
+        <option value="会社単位">会社単位</option>
+        <option value="個人単位">個人単位</option>
+      </select>
+      <div class="help">
+        会社単位は同じ会社の参加をまとめて回数判定します。個人単位は参加者ごとに回数判定します。
+      </div>
+    </div>
+
+    <div>
+      <label>対象外参加の扱い</label>
+      <select id="outsideAttendanceMode">
+        <option value="含めない">含めない</option>
+        <option value="含める">含める</option>
+      </select>
+      <div class="help">
+        含めない場合、杉並支部対象の研修に中野支部の方が参加しても、修了証の回数には数えません。
+      </div>
+    </div>
+  </div>
+
+  <label>証書タイトル</label>
+  <input id="certificateTitle" placeholder="例：修了証">
+
+  <label>証書本文</label>
+  <textarea id="certificateBody" rows="4" placeholder="例：貴社は所定の研修に参加されましたので、ここに修了証を授与します。"></textarea>
+
+  <label>登録済み発行者を引用</label>
+  <select id="issuerPreset" onchange="applyIssuerPreset()">
+    <option value="">選択しない</option>
+  </select>
+  <div class="help">
+    ブロック長・支部長などを事前登録しておくと、肩書と氏名を引用できます。
+    <a href="certificate-issuer-setting.html">発行者を登録する</a>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label>発行者団体名</label>
+      <input id="issuerOrganization" placeholder="例：東京都宅地建物取引業協会 第十ブロック">
+    </div>
+
+    <div>
+      <label>発行者役職</label>
+      <input id="issuerPosition" placeholder="例：ブロック長">
+    </div>
+
+    <div>
+      <label>発行者氏名</label>
+      <input id="issuerName" placeholder="例：戸田　高廣">
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label>PDF様式</label>
+      <select id="pdfTemplate">
+        <option value="standard">standard（標準）</option>
+      </select>
+    </div>
+  </div>
+
+  <label>備考</label>
+  <textarea id="note" rows="3" placeholder="運用メモ。画面表示や管理用に使います。"></textarea>
+
+  <div class="notice">
+    <strong>条件の考え方</strong><br>
+    条件を複数登録した場合は、すべて満たした会員だけが修了証対象になります。<br>
+    例：杉並支部研修を2回以上、かつブロック研修を1回以上。<br>
+    必須研修は「指定した研修すべて」または「指定した研修のいずれか」を選べます。
+  </div>
+
+  <h2>条件</h2>
+
+  <div id="conditionList"></div>
+
+  <div class="actions">
+    <button class="btn sub" type="button" onclick="addCondition()">条件を追加</button>
+    <button class="btn" type="button" onclick="saveRule()">保存</button>
+    <button class="btn sub" type="button" onclick="closeRuleFormModal()">閉じる</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+</div>
+</div>
+
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" type="button" onclick="openNewRuleModal()">新規登録</button>
+    <a class="btn sub" href="certificate-rule-summary.html">発行条件を確認</a>
+    <a class="btn sub" href="certificate-menu.html">修了証管理へ戻る</a>
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+  </div>
+
+  <div id="listStatus" class="status">読み込み中...</div>
+
+  <div class="search">
+    <input id="keyword" placeholder="ルールID・ルール名・年度・証書タイトルで検索" oninput="onSearchChanged()">
+    <button class="btn" onclick="loadRules()">再検索</button>
+  </div>
+
+  <table id="ruleTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>ルールID</th>
+        <th>ルール名</th>
+        <th>年度</th>
+        <th>有効</th>
+        <th>判定単位</th>
+        <th>対象外参加</th>
+        <th>条件数</th>
+        <th>更新日時</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="ruleBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+  <div id="pdfPreviewResult" class="result"></div>
+
+</div>
+
+</main>
+
+<script>
+let allRules =
+  [];
+
+let allOrganizations =
+  [];
+
+let allIssuers =
+  [];
+
+let allTrainings =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+function loadInitialData(){
+
+  jsonp(
+    "getCertificateIssuersJsonp",
+    {},
+    function(issuerRes){
+
+      if(issuerRes && issuerRes.ok){
+        allIssuers =
+          (issuerRes.issuers || []).filter(function(issuer){
+            return issuer.active !== "FALSE";
+          });
+      }
+
+      renderIssuerPresetOptions();
+
+      jsonp(
+        "getOrganizationsJsonp",
+        {},
+        function(res){
+
+          if(res && res.ok){
+            allOrganizations =
+              (res.organizations || []).filter(function(o){
+                return o.active !== "FALSE";
+              });
+          }
+
+          jsonp(
+            "getActiveTrainingsJsonp",
+            {},
+            function(trainingRes){
+
+              if(trainingRes && trainingRes.ok){
+                allTrainings =
+                  (trainingRes.trainings || []).filter(function(training){
+                    return String(training.eventType || "研修会").trim() === "研修会" &&
+                      (
+                        training.certificateEnabled === true ||
+                        String(training.certificateEnabled).toUpperCase() === "TRUE"
+                      );
+                  });
+              }
+
+              clearForm();
+              loadRules();
+            }
+          );
+        }
+      );
+    }
+  );
+}
+
+function renderIssuerPresetOptions(){
+
+  const select =
+    document.getElementById("issuerPreset");
+
+  select.innerHTML =
+    '<option value="">選択しない</option>';
+
+  allIssuers.forEach(function(issuer){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      issuer.issuerId;
+
+    option.textContent =
+      (issuer.roleName || issuer.issuerOrganization || issuer.issuerTitle || "") +
+      " / " +
+      (issuer.issuerName || "");
+
+    select.appendChild(option);
+  });
+}
+
+function applyIssuerPreset(){
+
+  const issuerId =
+    document.getElementById("issuerPreset").value;
+
+  if(!issuerId){
+    return;
+  }
+
+  const issuer =
+    allIssuers.find(function(item){
+      return item.issuerId === issuerId;
+    });
+
+  if(!issuer){
+    return;
+  }
+
+  document.getElementById("issuerOrganization").value =
+    issuer.issuerOrganization || issuer.issuerTitle || "";
+
+  document.getElementById("issuerPosition").value =
+    issuer.issuerPosition || "";
+
+  document.getElementById("issuerName").value =
+    issuer.issuerName || "";
+}
+
+function addCondition(condition){
+
+  const list =
+    document.getElementById("conditionList");
+
+  const index =
+    list.children.length + 1;
+
+  const card =
+    document.createElement("div");
+
+  card.className =
+    "condition-card";
+
+  card.innerHTML =
+    '<div class="condition-head">' +
+      '<div class="condition-title">条件' + index + '</div>' +
+      '<button class="btn danger" type="button" onclick="removeCondition(this)">削除</button>' +
+    '</div>' +
+    '<div class="condition-grid">' +
+      '<div>' +
+        '<label>条件タイプ</label>' +
+        '<select class="conditionType" onchange="updateConditionType(this)">' +
+          '<option value="count">回数条件</option>' +
+          '<option value="required">必須研修</option>' +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label>必要回数</label>' +
+        '<input class="requiredCount" type="number" min="1" value="1">' +
+      '</div>' +
+      '<div>' +
+        '<label>必須研修の判定</label>' +
+        '<select class="requiredMode">' +
+          '<option value="all">指定研修すべて</option>' +
+          '<option value="any">指定研修のいずれか</option>' +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label>対象主催区分</label>' +
+        '<select class="targetHostType">' +
+          makeHostTypeOptions(condition) +
+        '</select>' +
+        '<div class="help">通常はここだけ指定します。ブロック研修なら「第十ブロック」、杉並支部研修なら「杉並支部」を選びます。</div>' +
+      '</div>' +
+    '</div>' +
+    '<details class="advanced-details">' +
+      '<summary>詳細条件（通常は空欄のままでOK）</summary>' +
+      '<div class="advanced-body">' +
+        '<div class="notice">' +
+          '対象ブロック・対象支部・対象地区は「研修会の案内対象者条件」で絞りたい場合だけ使います。<br>' +
+          '杉並支部主催の研修を数えたい場合は、詳細条件ではなく対象主催区分で「杉並支部」を選んでください。' +
+        '</div>' +
+        '<div class="condition-grid">' +
+          '<div>' +
+            '<label>対象ブロック（案内対象者条件）</label>' +
+            '<select class="targetBlock">' +
+              '<option value="">指定なし</option>' +
+              '<option value="第十ブロック">第十ブロック</option>' +
+            '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label>対象支部（案内対象者条件）</label>' +
+            '<select class="targetBranch">' +
+              '<option value="">指定なし</option>' +
+              '<option value="杉並支部">杉並支部</option>' +
+              '<option value="中野支部">中野支部</option>' +
+              '<option value="世田谷支部">世田谷支部</option>' +
+            '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label>対象地区（案内対象者条件）</label>' +
+            '<input class="targetDistrict" placeholder="空欄なら指定なし">' +
+          '</div>' +
+          '<div>' +
+            '<label>対象研修ID（例外指定）</label>' +
+            '<div class="event-select-row">' +
+              '<select class="trainingPicker">' +
+                makeTrainingOptions() +
+              '</select>' +
+              '<button class="btn sub" type="button" onclick="addTrainingIdToCondition(this)">追加</button>' +
+            '</div>' +
+            '<input class="targetEventIds" placeholder="例：2026-001,2026-002">' +
+            '<div class="help">通常は空欄です。特定の研修だけ必須・対象にしたい場合に使います。</div>' +
+          '</div>' +
+        '</div>' +
+        '<label>対象組織（案内対象者条件）</label>' +
+        '<div class="org-box">' + makeOrganizationChecks(condition) + '</div>' +
+        '<div class="help">青年部・レディス部など、任意組織の対象者条件で絞りたい場合だけ使います。</div>' +
+      '</div>' +
+    '</details>';
+
+  list.appendChild(card);
+
+  if(condition){
+    setConditionValues(
+      card,
+      condition
+    );
+  }
+
+  updateConditionType(
+    card.querySelector(".conditionType")
+  );
+
+}
+
+function makeOrganizationChecks(condition){
+
+  if(allOrganizations.length === 0){
+    return '<span class="muted">対象組織は登録されていません。</span>';
+  }
+
+  const selected =
+    String(condition && condition.targetOrgIds || "")
+      .split(",")
+      .map(function(v){
+        return v.trim();
+      });
+
+  let html =
+    '<div class="org-grid">';
+
+  allOrganizations.forEach(function(o){
+
+    const checked =
+      selected.indexOf(o.orgId) !== -1
+        ? " checked"
+        : "";
+
+    html +=
+      '<label>' +
+        '<span>' + escapeHtml(o.orgName) + '</span>' +
+        '<input type="checkbox" class="targetOrgCheck" value="' +
+        escapeHtml(o.orgId) +
+        '"' + checked + '>' +
+      '</label>';
+  });
+
+  html +=
+    '</div>';
+
+  return html;
+}
+
+function makeHostTypeOptions(condition){
+
+  const selectedValue =
+    String(condition && condition.targetHostType || "");
+
+  const options = [
+    {
+      value: "",
+      label: "指定なし"
+    },
+    {
+      value: "第十ブロック",
+      label: "第十ブロック"
+    },
+    {
+      value: "杉並支部",
+      label: "杉並支部"
+    },
+    {
+      value: "中野支部",
+      label: "中野支部"
+    },
+    {
+      value: "世田谷支部",
+      label: "世田谷支部"
+    }
+  ];
+
+  allOrganizations.forEach(function(o){
+
+    if(o.hostAvailable !== "TRUE"){
+      return;
+    }
+
+    const value =
+      o.orgName || "";
+
+    if(!value){
+      return;
+    }
+
+    const exists =
+      options.some(function(option){
+        return option.value === value;
+      });
+
+    if(!exists){
+      options.push({
+        value: value,
+        label: value
+      });
+    }
+  });
+
+  return options.map(function(option){
+
+    const selected =
+      option.value === selectedValue
+        ? " selected"
+        : "";
+
+    return '<option value="' +
+      escapeHtml(option.value) +
+      '"' +
+      selected +
+      '>' +
+      escapeHtml(option.label) +
+      '</option>';
+  }).join("");
+}
+
+function makeTrainingOptions(){
+
+  if(allTrainings.length === 0){
+    return '<option value="">研修一覧を取得できません</option>';
+  }
+
+  return '<option value="">研修を選択</option>' +
+    allTrainings.map(function(training){
+
+      const eventId =
+        training.eventId || "";
+
+      const label =
+        [
+          training.eventId,
+          training.title,
+          training.hostType
+        ].filter(function(value){
+          return !!value;
+        }).join(" / ");
+
+      return '<option value="' +
+        escapeHtml(eventId) +
+        '">' +
+        escapeHtml(label) +
+        '</option>';
+    }).join("");
+}
+
+function addTrainingIdToCondition(button){
+
+  const card =
+    button.closest(".condition-card");
+
+  const select =
+    card.querySelector(".trainingPicker");
+
+  const input =
+    card.querySelector(".targetEventIds");
+
+  const eventId =
+    select.value;
+
+  if(!eventId){
+    alert("追加する研修を選択してください。");
+    return;
+  }
+
+  const values =
+    input.value
+      .split(",")
+      .map(function(value){
+        return value.trim();
+      })
+      .filter(function(value){
+        return value !== "";
+      });
+
+  if(values.indexOf(eventId) === -1){
+    values.push(eventId);
+  }
+
+  input.value =
+    values.join(",");
+
+  select.value =
+    "";
+}
+
+function setConditionValues(card, condition){
+
+  card.querySelector(".conditionType").value =
+    condition.conditionType || "count";
+
+  card.querySelector(".requiredCount").value =
+    condition.requiredCount || 1;
+
+  card.querySelector(".requiredMode").value =
+    condition.requiredMode || "all";
+
+  const hostSelect =
+    card.querySelector(".targetHostType");
+
+  hostSelect.value =
+    condition.targetHostType || "";
+
+  if(hostSelect.value !== String(condition.targetHostType || "")){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      condition.targetHostType || "";
+
+    option.textContent =
+      condition.targetHostType || "";
+
+    hostSelect.appendChild(option);
+
+    hostSelect.value =
+      condition.targetHostType || "";
+  }
+
+  card.querySelector(".targetBlock").value =
+    condition.targetBlock || "";
+
+  card.querySelector(".targetBranch").value =
+    condition.targetBranch || "";
+
+  card.querySelector(".targetDistrict").value =
+    condition.targetDistrict || "";
+
+  card.querySelector(".targetEventIds").value =
+    condition.targetEventIds || "";
+
+  if(
+    condition.targetBlock ||
+    condition.targetBranch ||
+    condition.targetDistrict ||
+    condition.targetOrgIds ||
+    condition.targetEventIds
+  ){
+    card.querySelector(".advanced-details").open =
+      true;
+  }
+}
+
+function updateConditionType(select){
+
+  const card =
+    select.closest(".condition-card");
+
+  const isRequired =
+    select.value === "required";
+
+  card.querySelector(".requiredCount").disabled =
+    isRequired;
+
+  card.querySelector(".requiredMode").disabled =
+    !isRequired;
+
+  if(isRequired){
+    card.querySelector(".requiredCount").value =
+      1;
+
+    card.querySelector(".advanced-details").open =
+      true;
+  }
+}
+
+function removeCondition(button){
+
+  const list =
+    document.getElementById("conditionList");
+
+  if(list.children.length <= 1){
+    alert("条件は1つ以上必要です。");
+    return;
+  }
+
+  button.closest(".condition-card").remove();
+  refreshConditionTitles();
+}
+
+function refreshConditionTitles(){
+
+  Array.from(
+    document.querySelectorAll(".condition-card")
+  ).forEach(function(card, index){
+    card.querySelector(".condition-title").textContent =
+      "条件" + (index + 1);
+  });
+}
+
+function collectConditions(){
+
+  return Array.from(
+    document.querySelectorAll(".condition-card")
+  ).map(function(card){
+
+    const orgIds =
+      Array.from(card.querySelectorAll(".targetOrgCheck"))
+        .filter(function(check){
+          return check.checked;
+        })
+        .map(function(check){
+          return check.value;
+        })
+        .join(",");
+
+    return {
+      conditionType: card.querySelector(".conditionType").value,
+      requiredCount: card.querySelector(".requiredCount").value,
+      requiredMode: card.querySelector(".requiredMode").value,
+      targetHostType: card.querySelector(".targetHostType").value,
+      targetBlock: card.querySelector(".targetBlock").value,
+      targetBranch: card.querySelector(".targetBranch").value,
+      targetDistrict: card.querySelector(".targetDistrict").value.trim(),
+      targetOrgIds: orgIds,
+      targetEventIds: card.querySelector(".targetEventIds").value.trim()
+    };
+  });
+}
+
+function saveRule(){
+
+  const ruleName =
+    document.getElementById("ruleName").value.trim();
+
+  const conditions =
+    collectConditions();
+
+  if(!ruleName){
+    alert("ルール名は必須です。");
+    return;
+  }
+
+  if(conditions.length === 0){
+    alert("条件を1つ以上登録してください。");
+    return;
+  }
+
+  const invalidRequired =
+    conditions.some(function(c){
+      return c.conditionType === "required" && !c.targetEventIds;
+    });
+
+  if(invalidRequired){
+    alert("必須研修条件では、対象研修IDを入力してください。");
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "保存中...";
+
+  jsonp(
+    "saveCertificateRuleJsonp",
+    {
+      ruleId: document.getElementById("ruleId").value.trim(),
+      ruleName: ruleName,
+      targetYear: document.getElementById("targetYear").value.trim(),
+      active: document.getElementById("active").value,
+      judgmentUnit: document.getElementById("judgmentUnit").value,
+      outsideAttendanceMode: document.getElementById("outsideAttendanceMode").value,
+      certificateTitle: document.getElementById("certificateTitle").value.trim(),
+      certificateBody: document.getElementById("certificateBody").value.trim(),
+      issuerOrganization: document.getElementById("issuerOrganization").value.trim(),
+      issuerPosition: document.getElementById("issuerPosition").value.trim(),
+      issuerTitle: document.getElementById("issuerOrganization").value.trim(),
+      issuerName: document.getElementById("issuerName").value.trim(),
+      pdfTemplate: document.getElementById("pdfTemplate").value,
+      note: document.getElementById("note").value.trim(),
+      conditionsJson: JSON.stringify(conditions)
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>';
+
+      closeRuleFormModal();
+      loadRules();
+    }
+  );
+}
+
+function loadRules(){
+
+  document.getElementById("listStatus").textContent =
+    "読み込み中...";
+
+  document.getElementById("ruleTable").style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getCertificateRulesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("listStatus").innerHTML =
+          '<span class="ng">修了証ルール一覧を取得できませんでした。GAS側に getCertificateRulesJsonp を追加してください。</span>';
+        return;
+      }
+
+      allRules =
+        res.rules || [];
+
+      currentPage =
+        1;
+
+      if(allRules.length === 0){
+        document.getElementById("listStatus").textContent =
+          "修了証ルールはまだ登録されていません。";
+        return;
+      }
+
+      renderRules();
+    }
+  );
+}
+
+function renderRules(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allRules.filter(function(rule){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          rule.ruleId,
+          rule.ruleName,
+          rule.targetYear,
+          rule.active,
+          rule.outsideAttendanceMode,
+          rule.certificateTitle,
+          rule.updatedAt
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  const tbody =
+    document.getElementById("ruleBody");
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    document.getElementById("listStatus").textContent =
+      "条件に一致するルールはありません。";
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(start, start + pageSize);
+
+  pageItems.forEach(function(rule){
+
+    const tr =
+      document.createElement("tr");
+
+    const conditionCount =
+      (rule.conditions || []).length;
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(rule.ruleId) + "</td>" +
+      "<td>" + escapeHtml(rule.ruleName) + "</td>" +
+      "<td>" + escapeHtml(rule.targetYear || "") + "</td>" +
+      "<td>" + escapeHtml(formatFlagLabel(rule.active)) + "</td>" +
+      "<td>" + escapeHtml(rule.judgmentUnit || "会社単位") + "</td>" +
+      "<td>" + escapeHtml(rule.outsideAttendanceMode || "含めない") + "</td>" +
+      "<td>" + escapeHtml(conditionCount) + "</td>" +
+      "<td>" + escapeHtml(formatDateTimeDisplay(rule.updatedAt)) + "</td>" +
+      "<td>" +
+        '<button class="btn sub" onclick="openEditRuleModal(\'' +
+        escapeJs(rule.ruleId) +
+        '\')">詳細・編集</button> ' +
+        '<button class="btn sub" onclick="showRuleConditionModal(\'' +
+        escapeJs(rule.ruleId) +
+        '\')">条件確認</button> ' +
+        '<button class="btn sub" onclick="previewSavedRulePdf(\'' +
+        escapeJs(rule.ruleId) +
+        '\')">PDFプレビュー</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("listStatus").textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  document.getElementById("ruleTable").style.display =
+    "table";
+
+  document.getElementById("pager").style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function showRuleConditionModal(ruleId){
+
+  const rule =
+    allRules.find(function(item){
+      return String(item.ruleId || "") === String(ruleId || "");
+    });
+
+  if(!rule){
+    return;
+  }
+
+  const issuerText =
+    [
+      rule.issuerOrganization || rule.issuerTitle || "",
+      rule.issuerPosition || "",
+      rule.issuerName || ""
+    ].filter(function(value){
+      return !!value;
+    }).join(" ");
+
+  const body =
+    buildDetailRows([
+      { label:"ルールID", value:rule.ruleId || "" },
+      { label:"ルール名", value:rule.ruleName || "" },
+      { label:"対象年度", value:rule.targetYear || "" },
+      { label:"有効", value:formatFlagLabel(rule.active) },
+      { label:"判定単位", value:rule.judgmentUnit || "会社単位" },
+      { label:"判定単位の意味", value:getJudgmentUnitDescription(rule.judgmentUnit) },
+      { label:"対象外参加の扱い", value:rule.outsideAttendanceMode || "含めない" },
+      { label:"対象外参加の意味", value:getOutsideAttendanceModeDescription(rule.outsideAttendanceMode) },
+      { label:"証書タイトル", value:rule.certificateTitle || "" },
+      { label:"発行者", value:issuerText },
+      { label:"PDF様式", value:rule.pdfTemplate || "standard" }
+    ]) +
+    '<h3>条件</h3>' +
+    makeRuleConditionPreview(rule.conditions || []) +
+    '<h3>証書本文</h3>' +
+    '<div class="info">' + escapeHtml(rule.certificateBody || "") + '</div>';
+
+  openAppModal(
+    "修了証ルール条件確認",
+    body,
+    { wide:true }
+  );
+}
+
+function getJudgmentUnitDescription(judgmentUnit){
+
+  if(String(judgmentUnit || "") === "個人単位"){
+    return "参加者ごとに参加回数を判定します。同じ会社でも別の人の参加は合算しません。";
+  }
+
+  return "会社ごとに参加回数を判定します。個人受付の研修でも、同じ会社の別の人が参加した場合は会社として合算します。";
+}
+
+function getOutsideAttendanceModeDescription(mode){
+
+  if(String(mode || "") === "含める"){
+    return "研修の対象外だった参加も、修了証の回数に含めます。";
+  }
+
+  return "研修の対象外だった参加は、受付履歴には残しますが、修了証の回数には含めません。";
+}
+
+function makeRuleConditionPreview(conditions){
+
+  if(!conditions.length){
+    return '<div class="muted">条件が登録されていません。</div>';
+  }
+
+  let html =
+    '<table><thead><tr><th>種別</th><th>内容</th></tr></thead><tbody>';
+
+  conditions.forEach(function(condition, index){
+
+    const type =
+      condition.conditionType === "required"
+        ? "条件" + (index + 1) + " 必須"
+        : "条件" + (index + 1) + " 回数";
+
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(type) + '</td>' +
+        '<td>' + escapeHtml(makeRuleConditionText(condition)) + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function makeRuleConditionText(condition){
+
+  if(condition.conditionType === "required"){
+    const ids =
+      String(condition.targetEventIds || "")
+        .split(",")
+        .map(function(value){ return value.trim(); })
+        .filter(function(value){ return value !== ""; });
+
+    return "必須研修 " +
+      (ids.length ? ids.join("、") : "研修ID未指定") +
+      " の " +
+      (condition.requiredMode === "any" ? "いずれか1つに参加" : "すべてに参加");
+  }
+
+  const parts = [];
+
+  if(condition.targetHostType){
+    parts.push("主催区分「" + condition.targetHostType + "」");
+  }
+
+  if(condition.targetBlock){
+    parts.push("案内対象ブロック「" + condition.targetBlock + "」");
+  }
+
+  if(condition.targetBranch){
+    parts.push("案内対象支部「" + condition.targetBranch + "」");
+  }
+
+  if(condition.targetDistrict){
+    parts.push("案内対象地区「" + condition.targetDistrict + "」");
+  }
+
+  if(condition.targetEventIds){
+    parts.push("研修ID「" + condition.targetEventIds + "」");
+  }
+
+  return (parts.length ? parts.join("、") : "修了証対象の研修") +
+    "に " +
+    (condition.requiredCount || "1") +
+    "回以上参加";
+}
+
+function openRuleFormModal(title){
+
+  document.getElementById("ruleFormTitle").textContent =
+    title || "修了証ルール";
+
+  document.getElementById("ruleFormBackdrop").classList.add("open");
+}
+
+function closeRuleFormModal(){
+
+  document.getElementById("ruleFormBackdrop").classList.remove("open");
+}
+
+function onRuleFormBackdropClick(event){
+
+  if(event.target && event.target.id === "ruleFormBackdrop"){
+    closeRuleFormModal();
+  }
+}
+
+function openNewRuleModal(){
+
+  clearForm();
+
+  document.getElementById("status").textContent =
+    "";
+
+  openRuleFormModal(
+    "修了証ルール新規登録"
+  );
+}
+
+function openEditRuleModal(ruleId){
+
+  if(!editRule(ruleId)){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "";
+
+  openRuleFormModal(
+    "修了証ルール詳細・編集"
+  );
+}
+
+function editRule(ruleId){
+
+  const rule =
+    allRules.find(function(item){
+      return item.ruleId === ruleId;
+    });
+
+  if(!rule){
+    alert("ルールが見つかりません。");
+    return false;
+  }
+
+  document.getElementById("ruleId").value =
+    rule.ruleId || "";
+
+  document.getElementById("ruleName").value =
+    rule.ruleName || "";
+
+  document.getElementById("targetYear").value =
+    rule.targetYear || "";
+
+  document.getElementById("active").value =
+    rule.active === "FALSE" ? "FALSE" : "TRUE";
+
+  document.getElementById("judgmentUnit").value =
+    rule.judgmentUnit === "個人単位" ? "個人単位" : "会社単位";
+
+  document.getElementById("outsideAttendanceMode").value =
+    rule.outsideAttendanceMode === "含める" ? "含める" : "含めない";
+
+  document.getElementById("certificateTitle").value =
+    rule.certificateTitle || "";
+
+  document.getElementById("certificateBody").value =
+    rule.certificateBody || "";
+
+  document.getElementById("issuerOrganization").value =
+    rule.issuerOrganization || rule.issuerTitle || "";
+
+  document.getElementById("issuerPosition").value =
+    rule.issuerPosition || "";
+
+  document.getElementById("issuerName").value =
+    rule.issuerName || "";
+
+  document.getElementById("issuerPreset").value =
+    "";
+
+  document.getElementById("pdfTemplate").value =
+    rule.pdfTemplate || "standard";
+
+  document.getElementById("note").value =
+    rule.note || "";
+
+  document.getElementById("conditionList").innerHTML =
+    "";
+
+  const conditions =
+    rule.conditions && rule.conditions.length
+      ? rule.conditions
+      : [{}];
+
+  conditions.forEach(function(condition){
+    addCondition(condition);
+  });
+
+  const editStatus =
+    document.getElementById("editStatus");
+
+  editStatus.style.display =
+    "block";
+
+  editStatus.innerHTML =
+    '<strong>編集中</strong><br>' +
+    'ルールID：' +
+    escapeHtml(rule.ruleId) +
+    '<br>内容を変更して「保存」を押してください。';
+
+  return true;
+}
+
+function getPreviewUrl(rule){
+  return rule.previewPdfUrl ||
+    rule.previewUrl ||
+    rule.pdfPreviewUrl ||
+    "";
+}
+
+function getPreviewSourceUpdatedAt(rule){
+  return rule.previewSourceUpdatedAt ||
+    rule.previewRuleUpdatedAt ||
+    rule.previewBaseUpdatedAt ||
+    "";
+}
+
+function canUseSavedPreview(rule){
+  const previewUrl =
+    getPreviewUrl(rule);
+
+  if(!previewUrl){
+    return false;
+  }
+
+  const previewSourceUpdatedAt =
+    getPreviewSourceUpdatedAt(rule);
+
+  if(!previewSourceUpdatedAt){
+    return true;
+  }
+
+  return String(previewSourceUpdatedAt) === String(rule.updatedAt || "");
+}
+
+function showPreviewLink(result, message, url, ruleId){
+
+  result.innerHTML =
+    '<span class="ok">' +
+    escapeHtml(message) +
+    '</span><br><br>' +
+    '<a class="btn" href="' +
+    escapeHtml(url || "") +
+    '" target="_blank">PDFを開く</a> ' +
+    '<button class="btn sub" onclick="previewSavedRulePdf(\'' +
+    escapeJs(ruleId) +
+    '\', true)">プレビューを作り直す</button>';
+}
+
+function previewSavedRulePdf(ruleId, forceCreate){
+
+  const result =
+    document.getElementById("pdfPreviewResult");
+
+  const rule =
+    allRules.find(function(item){
+      return item.ruleId === ruleId;
+    });
+
+  result.style.display =
+    "block";
+
+  if(rule && !forceCreate && canUseSavedPreview(rule)){
+    showPreviewLink(
+      result,
+      "保存済みのPDFプレビューを開けます。",
+      getPreviewUrl(rule),
+      ruleId
+    );
+
+    window.scrollTo({
+      top: document.getElementById("pdfPreviewResult").offsetTop - 80,
+      behavior: "smooth"
+    });
+
+    return;
+  }
+
+  result.textContent =
+    forceCreate
+      ? "PDFプレビューを作り直しています..."
+      : "保存済みルールのPDFプレビュー作成中...";
+
+  jsonp(
+    "previewCertificatePdfJsonp",
+    {
+      ruleId: ruleId,
+      forceCreate: forceCreate ? "TRUE" : "FALSE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "PDFプレビューを作成できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      const previewUrl =
+        res.url || res.previewPdfUrl || "";
+
+      if(rule && previewUrl){
+        rule.previewPdfUrl =
+          previewUrl;
+
+        rule.previewSourceUpdatedAt =
+          rule.updatedAt || "";
+      }
+
+      showPreviewLink(
+        result,
+        forceCreate ? "PDFプレビューを作り直しました。" : "PDFプレビューを作成しました。",
+        previewUrl,
+        ruleId
+      );
+    }
+    ,
+    60000
+  );
+
+  window.scrollTo({
+    top: document.getElementById("pdfPreviewResult").offsetTop - 80,
+    behavior: "smooth"
+  });
+}
+
+function clearForm(){
+
+  document.getElementById("ruleId").value =
+    "";
+
+  document.getElementById("ruleName").value =
+    "";
+
+  document.getElementById("targetYear").value =
+    new Date().getFullYear();
+
+  document.getElementById("active").value =
+    "TRUE";
+
+  document.getElementById("judgmentUnit").value =
+    "会社単位";
+
+  document.getElementById("outsideAttendanceMode").value =
+    "含めない";
+
+  document.getElementById("certificateTitle").value =
+    "修了証";
+
+  document.getElementById("certificateBody").value =
+    "貴社は所定の研修に参加されましたので、ここに修了証を授与します。";
+
+  document.getElementById("issuerOrganization").value =
+    "";
+
+  document.getElementById("issuerPosition").value =
+    "";
+
+  document.getElementById("issuerName").value =
+    "";
+
+  document.getElementById("issuerPreset").value =
+    "";
+
+  document.getElementById("pdfTemplate").value =
+    "standard";
+
+  document.getElementById("note").value =
+    "";
+
+  document.getElementById("conditionList").innerHTML =
+    "";
+
+  document.getElementById("editStatus").style.display =
+    "none";
+
+  addCondition({
+    conditionType: "count",
+    requiredCount: 2
+  });
+
+}
+
+function onSearchChanged(){
+
+  currentPage =
+    1;
+
+  renderRules();
+}
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+  renderRules();
+}
+
+function nextPage(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allRules.filter(function(rule){
+      return !keyword ||
+        [
+          rule.ruleId,
+          rule.ruleName,
+          rule.targetYear,
+          rule.active,
+          rule.certificateTitle,
+          rule.updatedAt
+        ].join(" ").toLowerCase().indexOf(keyword) !== -1;
+    });
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+  renderRules();
+}
+
+document.getElementById("targetYear").value =
+  new Date().getFullYear();
+
+document.getElementById("certificateTitle").value =
+  "修了証";
+
+document.getElementById("certificateBody").value =
+  "貴社は所定の研修に参加されましたので、ここに修了証を授与します。";
+
+loadInitialData();
+</script>
+
+</body>
+</html>

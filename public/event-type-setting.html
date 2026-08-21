@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>イベント種別設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:980px;
+}
+
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 160px 180px 160px;
+  gap:14px;
+  align-items:end;
+}
+
+.muted{
+  color:#666;
+  font-size:13px;
+  line-height:1.7;
+}
+
+.status-badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  background:#e8f3ff;
+  color:#17456f;
+}
+
+.status-badge.off{
+  background:#eee;
+  color:#666;
+}
+
+@media(max-width:720px){
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>イベント種別設定</h1>
+  <p>イベント作成時に選ぶイベント種別を管理します。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+    <a class="btn sub" href="index.html">トップ</a>
+  </div>
+
+  <section class="card">
+    <div class="toolbar">
+      <button class="btn" type="button" onclick="newEventType()">新規登録</button>
+      <button class="btn sub" type="button" onclick="loadEventTypes()">再読み込み</button>
+    </div>
+    <p class="muted">
+      研修会のほかに「会議」や「行事」などのイベントを追加して利用できます。
+      過去データとの整合性を保つため、使わなくなった種別は削除ではなく無効化します。
+      基本種別の「研修会」は無効化できません。
+    </p>
+
+    <div id="editArea" style="display:none;">
+      <hr>
+      <input id="eventTypeId" type="hidden">
+
+      <div class="form-grid">
+        <div>
+          <label>イベント種別名</label>
+          <input id="eventTypeName" placeholder="例：研修会">
+        </div>
+        <div>
+          <label>表示順</label>
+          <input id="sortOrder" type="number" placeholder="10">
+        </div>
+        <div>
+          <label>出欠確認</label>
+          <select id="attendanceConfirmDefault">
+            <option value="FALSE">標準では使わない</option>
+            <option value="TRUE">標準で使う</option>
+          </select>
+        </div>
+        <div>
+          <label>有効</label>
+          <select id="active">
+            <option value="TRUE">有効</option>
+            <option value="FALSE">無効</option>
+          </select>
+        </div>
+      </div>
+
+      <label>備考</label>
+      <input id="note" placeholder="任意">
+
+      <div class="actions">
+        <button class="btn" type="button" onclick="saveEventType()">保存</button>
+        <button class="btn sub" type="button" onclick="closeEditArea()">閉じる</button>
+      </div>
+    </div>
+
+    <div id="message" class="result"></div>
+  </section>
+
+  <section class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>種別名</th>
+          <th>状態</th>
+          <th>出欠確認</th>
+          <th>表示順</th>
+          <th>備考</th>
+          <th>更新日時</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="eventTypeRows">
+        <tr>
+          <td colspan="7">読み込み中...</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<script>
+let eventTypes =
+  [];
+
+function showMessage(text, ok){
+
+  const message =
+    document.getElementById("message");
+
+  message.style.display =
+    text ? "block" : "none";
+
+  message.innerHTML =
+    text
+      ? '<span class="' + (ok ? "ok" : "ng") + '">' + escapeHtml(text) + '</span>'
+      : "";
+}
+
+function loadEventTypes(){
+
+  showMessage("", true);
+
+  jsonp(
+    "getEventTypesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("eventTypeRows").innerHTML =
+          '<tr><td colspan="7"><span class="ng">イベント種別を取得できませんでした。</span></td></tr>';
+        return;
+      }
+
+      eventTypes =
+        res.eventTypes || [];
+
+      renderEventTypes();
+    }
+  );
+}
+
+function renderEventTypes(){
+
+  const tbody =
+    document.getElementById("eventTypeRows");
+
+  if(eventTypes.length === 0){
+    tbody.innerHTML =
+      '<tr><td colspan="7">イベント種別はまだ登録されていません。</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML =
+    eventTypes.map(function(item){
+
+      const active =
+        item.active !== "FALSE";
+
+      const isBaseTraining =
+        item.eventTypeName === "研修会";
+
+      const toggleButton =
+        isBaseTraining
+          ? '<span class="muted">基本種別</span>'
+          : '<button class="btn sub" type="button" onclick="toggleEventType(\'' + escapeJs(item.eventTypeId || "") + '\')">' + (active ? "無効化" : "有効化") + '</button>';
+
+      return '<tr>' +
+        '<td>' + escapeHtml(item.eventTypeName || "") + '</td>' +
+        '<td><span class="status-badge ' + (active ? "" : "off") + '">' + (active ? "有効" : "無効") + '</span></td>' +
+        '<td>' + escapeHtml(item.attendanceConfirmDefault === "TRUE" ? "標準で使う" : "標準では使わない") + '</td>' +
+        '<td>' + escapeHtml(item.sortOrder || "") + '</td>' +
+        '<td>' + escapeHtml(item.note || "") + '</td>' +
+        '<td>' + escapeHtml(item.updatedAt || "") + '</td>' +
+        '<td>' +
+          '<button class="btn sub" type="button" onclick="editEventType(\'' + escapeJs(item.eventTypeId || "") + '\')">編集</button> ' +
+          toggleButton +
+        '</td>' +
+      '</tr>';
+    }).join("");
+}
+
+function newEventType(){
+
+  document.getElementById("eventTypeId").value =
+    "";
+  document.getElementById("eventTypeName").value =
+    "";
+  document.getElementById("sortOrder").value =
+    "";
+  document.getElementById("attendanceConfirmDefault").value =
+    "FALSE";
+  document.getElementById("active").value =
+    "TRUE";
+  document.getElementById("note").value =
+    "";
+
+  document.getElementById("editArea").style.display =
+    "block";
+}
+
+function editEventType(eventTypeId){
+
+  const item =
+    eventTypes.find(function(row){
+      return row.eventTypeId === eventTypeId;
+    });
+
+  if(!item){
+    return;
+  }
+
+  document.getElementById("eventTypeId").value =
+    item.eventTypeId || "";
+  document.getElementById("eventTypeName").value =
+    item.eventTypeName || "";
+  document.getElementById("sortOrder").value =
+    item.sortOrder || "";
+  document.getElementById("attendanceConfirmDefault").value =
+    item.attendanceConfirmDefault === "TRUE" ? "TRUE" : "FALSE";
+  document.getElementById("active").value =
+    item.active === "FALSE" ? "FALSE" : "TRUE";
+  document.getElementById("note").value =
+    item.note || "";
+
+  document.getElementById("editArea").style.display =
+    "block";
+}
+
+function closeEditArea(){
+
+  document.getElementById("editArea").style.display =
+    "none";
+}
+
+function saveEventType(){
+
+  const data = {
+    eventTypeId: document.getElementById("eventTypeId").value,
+    eventTypeName: document.getElementById("eventTypeName").value.trim(),
+    sortOrder: document.getElementById("sortOrder").value,
+    attendanceConfirmDefault: document.getElementById("attendanceConfirmDefault").value,
+    active: document.getElementById("active").value,
+    note: document.getElementById("note").value.trim()
+  };
+
+  if(!data.eventTypeName){
+    alert("イベント種別名を入力してください。");
+    return;
+  }
+
+  jsonp(
+    "saveEventTypeJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        showMessage(res && res.message ? res.message : "保存に失敗しました。", false);
+        return;
+      }
+
+      showMessage(res.message || "保存しました。", true);
+      closeEditArea();
+      loadEventTypes();
+    }
+  );
+}
+
+function toggleEventType(eventTypeId){
+
+  const item =
+    eventTypes.find(function(row){
+      return row.eventTypeId === eventTypeId;
+    });
+
+  if(!item){
+    return;
+  }
+
+  jsonp(
+    "saveEventTypeJsonp",
+    {
+      eventTypeId: item.eventTypeId,
+      eventTypeName: item.eventTypeName,
+      sortOrder: item.sortOrder || "",
+      attendanceConfirmDefault: item.attendanceConfirmDefault || "FALSE",
+      active: item.active === "FALSE" ? "TRUE" : "FALSE",
+      note: item.note || ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showMessage(res && res.message ? res.message : "変更に失敗しました。", false);
+        return;
+      }
+
+      showMessage(res.message || "変更しました。", true);
+      loadEventTypes();
+    }
+  );
+}
+
+function escapeJs(value){
+  return String(value || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+loadEventTypes();
+</script>
+
+</body>
+</html>

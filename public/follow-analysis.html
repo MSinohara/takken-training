@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>参加フォロー分析</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+  margin:16px 0;
+}
+
+.summary-card{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+}
+
+.summary-label{
+  color:#666;
+  font-size:13px;
+}
+
+.summary-value{
+  font-size:28px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:150px 170px 1fr 160px;
+  gap:10px;
+  align-items:end;
+}
+
+.help-box{
+  margin:14px 0;
+  padding:12px;
+  background:#f7f7f7;
+  border-radius:8px;
+  color:#555;
+  font-size:14px;
+  line-height:1.8;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+th.sortable{
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.event-list{
+  margin-top:10px;
+  background:#fff;
+  border:1px solid #e5e5e5;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.event-item{
+  display:grid;
+  grid-template-columns:100px 1fr 90px;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-bottom:1px solid #eee;
+}
+
+.event-item:last-child{
+  border-bottom:none;
+}
+
+.event-date{
+  color:#555;
+  font-size:13px;
+}
+
+.attended-ok{
+  color:#007a2f;
+  font-weight:bold;
+}
+
+.attended-ng{
+  color:#b00020;
+  font-weight:bold;
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:1000;
+}
+
+.modal-backdrop.open{
+  display:flex;
+}
+
+.modal{
+  width:min(760px, 100%);
+  max-height:88vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:8px;
+  padding:18px;
+  box-shadow:0 12px 32px rgba(0,0,0,0.28);
+}
+
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.modal-header h2{
+  margin:0 0 6px;
+  font-size:21px;
+}
+
+.modal-close{
+  border:0;
+  background:#666;
+  color:#fff;
+  border-radius:6px;
+  padding:7px 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.status-badge{
+  display:inline-block;
+  border-radius:999px;
+  padding:4px 9px;
+  font-weight:bold;
+  font-size:13px;
+  background:#eee;
+}
+
+.status-未参加{
+  background:#ffe5e5;
+  color:#9b0000;
+}
+
+.status-最近未参加,
+.status-低参加{
+  background:#fff1cc;
+  color:#8a5a00;
+}
+
+.status-参加中{
+  background:#e8f1ff;
+  color:#174b8a;
+}
+
+.status-継続参加{
+  background:#e5f6ea;
+  color:#0a6b2b;
+}
+
+@media screen and (max-width:800px){
+  .filter-grid{
+    display:block;
+  }
+
+  .filter-grid input,
+  .filter-grid select,
+  .filter-grid button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>参加フォロー分析</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="notice">
+    <strong>この画面について</strong><br>
+    年度内の対象研修に対して、会員ごとの参加回数・参加率・最終参加日を確認します。
+  </div>
+
+  <div class="filter-grid">
+    <div>
+      <label>年度</label>
+      <select id="yearFilter" onchange="loadAnalysis()">
+        <option value="">読み込み中...</option>
+      </select>
+    </div>
+
+    <div>
+      <label>イベント種別</label>
+      <select id="eventTypeFilter" onchange="loadAnalysis()">
+        <option value="研修会">読み込み中...</option>
+      </select>
+    </div>
+
+    <div>
+      <label>検索</label>
+      <input id="keyword" placeholder="会社名・業者番号・支部・地区で検索" oninput="onFilterChanged()">
+    </div>
+
+    <div>
+      <label>状態</label>
+      <select id="statusFilter" onchange="onFilterChanged()">
+        <option value="">すべて</option>
+        <option value="未参加">未参加</option>
+        <option value="低参加">低参加</option>
+        <option value="最近未参加">最近未参加</option>
+        <option value="参加中">参加中</option>
+        <option value="継続参加">継続参加</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="loadAnalysis()">再読み込み</button>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="summary" class="summary-grid" style="display:none;"></div>
+
+  <div class="help-box">
+    <strong>状態の目安</strong><br>
+    未参加：対象研修に一度も参加していない会員。　
+    低参加：対象研修が3回以上あり、参加率が30%未満の会員。　
+    最近未参加：直近3回の対象研修に参加していない会員。　
+    参加中：一定の参加がある会員。　
+    継続参加：参加率80%以上の会員。
+  </div>
+
+  <table id="analysisTable" style="display:none;">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="setSort('companyName')">会社名</th>
+        <th class="sortable" onclick="setSort('branch')">支部・地区</th>
+        <th class="sortable" onclick="setSort('targetCount')">対象</th>
+        <th class="sortable" onclick="setSort('attendedCount')">参加</th>
+        <th class="sortable" onclick="setSort('rateNumber')">参加率</th>
+        <th class="sortable" onclick="setSort('lastAttendedAtText')">最終参加日</th>
+        <th class="sortable" onclick="setSort('statusRank')">状態</th>
+        <th>詳細</th>
+      </tr>
+    </thead>
+    <tbody id="analysisBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<div id="detailModal" class="modal-backdrop" onclick="onDetailBackdropClick(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+    <div id="detailModalBody"></div>
+  </div>
+</div>
+
+<script>
+let currentResult =
+  null;
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+let sortKey =
+  "statusRank";
+
+let sortDirection =
+  "asc";
+
+let analysisRequestNo =
+  0;
+
+function loadAnalysis(){
+
+  const requestNo =
+    ++analysisRequestNo;
+
+  const year =
+    document.getElementById("yearFilter").value;
+
+  const eventType =
+    document.getElementById("eventTypeFilter").value || "研修会";
+
+  currentResult =
+    null;
+
+  currentPage =
+    1;
+
+  document.getElementById("status").textContent =
+    "分析中...";
+
+  document.getElementById("summary").style.display =
+    "none";
+
+  document.getElementById("analysisTable").style.display =
+    "none";
+
+  document.getElementById("analysisBody").innerHTML =
+    "";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getFollowAnalysisJsonp",
+    {
+      year: year,
+      eventType: eventType
+    },
+    function(res){
+
+      if(requestNo !== analysisRequestNo){
+        return;
+      }
+
+      if(!res || !res.ok){
+        currentResult =
+          null;
+
+        document.getElementById("summary").style.display =
+          "none";
+
+        document.getElementById("analysisTable").style.display =
+          "none";
+
+        document.getElementById("analysisBody").innerHTML =
+          "";
+
+        document.getElementById("pager").style.display =
+          "none";
+
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "参加フォロー分析を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      currentResult =
+        res;
+
+      currentPage =
+        1;
+
+      renderYearOptions(res);
+      renderEventTypeOptions(res);
+      renderAnalysis();
+    },
+    60000
+  );
+}
+
+
+function renderYearOptions(res){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const current =
+    select.value || res.year || "";
+
+  select.innerHTML =
+    "";
+
+  (res.years || []).forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  if(current){
+    select.value =
+      current;
+  }
+}
+
+
+function renderEventTypeOptions(res){
+
+  const select =
+    document.getElementById("eventTypeFilter");
+
+  const current =
+    select.value || res.eventType || "研修会";
+
+  const eventTypes =
+    res.eventTypes || [];
+
+  let html =
+    "";
+
+  eventTypes.forEach(function(eventType){
+
+    html +=
+      '<option value="' +
+      escapeHtml(eventType) +
+      '">' +
+      escapeHtml(eventType) +
+      '</option>';
+  });
+
+  html +=
+    '<option value="all">すべて</option>';
+
+  select.innerHTML =
+    html;
+
+  select.value =
+    current;
+}
+
+
+function renderAnalysis(){
+
+  if(!currentResult){
+    return;
+  }
+
+  renderSummary();
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const statusFilter =
+    document.getElementById("statusFilter").value;
+
+  let members =
+    (currentResult.members || []).filter(function(member){
+
+      if(statusFilter && member.status !== statusFilter){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          member.memberNo,
+          member.companyName,
+          member.block,
+          member.branch,
+          member.district,
+          member.status
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  members =
+    sortMembers(
+      members
+    );
+
+  const body =
+    document.getElementById("analysisBody");
+
+  body.innerHTML =
+    "";
+
+  const totalPages =
+    Math.max(
+      Math.ceil(members.length / pageSize),
+      1
+    );
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    members.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(member){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      '<td>' +
+        escapeHtml(member.companyName || "") +
+        '<div class="muted">' +
+        escapeHtml(member.memberNo || "") +
+        '</div>' +
+      '</td>' +
+      '<td>' +
+        escapeHtml([member.branch || "", member.district || ""].filter(Boolean).join(" / ")) +
+      '</td>' +
+      '<td>' + escapeHtml(member.targetCount) + '</td>' +
+      '<td>' + escapeHtml(member.attendedCount) + '</td>' +
+      '<td>' + escapeHtml(member.attendanceRate || "") + '</td>' +
+      '<td>' + escapeHtml(member.lastAttendedAtText || "-") + '</td>' +
+      '<td><span class="status-badge status-' +
+        escapeHtml(member.status || "") +
+        '">' +
+        escapeHtml(member.status || "") +
+      '</span></td>' +
+      '<td><button type="button" class="btn sub" onclick="showMemberDetail(\'' +
+        escapeJs(member.memberNo || "") +
+        '\')">詳細</button></td>';
+
+    body.appendChild(tr);
+  });
+
+  document.getElementById("status").textContent =
+    currentResult.year +
+    "年度 / " +
+    makeEventTypeStatusText(currentResult.eventType || "研修会") +
+    " " +
+    currentResult.trainingCount +
+    "件 / 表示 " +
+    members.length +
+    "件中 " +
+    (members.length ? start + 1 : 0) +
+    "〜" +
+    (start + pageItems.length) +
+    "件";
+
+  document.getElementById("analysisTable").style.display =
+    members.length > 0 ? "table" : "none";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  document.getElementById("pager").style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+
+function makeEventTypeStatusText(eventType){
+
+  if(eventType === "all"){
+    return "対象イベント";
+  }
+
+  return "対象" + eventType;
+}
+
+
+function showMemberDetail(memberNo){
+
+  const member =
+    (currentResult.members || []).find(function(item){
+      return item.memberNo === memberNo;
+    });
+
+  if(!member){
+    return;
+  }
+
+  const events =
+    (member.events || []).slice().sort(function(a, b){
+      return String(a.eventDate || "").localeCompare(String(b.eventDate || ""));
+    });
+
+  let html =
+    '<div class="modal-header">' +
+      '<div>' +
+        '<h2 id="detailModalTitle">' + escapeHtml(member.companyName || "") + '</h2>' +
+        '<div class="muted">' +
+          escapeHtml(member.memberNo || "") +
+          ' / ' +
+          escapeHtml([member.branch || "", member.district || ""].filter(Boolean).join(" / ")) +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="modal-close" onclick="closeMemberDetail()">閉じる</button>' +
+    '</div>' +
+    '<div style="margin-top:8px;">' +
+      '対象 ' + escapeHtml(member.targetCount) +
+      '件 / 参加 ' + escapeHtml(member.attendedCount) +
+      '件 / 参加率 ' + escapeHtml(member.attendanceRate || "") +
+      ' / 状態 ' + escapeHtml(member.status || "") +
+    '</div>' +
+    '<div class="event-list">';
+
+  events.forEach(function(event){
+
+    html +=
+      '<div class="event-item">' +
+        '<div class="event-date">' +
+          escapeHtml(event.eventDate || "") +
+        '</div>' +
+        '<div>' +
+          escapeHtml(event.title || event.eventId || "") +
+          '<div class="muted">' +
+            escapeHtml(event.eventId || "") +
+          '</div>' +
+        '</div>' +
+        '<div class="' +
+          (event.attended ? "attended-ok" : "attended-ng") +
+        '">' +
+          (event.attended ? "参加" : "未参加") +
+        '</div>' +
+      '</div>';
+  });
+
+  html +=
+    '</div>';
+
+  const panel =
+    document.getElementById("detailModalBody");
+
+  panel.innerHTML =
+    html;
+
+  document.getElementById("detailModal").classList.add("open");
+}
+
+
+function closeMemberDetail(){
+
+  document.getElementById("detailModal").classList.remove("open");
+}
+
+
+function onDetailBackdropClick(event){
+
+  if(event.target && event.target.id === "detailModal"){
+    closeMemberDetail();
+  }
+}
+
+
+function sortMembers(members){
+
+  return members.slice().sort(function(a, b){
+
+    const av =
+      getSortValue(a, sortKey);
+
+    const bv =
+      getSortValue(b, sortKey);
+
+    let result;
+
+    if(typeof av === "number" && typeof bv === "number"){
+      result =
+        av - bv;
+    }else{
+      result =
+        String(av || "").localeCompare(String(bv || ""), "ja");
+    }
+
+    return sortDirection === "asc"
+      ? result
+      : -result;
+  });
+}
+
+
+function getSortValue(member, key){
+
+  if(key === "rateNumber"){
+    return member.targetCount
+      ? member.attendedCount / member.targetCount
+      : 0;
+  }
+
+  if(key === "branch"){
+    return [
+      member.branch || "",
+      member.district || "",
+      member.companyName || ""
+    ].join(" ");
+  }
+
+  return member[key];
+}
+
+
+function setSort(key){
+
+  if(sortKey === key){
+    sortDirection =
+      sortDirection === "asc"
+        ? "desc"
+        : "asc";
+  }else{
+    sortKey =
+      key;
+
+    sortDirection =
+      key === "companyName" || key === "branch"
+        ? "asc"
+        : "desc";
+  }
+
+  currentPage =
+    1;
+
+  renderAnalysis();
+}
+
+
+function onFilterChanged(){
+
+  currentPage =
+    1;
+
+  renderAnalysis();
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderAnalysis();
+}
+
+
+function nextPage(){
+
+  if(!currentResult){
+    return;
+  }
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const statusFilter =
+    document.getElementById("statusFilter").value;
+
+  const total =
+    (currentResult.members || []).filter(function(member){
+
+      if(statusFilter && member.status !== statusFilter){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          member.memberNo,
+          member.companyName,
+          member.block,
+          member.branch,
+          member.district,
+          member.status
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    }).length;
+
+  const totalPages =
+    Math.ceil(total / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderAnalysis();
+}
+
+
+function renderSummary(){
+
+  const s =
+    currentResult.summary || {};
+
+  const html =
+    makeSummaryCard("対象会員", s.targetMembers || 0) +
+    makeSummaryCard("参加あり", s.participatedMembers || 0) +
+    makeSummaryCard("未参加", s.neverAttended || 0) +
+    makeSummaryCard("低参加", s.lowParticipation || 0) +
+    makeSummaryCard("最近未参加", s.recentAbsent || 0) +
+    makeSummaryCard("参加率", s.participationRate || "0.0%");
+
+  const box =
+    document.getElementById("summary");
+
+  box.innerHTML =
+    html;
+
+  box.style.display =
+    "grid";
+}
+
+
+function makeSummaryCard(label, value){
+
+  return (
+    '<div class="summary-card">' +
+      '<div class="summary-label">' + escapeHtml(label) + '</div>' +
+      '<div class="summary-value">' + escapeHtml(value) + '</div>' +
+    '</div>'
+  );
+}
+
+loadAnalysis();
+</script>
+
+</body>
+</html>

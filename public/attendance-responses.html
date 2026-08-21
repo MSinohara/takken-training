@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出欠回答一覧</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+
+.status-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+
+.status-summary-card{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+  line-height:1.6;
+}
+
+.status-summary-card strong{
+  display:block;
+  font-size:24px;
+  margin-top:4px;
+}
+
+.summary-card{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+  line-height:1.8;
+}
+
+.summary-link{
+  color:#0f3a66;
+  text-decoration:underline;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.table-wrap{
+  overflow:auto;
+}
+
+.attendance-response-table{
+  border-collapse:collapse;
+}
+
+.attendance-response-table th,
+.attendance-response-table td{
+  border:1px solid #ddd;
+}
+
+.answer-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:2.1em;
+  min-height:2.1em;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#f1f3f5;
+  font-weight:bold;
+  font-size:20px;
+  line-height:1;
+}
+
+.answer-mark.yes{
+  color:#007a2f;
+  background:#e8f6ed;
+}
+
+.answer-mark.no{
+  color:#b00020;
+  background:#fdebed;
+}
+
+.answer-mark.maybe{
+  color:#9a6200;
+  background:#fff3d8;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>出欠回答一覧</h1>
+</header>
+
+<main>
+<div class="card">
+  <div class="actions">
+    <button class="btn" onclick="loadResponses()">再読み込み</button>
+    <button class="btn sub" type="button" onclick="closeAttendanceResponsesWindow()">この画面を閉じる</button>
+    <a id="printLink" class="btn" href="#">印刷用表示</a>
+    <a id="settingLink" class="btn sub" href="#">出欠確認設定へ</a>
+    <a id="detailLink" class="btn sub" href="#">イベント詳細へ戻る</a>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+  <div id="content"></div>
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let currentItems =
+  [];
+
+let currentResponses =
+  [];
+
+let currentTargetMembers =
+  [];
+
+let currentAnsweredMembers =
+  [];
+
+let currentUnansweredMembers =
+  [];
+
+function loadResponses(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  jsonp(
+    "getAttendanceResponsesJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "出欠回答を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("settingLink").href =
+        "attendance-setting.html?event=" + encodeURIComponent(eventId);
+
+      document.getElementById("printLink").href =
+        "attendance-print.html?event=" + encodeURIComponent(eventId);
+
+      document.getElementById("detailLink").href =
+        "training-detail.html?event=" + encodeURIComponent(eventId);
+
+      document.getElementById("status").textContent =
+        (res.training && res.training.title ? res.training.title : eventId) +
+        " / 回答 " +
+        (res.responses || []).length +
+        "件";
+
+      currentItems =
+        res.items || [];
+
+      currentResponses =
+        res.responses || [];
+
+      currentTargetMembers =
+        res.targetMembers || [];
+
+      currentAnsweredMembers =
+        res.answeredMembers || [];
+
+      currentUnansweredMembers =
+        res.unansweredMembers || [];
+
+      renderContent(res.items || [], res.responses || [], res.summary || []);
+    }
+  );
+}
+
+function closeAttendanceResponsesWindow(){
+
+  window.close();
+
+  setTimeout(function(){
+    document.getElementById("status").innerHTML =
+      '<span class="ok">確認済みです。</span>' +
+      '<div class="help">ブラウザの制限で自動で閉じられない場合は、このタブを閉じて元の画面に戻ってください。</div>';
+  }, 300);
+}
+
+function renderContent(items, responses, summary){
+
+  let html =
+    '<div class="status-summary-grid">' +
+      makeStatusSummaryCard("対象者", currentTargetMembers.length, "target") +
+      makeStatusSummaryCard("回答済み", currentAnsweredMembers.length, "answered") +
+      makeStatusSummaryCard("未回答", currentUnansweredMembers.length, "unanswered") +
+    '</div>' +
+    '<div class="summary-grid">';
+
+  summary.forEach(function(item){
+    html +=
+      '<div class="summary-card">' +
+        '<strong>' + escapeHtml(item.itemName || "") + '</strong><br>';
+
+    Object.keys(item.counts || {}).forEach(function(option){
+      html +=
+        formatAnswerValue(option) +
+        '：<span class="summary-link" onclick="openAnswerListModal(\'' +
+        escapeJs(item.itemId || "") +
+        '\',\'' +
+        escapeJs(option || "") +
+        '\')">' +
+        escapeHtml(item.counts[option]) +
+        '件</span><br>';
+    });
+
+    html +=
+      '</div>';
+  });
+
+  html +=
+    '</div>';
+
+  if(responses.length === 0){
+    html +=
+      '<div class="muted">回答はまだありません。</div>';
+    document.getElementById("content").innerHTML =
+      html;
+    return;
+  }
+
+  html +=
+    '<div class="table-wrap">' +
+    '<table class="attendance-response-table">' +
+    '<thead><tr>' +
+      '<th>会社名</th>' +
+      '<th>参加者名</th>' +
+      '<th>業者番号</th>';
+
+  items.forEach(function(item){
+    html +=
+      '<th>' + escapeHtml(item.itemName || "") + '</th>';
+  });
+
+  html +=
+      '<th>備考</th>' +
+      '<th>更新日時</th>' +
+    '</tr></thead><tbody>';
+
+  responses.forEach(function(response){
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(response.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(response.participantName || "") + '</td>' +
+        '<td>' + escapeHtml(response.memberNo || "") + '</td>';
+
+    items.forEach(function(item){
+      html +=
+        '<td>' + formatAnswerValue((response.answers || {})[item.itemId] || "") + '</td>';
+    });
+
+    html +=
+        '<td>' + escapeHtml(response.note || "") + '</td>' +
+        '<td>' + escapeHtml(response.updatedAt || "") + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table></div>';
+
+  document.getElementById("content").innerHTML =
+    html;
+}
+
+function makeStatusSummaryCard(label, count, type){
+
+  return (
+    '<div class="status-summary-card">' +
+      escapeHtml(label) +
+      '<strong>' + escapeHtml(count) + '件</strong>' +
+      '<span class="summary-link" onclick="openMemberListModal(\'' +
+      escapeJs(type) +
+      '\')">一覧を見る</span>' +
+    '</div>'
+  );
+}
+
+function openMemberListModal(type){
+
+  let title =
+    "対象者";
+
+  let members =
+    currentTargetMembers;
+
+  if(type === "answered"){
+    title =
+      "回答済み";
+    members =
+      currentAnsweredMembers;
+  }
+
+  if(type === "unanswered"){
+    title =
+      "未回答";
+    members =
+      currentUnansweredMembers;
+  }
+
+  let html =
+    '<div class="info">' +
+      escapeHtml(title) +
+      '：' +
+      escapeHtml(members.length) +
+      '件' +
+    '</div>';
+
+  if(members.length === 0){
+    html +=
+      '<div class="muted">該当者はいません。</div>';
+  }else{
+    html +=
+      '<table class="attendance-response-table">' +
+        '<thead><tr>' +
+          '<th>会社名</th>' +
+          '<th>参加者名</th>' +
+          '<th>業者番号</th>' +
+          '<th>メール</th>' +
+          '<th>所属</th>' +
+        '</tr></thead><tbody>';
+
+    members.forEach(function(member){
+      html +=
+        '<tr>' +
+          '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+          '<td>' + escapeHtml(member.participantName || "") + '</td>' +
+          '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+          '<td>' + escapeHtml(member.mail || "") + '</td>' +
+          '<td>' + escapeHtml([member.block, member.branch, member.district].filter(Boolean).join(" / ")) + '</td>' +
+        '</tr>';
+    });
+
+    html +=
+      '</tbody></table>';
+  }
+
+  html +=
+    '<div class="actions">' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    title,
+    html,
+    { wide:true }
+  );
+}
+
+function openAnswerListModal(itemId, option){
+
+  const item =
+    currentItems.filter(function(row){
+      return row.itemId === itemId;
+    })[0] || {};
+
+  const members =
+    currentResponses.filter(function(response){
+      return String((response.answers || {})[itemId] || "") === String(option);
+    });
+
+  let html =
+    '<div class="info">' +
+      escapeHtml(item.itemName || "") +
+      '：' +
+      formatAnswerValue(option || "") +
+      ' / ' +
+      escapeHtml(members.length) +
+      '件' +
+    '</div>';
+
+  if(members.length === 0){
+    html +=
+      '<div class="muted">該当者はいません。</div>';
+  }else{
+    html +=
+      '<table class="attendance-response-table">' +
+        '<thead><tr>' +
+          '<th>会社名</th>' +
+          '<th>参加者名</th>' +
+          '<th>業者番号</th>' +
+          '<th>メール</th>' +
+          '<th>備考</th>' +
+          '<th>更新日時</th>' +
+        '</tr></thead><tbody>';
+
+    members.forEach(function(member){
+      html +=
+        '<tr>' +
+          '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+          '<td>' + escapeHtml(member.participantName || "") + '</td>' +
+          '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+          '<td>' + escapeHtml(member.mail || "") + '</td>' +
+          '<td>' + escapeHtml(member.note || "") + '</td>' +
+          '<td>' + escapeHtml(member.updatedAt || "") + '</td>' +
+        '</tr>';
+    });
+
+    html +=
+      '</tbody></table>';
+  }
+
+  html +=
+    '<div class="actions">' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    (item.itemName || "出欠") + " / " + option,
+    html,
+    { wide:true }
+  );
+}
+
+function formatAnswerValue(value){
+
+  const text =
+    String(value || "").trim();
+
+  const mark =
+    getAnswerMark(text);
+
+  if(!mark){
+    return escapeHtml(text);
+  }
+
+  return '<span class="answer-mark ' + mark.className + '">' +
+    mark.label +
+    '</span>';
+}
+
+function getAnswerMark(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(text === "出席" || text === "参加" || text === "可" || text === "○"){
+    return {
+      label: "○",
+      className: "yes"
+    };
+  }
+
+  if(text === "欠席" || text === "不参加" || text === "不可" || text === "×" || text === "✕"){
+    return {
+      label: "×",
+      className: "no"
+    };
+  }
+
+  if(text === "未定" || text === "保留" || text === "△"){
+    return {
+      label: "△",
+      className: "maybe"
+    };
+  }
+
+  return null;
+}
+
+loadResponses();
+</script>
+
+</body>
+</html>

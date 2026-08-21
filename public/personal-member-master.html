@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>個人会員マスタ</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 150px;
+  gap:10px;
+  margin:16px 0;
+}
+
+.summary-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:12px 0;
+}
+
+.pill{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#eef2f6;
+  font-size:13px;
+}
+
+.pill.auto{
+  background:#e7f0ff;
+  color:#12345a;
+  font-weight:bold;
+}
+
+.pill.manual{
+  background:#e7f6ec;
+  color:#0a7a2f;
+  font-weight:bold;
+}
+
+.operation-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.operation-buttons .btn{
+  padding:8px 10px;
+  font-size:13px;
+}
+
+.org-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:8px;
+  margin:12px 0;
+}
+
+.org-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+}
+
+.org-item input{
+  width:auto;
+  margin:0;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+.select-cell{
+  text-align:center;
+}
+
+.select-cell input{
+  width:auto;
+  margin:0;
+}
+
+.bulk-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+
+.bulk-count{
+  color:#555;
+  font-size:13px;
+}
+
+.modal-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0 14px;
+}
+
+.modal-grid .full{
+  grid-column:1 / -1;
+}
+
+@media screen and (max-width:900px){
+  .search,
+  .modal-grid{
+    display:block;
+  }
+
+  .search input,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>個人会員マスタ</h1>
+  <p>個人単位で受付する研修会に使用する参加者情報を管理します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="notice">
+    会員マスタに代表者名がある会社は、代表者を <strong>業者番号-001</strong> として自動表示します。<br>
+    同じ会社から複数名が参加する研修会では、2人目以降の社員・担当者をこの画面から登録します。<br>
+    個人単位受付の研修会では、ここに登録された個人ごとに受付・メール送信・集計を行います。
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="openEditModal()">新規追加</button>
+    <a class="btn sub" href="member-org-menu.html">会員・組織管理へ戻る</a>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div class="search">
+    <input id="keyword" placeholder="会社名・業者番号・氏名で検索" onkeydown="handleSearchKey(event)">
+
+    <select id="branch">
+      <option value="">支部指定なし</option>
+      <option value="杉並支部">杉並支部</option>
+      <option value="中野支部">中野支部</option>
+      <option value="世田谷支部">世田谷支部</option>
+    </select>
+
+    <select id="mailStatus">
+      <option value="">メールすべて</option>
+      <option value="HAS_MAIL">メールあり</option>
+      <option value="NO_MAIL">メールなし</option>
+    </select>
+
+    <button class="btn" onclick="loadPersonalMembers()">検索</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+  <div id="summary" class="summary-row" style="display:none;"></div>
+
+  <table id="memberTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>選択</th>
+        <th>個人ID</th>
+        <th>業者番号</th>
+        <th>会社名</th>
+        <th>氏名</th>
+        <th>区分</th>
+        <th>メール</th>
+        <th>有効</th>
+        <th>由来</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="memberBody"></tbody>
+  </table>
+
+  <div id="bulkBar" class="bulk-bar" style="display:none;">
+    <span id="selectedCount" class="bulk-count">0件選択中</span>
+    <button class="btn" onclick="openBulkPersonalQrPrint()">選択した個人QRを一括印刷</button>
+    <button class="btn sub" onclick="clearSelectedPersonalMembers()">選択解除</button>
+  </div>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let personalMembers =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+let selectedPersonalMap =
+  {};
+
+function handleSearchKey(event){
+  if(event.key === "Enter"){
+    loadPersonalMembers();
+  }
+}
+
+function loadPersonalMembers(){
+
+  const status =
+    document.getElementById("status");
+
+  status.className =
+    "status";
+
+  status.textContent =
+    "読み込み中...";
+
+  jsonp(
+    "getPersonalMembersJsonp",
+    {
+      keyword: document.getElementById("keyword").value,
+      branch: document.getElementById("branch").value,
+      mailStatus: document.getElementById("mailStatus").value
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        personalMembers =
+          [];
+        renderPersonalMembers();
+        status.className =
+          "status ng";
+        status.textContent =
+          (res && res.message) || "個人会員マスタを取得できませんでした。";
+        return;
+      }
+
+      personalMembers =
+        res.members || [];
+
+      currentPage =
+        1;
+
+      selectedPersonalMap =
+        {};
+
+      renderPersonalMembers();
+    },
+    30000
+  );
+}
+
+function renderPersonalMembers(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("memberTable");
+
+  const body =
+    document.getElementById("memberBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const summary =
+    document.getElementById("summary");
+
+  const autoCount =
+    personalMembers.filter(function(item){
+      return item.autoGenerated;
+    }).length;
+
+  const manualCount =
+    personalMembers.length - autoCount;
+
+  summary.style.display =
+    personalMembers.length ? "flex" : "none";
+
+  summary.innerHTML =
+    '<span class="pill">表示 ' + personalMembers.length + '件</span>' +
+    '<span class="pill auto">代表者自動 ' + autoCount + '件</span>' +
+    '<span class="pill manual">追加登録 ' + manualCount + '件</span>';
+
+  if(personalMembers.length === 0){
+    updateSelectedCount();
+
+    table.style.display =
+      "none";
+    pager.style.display =
+      "none";
+    status.className =
+      "status";
+    status.textContent =
+      "該当する個人会員はありません。";
+    body.innerHTML =
+      "";
+    return;
+  }
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(personalMembers.length / pageSize)
+    );
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const rows =
+    personalMembers.slice(
+      start,
+      start + pageSize
+    );
+
+  body.innerHTML =
+    rows.map(function(item){
+      return renderPersonalMemberRow(item);
+    }).join("");
+
+  table.style.display =
+    "";
+
+  pager.style.display =
+    totalPages > 1 ? "flex" : "none";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage + " / " + totalPages + "ページ";
+
+  status.className =
+    "status";
+
+  status.textContent =
+    "個人会員を表示しています。";
+
+  updateSelectedCount();
+}
+
+function renderPersonalMemberRow(item){
+
+  const sourceClass =
+    item.autoGenerated ? "auto" : "manual";
+
+  const sourceText =
+    item.autoGenerated ? "代表者自動" : (item.source || "手入力");
+
+  const operationHtml =
+    item.autoGenerated
+      ? '<button class="btn sub" onclick="showAutoMemberDetail(\'' + escapeJs(item.personalId) + '\')">確認</button>' +
+        '<button class="btn sub" onclick="openPersonalOrgModal(\'' + escapeJs(item.personalId) + '\')">所属</button>' +
+        '<a class="btn" href="' + buildPersonalQrUrl(item) + '">個人QR</a>'
+      : '<button class="btn" onclick="openEditModal(\'' + escapeJs(item.personalId) + '\')">編集</button>' +
+        '<button class="btn sub" onclick="openPersonalOrgModal(\'' + escapeJs(item.personalId) + '\')">所属</button>' +
+        '<a class="btn" href="' + buildPersonalQrUrl(item) + '">個人QR</a>';
+
+  return (
+    '<tr>' +
+      '<td class="select-cell">' +
+        '<input type="checkbox" onchange="togglePersonalSelection(\'' +
+        escapeJs(item.personalId) +
+        '\', this.checked)"' +
+        (selectedPersonalMap[item.personalId] ? " checked" : "") +
+        '>' +
+      '</td>' +
+      '<td>' + escapeHtml(item.personalId) + '</td>' +
+      '<td>' + escapeHtml(item.memberNo) + '</td>' +
+      '<td>' + escapeHtml(item.companyName) + '</td>' +
+      '<td>' + escapeHtml(item.personName) + '</td>' +
+      '<td>' + escapeHtml(item.personType) + '</td>' +
+      '<td>' + escapeHtml(item.mail) + '</td>' +
+      '<td>' + escapeHtml(formatFlagLabel(item.active)) + '</td>' +
+      '<td><span class="pill ' + sourceClass + '">' + escapeHtml(sourceText) + '</span></td>' +
+      '<td><div class="operation-buttons">' + operationHtml + '</div></td>' +
+    '</tr>'
+  );
+}
+
+function togglePersonalSelection(personalId, checked){
+
+  const item =
+    findPersonalMember(personalId);
+
+  if(!item){
+    return;
+  }
+
+  if(checked){
+    selectedPersonalMap[personalId] = {
+      personalId: item.personalId || "",
+      memberNo: item.memberNo || "",
+      companyName: item.companyName || "",
+      personName: item.personName || "",
+      personType: item.personType || "",
+      mail: item.mail || "",
+      source: item.source || ""
+    };
+  } else {
+    delete selectedPersonalMap[personalId];
+  }
+
+  updateSelectedCount();
+}
+
+function clearSelectedPersonalMembers(){
+
+  selectedPersonalMap =
+    {};
+
+  renderPersonalMembers();
+}
+
+function updateSelectedCount(){
+
+  const count =
+    Object.keys(selectedPersonalMap).length;
+
+  document.getElementById("selectedCount").textContent =
+    count + "件選択中";
+
+  document.getElementById("bulkBar").style.display =
+    count > 0
+      ? "flex"
+      : "none";
+}
+
+function openBulkPersonalQrPrint(){
+
+  const members =
+    Object.keys(selectedPersonalMap).map(function(key){
+      return selectedPersonalMap[key];
+    });
+
+  if(members.length === 0){
+    alert("一括印刷する個人会員にチェックを入れてください。");
+    return;
+  }
+
+  const data =
+    encodeURIComponent(JSON.stringify(members));
+
+  window.open(
+    "personal-member-qr-bulk.html?members=" + data,
+    "_blank"
+  );
+}
+
+function buildPersonalQrUrl(item){
+
+  const params =
+    new URLSearchParams();
+
+  params.set("personal", item.personalId || "");
+  params.set("member", item.memberNo || "");
+  params.set("company", item.companyName || "");
+  params.set("name", item.personName || "");
+  params.set("type", item.personType || "");
+
+  return "personal-member-qr.html?" + params.toString();
+}
+
+function prevPage(){
+  if(currentPage > 1){
+    currentPage--;
+    renderPersonalMembers();
+  }
+}
+
+function nextPage(){
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(personalMembers.length / pageSize)
+    );
+
+  if(currentPage < totalPages){
+    currentPage++;
+    renderPersonalMembers();
+  }
+}
+
+function findPersonalMember(personalId){
+  return personalMembers.find(function(item){
+    return item.personalId === personalId;
+  }) || null;
+}
+
+function showAutoMemberDetail(personalId){
+
+  const item =
+    findPersonalMember(personalId);
+
+  if(!item){
+    return;
+  }
+
+  const html =
+    '<div class="notice">この行は会員マスタの代表者名から自動表示しています。変更する場合は、会員マスタCSVの代表者名を更新してください。</div>' +
+    buildDetailRows([
+      { label: "個人ID", value: item.personalId },
+      { label: "業者番号", value: item.memberNo },
+      { label: "会社名", value: item.companyName },
+      { label: "氏名", value: item.personName },
+      { label: "区分", value: item.personType },
+      { label: "メール", value: item.mail },
+      { label: "由来", value: item.source }
+    ]);
+
+  openAppModal(
+    "代表者の確認",
+    html
+  );
+}
+
+function openPersonalOrgModal(personalId){
+
+  const item =
+    findPersonalMember(personalId);
+
+  if(!item){
+    return;
+  }
+
+  openAppModal(
+    "個人所属",
+    '<div id="personalOrgStatus" class="status">所属組織を読み込み中...</div>',
+    { wide: true }
+  );
+
+  jsonp(
+    "getPersonalOrganizationsJsonp",
+    {
+      personalId: personalId
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("personalOrgStatus").className =
+          "status ng";
+        document.getElementById("personalOrgStatus").textContent =
+          (res && res.message) || "個人所属を取得できませんでした。";
+        return;
+      }
+
+      renderPersonalOrgModal(res);
+    },
+    30000
+  );
+}
+
+function renderPersonalOrgModal(data){
+
+  const organizations =
+    data.organizations || [];
+
+  const note =
+    data.isRepresentative
+      ? '<div class="notice">この個人は代表者です。ここで所属を外すと、会社の所属組織からも外れます。</div>'
+      : '<div class="notice">この所属は個人だけに付きます。会社の所属組織には影響しません。</div>';
+
+  const listHtml =
+    organizations.length
+      ? organizations.map(function(org){
+          return (
+            '<label class="org-item">' +
+              '<input type="checkbox" class="personal-org-check" value="' + escapeHtml(org.orgId) + '"' + (org.selected ? " checked" : "") + '>' +
+              '<span>' + escapeHtml(org.orgName) + '<br><span class="muted">' + escapeHtml(org.orgId) + '</span></span>' +
+            '</label>'
+          );
+        }).join("")
+      : '<div class="muted">組織は登録されていません。</div>';
+
+  const html =
+    '<input type="hidden" id="personalOrgPersonalId" value="' + escapeHtml(data.personalId || "") + '">' +
+    '<div id="personalOrgStatus" class="status" style="display:none;"></div>' +
+    buildDetailRows([
+      { label: "個人ID", value: data.personalId || "" },
+      { label: "会社名", value: data.companyName || "" },
+      { label: "氏名", value: data.personName || "" }
+    ]) +
+    note +
+    '<div class="org-list">' +
+      listHtml +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="savePersonalOrganizations()">保存</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "個人所属",
+    html,
+    { wide: true }
+  );
+}
+
+function savePersonalOrganizations(){
+
+  const status =
+    document.getElementById("personalOrgStatus");
+
+  const personalId =
+    document.getElementById("personalOrgPersonalId").value;
+
+  const orgIds =
+    Array.from(document.querySelectorAll(".personal-org-check:checked"))
+      .map(function(input){
+        return input.value;
+      });
+
+  status.style.display =
+    "block";
+
+  status.className =
+    "status";
+
+  status.textContent =
+    "保存中...";
+
+  jsonp(
+    "savePersonalOrganizationsJsonp",
+    {
+      personalId: personalId,
+      orgIds: orgIds.join(",")
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.className =
+          "status ng";
+        status.textContent =
+          (res && res.message) || "個人所属を保存できませんでした。";
+        return;
+      }
+
+      status.className =
+        "status ok";
+
+      status.textContent =
+        res.message || "保存しました。";
+
+      setTimeout(function(){
+        closeAppModal();
+        loadPersonalMembers();
+      }, 500);
+    },
+    30000
+  );
+}
+
+function openEditModal(personalId){
+
+  const item =
+    personalId ? findPersonalMember(personalId) : null;
+
+  const title =
+    item ? "個人会員を編集" : "個人会員を追加";
+
+  const html =
+    '<input type="hidden" id="modalPersonalId" value="' + escapeHtml(item && item.personalId || "") + '">' +
+    '<div id="modalStatus" class="status" style="display:none;"></div>' +
+    '<div class="modal-grid">' +
+      '<div>' +
+        '<label>会社検索</label>' +
+        '<div class="search">' +
+          '<input id="modalCompanySearch" placeholder="会社名・業者番号・代表者名で検索">' +
+          '<button class="btn sub" onclick="searchCompanyForPersonal()">検索</button>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<label>選択中の会社</label>' +
+        '<div id="selectedCompanyBox" class="notice">' +
+          makeSelectedCompanyText(item) +
+        '</div>' +
+        '<input type="hidden" id="modalMemberNo" value="' + escapeHtml(item && item.memberNo || "") + '">' +
+        '<input type="hidden" id="modalCompanyName" value="' + escapeHtml(item && item.companyName || "") + '">' +
+      '</div>' +
+      '<div id="companySearchResults" class="full"></div>' +
+      '<div>' +
+        '<label>氏名</label>' +
+        '<input id="modalPersonName" value="' + escapeHtml(item && item.personName || "") + '" placeholder="例：山田 太郎">' +
+      '</div>' +
+      '<div>' +
+        '<label>区分</label>' +
+        '<select id="modalPersonType">' +
+          buildTypeOptions(item && item.personType || "社員") +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label>メール</label>' +
+        '<input id="modalMail" value="' + escapeHtml(item && item.mail || "") + '" placeholder="任意">' +
+      '</div>' +
+      '<div>' +
+        '<label>有効</label>' +
+        '<select id="modalActive">' +
+          buildFlagOptions(item && item.active || "TRUE") +
+        '</select>' +
+      '</div>' +
+      '<div class="full">' +
+        '<label>備考</label>' +
+        '<textarea id="modalNote" rows="3" placeholder="所属や役割など">' + escapeHtml(item && item.note || "") + '</textarea>' +
+      '</div>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="savePersonalMember()">保存</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    title,
+    html,
+    { wide: true }
+  );
+}
+
+function buildTypeOptions(currentValue){
+
+  const types =
+    [
+      "代表者",
+      "社員",
+      "その他"
+    ];
+
+  return types.map(function(type){
+    return '<option value="' + escapeHtml(type) + '"' + selectedAttr(currentValue, type) + '>' + escapeHtml(type) + '</option>';
+  }).join("");
+}
+
+function makeSelectedCompanyText(item){
+
+  if(!item || !item.memberNo){
+    return "会社を検索して選択してください。";
+  }
+
+  return (
+    escapeHtml(item.companyName || "") +
+    '<br>業者番号：' +
+    escapeHtml(item.memberNo || "")
+  );
+}
+
+function searchCompanyForPersonal(){
+
+  const keyword =
+    document.getElementById("modalCompanySearch").value.trim();
+
+  const resultsBox =
+    document.getElementById("companySearchResults");
+
+  if(!keyword){
+    alert("会社名・業者番号・代表者名などを入力してください。");
+    return;
+  }
+
+  resultsBox.innerHTML =
+    '<div class="status">会社を検索中...</div>';
+
+  jsonp(
+    "searchMembersJsonp",
+    {
+      keyword: keyword
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        resultsBox.innerHTML =
+          '<div class="status ng">' +
+          escapeHtml(res && res.message ? res.message : "会社検索に失敗しました。") +
+          '</div>';
+        return;
+      }
+
+      renderCompanySearchResults(res.members || []);
+    },
+    30000
+  );
+}
+
+function renderCompanySearchResults(members){
+
+  const resultsBox =
+    document.getElementById("companySearchResults");
+
+  if(members.length === 0){
+    resultsBox.innerHTML =
+      '<div class="muted">該当する会社はありません。</div>';
+    return;
+  }
+
+  let html =
+    '<table>' +
+      '<thead><tr>' +
+        '<th>会社名</th>' +
+        '<th>業者番号</th>' +
+        '<th>代表者</th>' +
+        '<th>所属</th>' +
+        '<th>操作</th>' +
+      '</tr></thead><tbody>';
+
+  members.forEach(function(member){
+
+    const area =
+      [member.block || "", member.branch || "", member.district || ""]
+        .filter(function(v){ return v; })
+        .join(" / ");
+
+    html +=
+      '<tr>' +
+        '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+        '<td>' + escapeHtml(member.representativeName || "") + '</td>' +
+        '<td>' + escapeHtml(area) + '</td>' +
+        '<td>' +
+          '<button class="btn sub" onclick="selectCompanyForPersonal(\'' +
+          escapeJs(member.memberNo || "") +
+          '\', \'' +
+          escapeJs(member.companyName || "") +
+          '\', \'' +
+          escapeJs(member.mail || "") +
+          '\')">選択</button>' +
+        '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  resultsBox.innerHTML =
+    html;
+}
+
+function selectCompanyForPersonal(memberNo, companyName, mail){
+
+  document.getElementById("modalMemberNo").value =
+    memberNo || "";
+
+  document.getElementById("modalCompanyName").value =
+    companyName || "";
+
+  document.getElementById("selectedCompanyBox").innerHTML =
+    escapeHtml(companyName || "") +
+    '<br>業者番号：' +
+    escapeHtml(memberNo || "");
+
+  const mailInput =
+    document.getElementById("modalMail");
+
+  if(mail && !mailInput.value.trim()){
+    mailInput.value =
+      mail;
+  }
+
+  document.getElementById("companySearchResults").innerHTML =
+    "";
+}
+
+function selectedAttr(value, expected){
+  return String(value || "") === expected ? " selected" : "";
+}
+
+function savePersonalMember(){
+
+  const status =
+    document.getElementById("modalStatus");
+
+  status.style.display =
+    "block";
+
+  status.className =
+    "status";
+
+  status.textContent =
+    "保存中...";
+
+  if(!document.getElementById("modalMemberNo").value.trim()){
+    status.className =
+      "status ng";
+    status.textContent =
+      "会社を検索して選択してください。";
+    return;
+  }
+
+  jsonp(
+    "savePersonalMemberJsonp",
+    {
+      personalId: document.getElementById("modalPersonalId").value,
+      memberNo: document.getElementById("modalMemberNo").value,
+      companyName: document.getElementById("modalCompanyName").value,
+      personName: document.getElementById("modalPersonName").value,
+      personType: document.getElementById("modalPersonType").value,
+      mail: document.getElementById("modalMail").value,
+      active: document.getElementById("modalActive").value,
+      note: document.getElementById("modalNote").value
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.className =
+          "status ng";
+        status.textContent =
+          (res && res.message) || "保存できませんでした。";
+        return;
+      }
+
+      status.className =
+        "status ok";
+
+      status.textContent =
+        res.message || "保存しました。";
+
+      setTimeout(function(){
+        closeAppModal();
+        loadPersonalMembers();
+      }, 500);
+    },
+    30000
+  );
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  loadPersonalMembers
+);
+</script>
+
+</body>
+</html>

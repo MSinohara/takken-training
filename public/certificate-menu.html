@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>修了証管理</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.summary{
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  margin-bottom:22px;
+}
+
+.summary h2{
+  margin:0 0 10px;
+  font-size:20px;
+}
+
+.summary p{
+  margin:0;
+  color:#555;
+  line-height:1.8;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:18px;
+}
+
+.menu-card{
+  display:block;
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  transition:transform 0.15s ease,box-shadow 0.15s ease;
+  min-height:150px;
+}
+
+.menu-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 6px 18px rgba(0,0,0,0.12);
+}
+
+.icon{
+  font-size:34px;
+  margin-bottom:10px;
+}
+
+.menu-card h3{
+  margin:0 0 8px;
+  font-size:19px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>修了証管理</h1>
+  <p>修了証の発行、履歴確認、ルール設定を行います。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <section class="summary">
+    <h2>修了証メニュー</h2>
+    <p>
+      PDF未作成の対象者への発行、発行済みPDFの確認、発行条件と発行者の設定をまとめています。
+    </p>
+  </section>
+
+  <section class="menu-grid">
+
+    <a class="menu-card" href="certificate.html">
+      <div class="icon">🏅</div>
+      <h3>修了証発行</h3>
+      <p>登録した修了証ルールに沿って対象会社を抽出し、PDF未作成の修了証を発行します。</p>
+    </a>
+
+    <a class="menu-card" href="certificate-history.html">
+      <div class="icon">📄</div>
+      <h3>修了証発行履歴</h3>
+      <p>発行済みPDF、発行日時、送信状況、送信先メールを確認します。</p>
+    </a>
+
+    <a class="menu-card" href="certificate-rule-setting.html">
+      <div class="icon">⚙️</div>
+      <h3>修了証ルール設定</h3>
+      <p>必要参加回数、支部・ブロック・組織条件、必須研修を設定します。</p>
+    </a>
+
+    <a class="menu-card" href="certificate-rule-summary.html">
+      <div class="icon">📋</div>
+      <h3>修了証条件確認</h3>
+      <p>現在登録されている修了証ルールを、読みやすい文章で確認します。</p>
+    </a>
+
+    <a class="menu-card" href="certificate-issuer-setting.html">
+      <div class="icon">✒️</div>
+      <h3>修了証発行者設定</h3>
+      <p>ブロック長・支部長など、修了証に記載する発行者を登録します。</p>
+    </a>
+
+  </section>
+
+</main>
+
+</body>
+</html>

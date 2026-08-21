@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会集計</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:980px;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:16px;
+}
+
+.menu-card{
+  display:block;
+  min-height:150px;
+  padding:20px;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid #e0e0e0;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  color:#222;
+  text-decoration:none;
+}
+
+.menu-card h2{
+  margin:0 0 10px;
+  font-size:22px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#555;
+  line-height:1.7;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会集計</h1>
+</header>
+
+<main>
+  <div class="menu-grid">
+    <a class="menu-card" href="individual-stats.html">
+      <h2>個別研修会集計</h2>
+      <p>1つの研修会について、対象人数・参加人数・支部別・地区別などを確認します。</p>
+    </a>
+
+    <a class="menu-card" href="annual-stats.html">
+      <h2>年間研修会集計</h2>
+      <p>年度内の研修会全体について、主催区分・対象支部・対象組織で絞り込んで確認します。</p>
+    </a>
+  </div>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+</main>
+
+</body>
+</html>

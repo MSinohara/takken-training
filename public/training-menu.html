@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会管理</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:18px;
+}
+
+.menu-card{
+  display:block;
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  min-height:145px;
+}
+
+.menu-card h3{
+  margin:0 0 8px;
+  font-size:19px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+
+.icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会管理</h1>
+  <p>研修会の作成、案内、受付、履歴、集計を管理します。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <section class="menu-grid">
+
+    <a class="menu-card" href="training-list.html" data-auth-roles="admin,staff">
+      <div class="icon">📘</div>
+      <h3>研修会一覧</h3>
+      <p>研修会の作成・編集、詳細確認、受付やメール送信へ進みます。</p>
+    </a>
+
+    <a class="menu-card" href="mail-select.html" data-auth-roles="admin,staff">
+      <div class="icon">✉️</div>
+      <h3>メール送信</h3>
+      <p>研修会を選択し、案内メールの確認・テスト送信・一括送信を行います。</p>
+    </a>
+
+    <a class="menu-card" href="attendance-list.html" data-auth-roles="admin,staff">
+      <div class="icon">📝</div>
+      <h3>出欠確認一覧</h3>
+      <p>出欠回答を使うイベントの対象者、回答済み、未回答、回答内容を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="checkin-select.html" data-auth-roles="admin,staff,reception">
+      <div class="icon">✅</div>
+      <h3>受付画面</h3>
+      <p>受付する研修会を選択し、QR受付、検索受付、受付モニターへ進みます。</p>
+    </a>
+
+    <a class="menu-card" href="history.html" data-auth-roles="admin,staff,reception">
+      <div class="icon">📋</div>
+      <h3>参加履歴</h3>
+      <p>研修会ごとの受付履歴、取消・復活理由、参加状況を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="stats.html" data-auth-roles="admin,staff,reception">
+      <div class="icon">📊</div>
+      <h3>研修会集計</h3>
+      <p>個別研修会の集計と、年度全体の年間集計を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="follow-analysis.html" data-auth-roles="admin,staff">
+      <div class="icon">📈</div>
+      <h3>参加フォロー分析</h3>
+      <p>年度ごとの参加回数・参加率から、参加が少ない会員を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="training-record.html" data-auth-roles="admin,staff">
+      <div class="icon">🗂️</div>
+      <h3>研修会記録</h3>
+      <p>会場、講師、費用、実施メモなどの開催記録を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="venue-history.html" data-auth-roles="admin,staff">
+      <div class="icon">📍</div>
+      <h3>研修会場履歴</h3>
+      <p>過去に利用した会場、担当者、連絡先、費用、利用回数を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="venue-master.html" data-auth-roles="admin,staff">
+      <div class="icon">🏢</div>
+      <h3>会場マスタ</h3>
+      <p>よく使う会場、連絡先、位置情報受付用の緯度・経度を管理します。</p>
+    </a>
+
+    <a class="menu-card" href="mail-history.html" data-auth-roles="admin,staff">
+      <div class="icon">📨</div>
+      <h3>メール送信履歴</h3>
+      <p>一括送信、テスト送信、個別再送の履歴を確認します。</p>
+    </a>
+
+  </section>
+
+</main>
+
+</body>
+</html>

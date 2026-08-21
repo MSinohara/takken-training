@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会員一覧</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 160px 160px auto;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.status-badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.status-true{
+  background:#e7f6ec;
+  color:#0a7a2f;
+}
+
+.status-false{
+  background:#fdecec;
+  color:#b00020;
+}
+
+.operation-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  min-width:210px;
+}
+
+.operation-buttons .btn{
+  padding:8px 10px;
+  font-size:13px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+
+.select-cell{
+  text-align:center;
+}
+
+.select-cell input{
+  width:auto;
+  margin:0;
+}
+
+.bulk-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+
+.bulk-count{
+  color:#555;
+  font-size:13px;
+}
+
+.editBox{
+  margin-top:16px;
+  padding:16px;
+  background:#f7f7f7;
+  border-radius:10px;
+  line-height:1.8;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+.org-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+
+.org-list label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:0;
+  padding:7px 9px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+  font-weight:normal;
+  line-height:1.35;
+}
+
+.org-list input{
+  width:auto;
+  margin:0;
+  flex:0 0 auto;
+}
+
+.org-list .muted{
+  font-size:12px;
+  white-space:nowrap;
+}
+
+@media screen and (max-width:900px){
+  .search{
+    display:block;
+  }
+
+  .search input,
+  .search select,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会員一覧</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="search">
+
+    <input id="keyword" placeholder="会社名・代表者名・業者番号・メールで検索">
+
+    <select id="branch">
+      <option value="">支部指定なし</option>
+      <option value="杉並支部">杉並支部</option>
+      <option value="中野支部">中野支部</option>
+      <option value="世田谷支部">世田谷支部</option>
+    </select>
+
+    <select id="target">
+      <option value="">送信対象すべて</option>
+      <option value="TRUE">送信する</option>
+      <option value="FALSE">送信しない</option>
+    </select>
+
+    <select id="mailStatus">
+      <option value="">メールすべて</option>
+      <option value="HAS_MAIL">メールあり</option>
+      <option value="NO_MAIL">メールなし</option>
+    </select>
+
+    <button class="btn" onclick="loadMembers()">検索</button>
+
+  </div>
+
+  <div class="actions">
+    <a class="btn sub" href="member-org-menu.html">会員・組織管理へ戻る</a>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status">
+    検索条件を入力して検索してください。
+  </div>
+
+  <table id="memberTable" style="display:none;">
+    <colgroup>
+      <col style="width:42px;">
+      <col style="width:74px;">
+      <col>
+      <col style="width:130px;">
+      <col style="width:190px;">
+      <col style="width:90px;">
+      <col style="width:74px;">
+      <col>
+      <col style="width:220px;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>選択</th>
+        <th>業者番号</th>
+        <th>会社名</th>
+        <th>代表者名</th>
+        <th>メール</th>
+        <th>支部</th>
+        <th>送信対象</th>
+        <th>備考</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="memberBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+  <div id="bulkBar" class="bulk-bar" style="display:none;">
+    <span id="selectedCount" class="bulk-count">0件選択中</span>
+    <button class="btn" onclick="openBulkQrPrint()">選択した会社QRを一括印刷</button>
+    <button class="btn sub" onclick="clearSelectedMembers()">選択解除</button>
+  </div>
+
+  <div id="editArea" class="editBox" style="display:none;"></div>
+
+</div>
+</main>
+
+<script>
+let allMembers =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+let selectedMemberMap =
+  {};
+
+let totalMemberCount =
+  0;
+
+
+function loadMembers(resetPage){
+
+  const keyword =
+    document.getElementById("keyword").value.trim();
+
+  const branch =
+    document.getElementById("branch").value;
+
+  const target =
+    document.getElementById("target").value;
+
+  const mailStatus =
+    document.getElementById("mailStatus").value;
+
+  const status =
+    document.getElementById("status");
+
+  status.textContent =
+    "検索中...";
+
+  if(resetPage !== false){
+    currentPage =
+      1;
+
+    selectedMemberMap =
+      {};
+  }
+
+  document.getElementById("memberTable").style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  document.getElementById("editArea").style.display =
+    "none";
+
+  updateSelectedCount();
+
+  jsonp(
+    "getMembersJsonp",
+    {
+      keyword: keyword,
+      branch: branch,
+      target: target,
+      mailStatus: mailStatus,
+      offset: (currentPage - 1) * pageSize,
+      limit: pageSize
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会員一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      allMembers =
+        res.members || [];
+
+      totalMemberCount =
+        Number(res.totalCount || allMembers.length || 0);
+
+      if(totalMemberCount === 0){
+        updateSelectedCount();
+
+        status.textContent =
+          "該当する会員がありません。";
+        return;
+      }
+
+      renderMembers();
+    }
+  );
+}
+
+
+function renderMembers(){
+
+  const status =
+    document.getElementById("status");
+
+  const tbody =
+    document.getElementById("memberBody");
+
+  const table =
+    document.getElementById("memberTable");
+
+  const pager =
+    document.getElementById("pager");
+
+  tbody.innerHTML =
+    "";
+
+  const totalPages =
+    Math.ceil(totalMemberCount / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    allMembers;
+
+  pageItems.forEach(function(m){
+
+    const tr =
+      document.createElement("tr");
+
+    const badge =
+      m.target === "TRUE"
+        ? '<span class="status-badge status-true">送信する</span>'
+        : '<span class="status-badge status-false">送信しない</span>';
+
+    tr.innerHTML =
+      '<td class="select-cell">' +
+        '<input type="checkbox" onchange="toggleMemberSelection(\'' +
+        escapeJs(m.memberNo) +
+        '\', this.checked)"' +
+        (selectedMemberMap[m.memberNo] ? " checked" : "") +
+        '>' +
+      '</td>' +
+      "<td>" + escapeHtml(m.memberNo) + "</td>" +
+      "<td>" + escapeHtml(m.companyName) + "</td>" +
+      "<td>" + escapeHtml(m.representativeName || "") + "</td>" +
+      "<td>" + escapeHtml(m.mail) + "</td>" +
+      "<td>" + escapeHtml(m.branch || "") + "</td>" +
+      "<td>" + badge + "</td>" +
+      "<td>" + escapeHtml(m.note || "") + "</td>" +
+      "<td>" +
+        '<div class="operation-buttons">' +
+
+          '<button class="btn sub" onclick="showMemberDetailModal(\'' +
+          escapeJs(m.memberNo) +
+          '\')">詳細</button>' +
+
+          '<a class="btn sub" target="_blank" href="member-qr.html?member=' +
+          encodeURIComponent(m.memberNo) +
+          '&name=' +
+          encodeURIComponent(m.companyName || "") +
+          '&representative=' +
+          encodeURIComponent(m.representativeName || "") +
+          '&branch=' +
+          encodeURIComponent(m.branch || "") +
+          '">QR作成</a>' +
+
+          '<button class="btn" onclick="showEdit(\'' +
+          escapeJs(m.memberNo) +
+          '\')">設定変更</button>' +
+
+        '</div>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    totalMemberCount +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+
+  updateSelectedCount();
+}
+
+function toggleMemberSelection(memberNo, checked){
+
+  const member =
+    allMembers.find(function(item){
+      return String(item.memberNo || "") === String(memberNo || "");
+    });
+
+  if(!member){
+    return;
+  }
+
+  if(checked){
+    selectedMemberMap[memberNo] = {
+      memberNo: member.memberNo || "",
+      companyName: member.companyName || "",
+      representativeName: member.representativeName || "",
+      branch: member.branch || ""
+    };
+  } else {
+    delete selectedMemberMap[memberNo];
+  }
+
+  updateSelectedCount();
+}
+
+function clearSelectedMembers(){
+
+  selectedMemberMap =
+    {};
+
+  renderMembers();
+}
+
+function updateSelectedCount(){
+
+  const count =
+    Object.keys(selectedMemberMap).length;
+
+  document.getElementById("selectedCount").textContent =
+    count + "件選択中";
+
+  document.getElementById("bulkBar").style.display =
+    count > 0
+      ? "flex"
+      : "none";
+}
+
+function openBulkQrPrint(){
+
+  const members =
+    Object.keys(selectedMemberMap).map(function(key){
+      return selectedMemberMap[key];
+    });
+
+  if(members.length === 0){
+    alert("一括印刷する会員にチェックを入れてください。");
+    return;
+  }
+
+  const data =
+    encodeURIComponent(JSON.stringify(members));
+
+  window.open(
+    "member-qr-bulk.html?members=" + data,
+    "_blank"
+  );
+}
+
+function showMemberDetailModal(memberNo){
+
+  openAppModal(
+    "会員詳細",
+    '<div class="status">読み込み中...</div>'
+  );
+
+  jsonp(
+    "getMemberDetailJsonp",
+    { member: memberNo },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("appModalBody").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会員詳細を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      const member =
+        res.member || {};
+
+      const organizations =
+        (res.organizations || []).filter(function(org){
+          return !!org.selected;
+        });
+
+      const orgHtml =
+        organizations.length
+          ? '<ul>' +
+            organizations.map(function(org){
+              return '<li>' +
+                escapeHtml(org.orgName || "") +
+                ' <span class="muted">ID:' +
+                escapeHtml(org.orgId || "") +
+                '</span></li>';
+            }).join("") +
+            '</ul>'
+          : '<div class="muted">所属組織は登録されていません。</div>';
+
+      const body =
+        buildDetailRows([
+          { label:"業者番号", value:member.memberNo || "" },
+          { label:"会社名", value:member.companyName || "" },
+          { label:"代表者名", value:member.representativeName || "" },
+          { label:"メール", value:member.mail || "" },
+          { label:"ブロック", value:member.block || "" },
+          { label:"支部", value:member.branch || "" },
+          { label:"地区", value:member.district || "" },
+          { label:"送信対象", value:formatFlagLabel(member.target, "送信する", "送信しない") },
+          { label:"備考", value:member.note || "" }
+        ]) +
+        '<h3>所属組織</h3>' +
+        orgHtml +
+        '<div class="actions">' +
+          '<button class="btn" onclick="closeAppModal(); showEdit(\'' +
+          escapeJs(member.memberNo || "") +
+          '\')">設定変更</button>' +
+        '</div>';
+
+      openAppModal(
+        "会員詳細",
+        body,
+        { wide:true }
+      );
+    }
+  );
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  loadMembers(false);
+}
+
+
+function nextPage(){
+
+  const totalPages =
+    Math.ceil(totalMemberCount / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  loadMembers(false);
+}
+
+function showEdit(memberNo){
+
+  openAppModal(
+    "会員設定・所属組織",
+    '<div class="status">読み込み中...</div>',
+    { wide:true }
+  );
+
+  jsonp(
+    "getMemberDetailJsonp",
+    { member: memberNo },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("appModalBody").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会員情報を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      renderEditModal(
+        res.member || {},
+        res.organizations || []
+      );
+    }
+  );
+}
+
+function renderEditModal(member, organizations){
+
+  const memberNo =
+    member.memberNo || "";
+
+  const companyName =
+    member.companyName || "";
+
+  const mail =
+    member.mail || "";
+
+  const target =
+    member.target || "TRUE";
+
+  const note =
+    member.note || "";
+
+  const orgHtml =
+    organizations.length
+      ? '<div class="org-list">' +
+        organizations.map(function(org){
+          return (
+            '<label>' +
+              '<input type="checkbox" class="editOrgCheck" value="' +
+              escapeHtml(org.orgId || "") +
+              '"' +
+              (org.selected ? " checked" : "") +
+              '> ' +
+              escapeHtml(org.orgName || "") +
+              ' <span class="muted">ID:' +
+              escapeHtml(org.orgId || "") +
+              '</span>' +
+            '</label>'
+          );
+        }).join("") +
+        '</div>'
+      : '<div class="muted">組織は登録されていません。</div>';
+
+  const body =
+    '<div id="editStatus" class="status" style="display:none;"></div>' +
+    '<strong>' + escapeHtml(companyName) + '</strong><br>' +
+    '業者番号：' + escapeHtml(memberNo) + '<br><br>' +
+
+    '<label>メールアドレス</label>' +
+    '<input id="editMail" value="' +
+    escapeHtml(mail || "") +
+    '" placeholder="例：sample@example.com">' +
+    '<div class="help">変更すると会員マスタのメール欄が更新されます。</div>' +
+
+    '<label>送信対象</label>' +
+    '<select id="editTarget">' +
+      buildFlagOptions(target, "送信する", "送信しない") +
+    '</select>' +
+
+    '<label>備考</label>' +
+    '<textarea id="editNote" style="height:100px;">' +
+    escapeHtml(note || "") +
+    '</textarea>' +
+
+    '<h3>所属組織</h3>' +
+    orgHtml +
+
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveSetting(\'' +
+      escapeJs(memberNo) +
+      '\')">保存する</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "会員設定・所属組織",
+    body,
+    { wide:true }
+  );
+}
+
+function saveSetting(memberNo){
+
+  const target =
+    document.getElementById("editTarget").value;
+
+  const note =
+    document.getElementById("editNote").value.trim();
+
+  const mail =
+    document.getElementById("editMail").value.trim();
+
+  const orgIds =
+    Array.from(document.querySelectorAll(".editOrgCheck"))
+      .filter(function(check){
+        return check.checked;
+      })
+      .map(function(check){
+        return check.value;
+      });
+
+  if(mail && mail.indexOf("@") === -1){
+    alert("メールアドレスの形式を確認してください。");
+    return;
+  }
+
+  if(!confirm("会員設定、メールアドレス、所属組織を保存します。\nよろしいですか？")){
+    return;
+  }
+
+  const editStatus =
+    document.getElementById("editStatus");
+
+  editStatus.style.display =
+    "block";
+
+  editStatus.textContent =
+    "保存中...";
+
+  jsonp(
+    "updateMemberSettingJsonp",
+    {
+      member: memberNo,
+      mail: mail,
+      target: target,
+      note: note
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        editStatus.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会員設定の保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      jsonp(
+        "saveMemberOrganizationsJsonp",
+        {
+          member: memberNo,
+          orgIds: orgIds.join(",")
+        },
+        function(res2){
+
+          if(!res2 || !res2.ok){
+            editStatus.innerHTML =
+              '<span class="ng">' +
+              escapeHtml(res2 && res2.message ? res2.message : "所属組織の保存に失敗しました。") +
+              '</span>';
+            return;
+          }
+
+          editStatus.innerHTML =
+            '<span class="ok">' +
+            escapeHtml(res2.message || "保存しました。") +
+            '</span>';
+
+          setTimeout(function(){
+            closeAppModal();
+            loadMembers(false);
+          }, 500);
+        }
+      );
+    }
+  );
+}
+
+document.addEventListener("keydown", function(e){
+
+  if(e.key === "Enter"){
+    loadMembers(true);
+  }
+
+});
+
+loadMembers(true);
+</script>
+
+</body>
+</html>

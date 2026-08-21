@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>参加履歴</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 150px 160px;
+  gap:10px;
+  margin:16px 0;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+.filter-panel{
+  margin:10px 0 14px;
+  padding:12px;
+  background:#f7f7f7;
+  border-radius:8px;
+}
+
+.filter-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-weight:bold;
+  margin-bottom:8px;
+  cursor:pointer;
+}
+
+.filter-summary{
+  color:#555;
+  font-size:13px;
+  font-weight:normal;
+}
+
+.filter-toggle{
+  border:0;
+  background:#666;
+  color:#fff;
+  border-radius:6px;
+  padding:6px 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.filter-panel.collapsed .filter-body{
+  display:none;
+}
+
+.filter-help{
+  color:#666;
+  font-size:13px;
+  line-height:1.7;
+  margin-bottom:8px;
+}
+
+.filter-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.filter-button{
+  border:1px solid #ccc;
+  background:#fff;
+  color:#222;
+  border-radius:6px;
+  padding:7px 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.filter-button.active{
+  background:#12345a;
+  color:#fff;
+  border-color:#12345a;
+}
+
+@media screen and (max-width:800px){
+  .search{
+    display:block;
+  }
+
+  .search input,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>参加履歴</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" onclick="loadHistory()">再読み込み</button>
+    <a class="btn sub" id="detailLink" href="training-list.html">研修会へ戻る</a>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div class="search">
+    <input id="keyword" placeholder="研修名・会社名・参加者名・個人ID・業者番号・受付方法・結果で検索" oninput="onSearchChanged()">
+    <select id="yearFilter" onchange="onSearchChanged()">
+      <option value="">年度を読み込み中...</option>
+    </select>
+    <button class="btn" onclick="loadHistory()">再検索</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="areaFilterPanel" class="filter-panel collapsed">
+    <div class="filter-title" onclick="toggleAreaFilterPanel()">
+      <span>
+        支部・地区
+        <span id="areaFilterSummary" class="filter-summary">全体</span>
+      </span>
+      <button type="button" id="areaFilterToggleButton" class="filter-toggle">開く</button>
+    </div>
+    <div class="filter-body">
+      <div class="filter-help">
+        所属は受付時点の参加履歴に保存された所属です。過去分で空欄の場合は会員マスタの現在情報で補完表示します。
+      </div>
+      <div id="branchFilters" class="filter-buttons"></div>
+      <div id="districtFilters" class="filter-buttons" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <table id="historyTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>日時</th>
+        <th>研修会</th>
+        <th>受付方法</th>
+        <th>業者番号</th>
+        <th>会社名</th>
+        <th>結果</th>
+        <th>備考</th>
+        <th>詳細</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allHistories =
+  [];
+
+let currentPage =
+  1;
+
+let selectedBranch =
+  "";
+
+let selectedDistrict =
+  "";
+
+const pageSize =
+  10;
+
+
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+function setupBackLink(){
+
+  const link =
+    document.getElementById("detailLink");
+
+  if(eventId && returnTo === "checkin"){
+    link.href =
+      "checkin-select.html";
+
+    link.textContent =
+      "受付メニューへ戻る";
+
+    return;
+  }
+
+  if(eventId){
+    link.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId) + "&return=history";
+
+    link.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  link.href =
+    "training-list.html";
+
+  link.textContent =
+    "研修会一覧へ戻る";
+}
+
+if(eventId){
+  document.getElementById("yearFilter").style.display =
+    "none";
+
+  document.querySelector(".search").style.gridTemplateColumns =
+    "1fr 160px";
+}
+
+function loadHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  status.textContent =
+    "読み込み中...";
+
+  table.style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getCheckinHistoryJsonp",
+    {
+      event: eventId,
+      limit: eventId ? "" : 300
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">参加履歴を取得できませんでした。</span>';
+        return;
+      }
+
+      allHistories =
+        res.histories || [];
+
+      buildYearFilter();
+      renderAreaFilters();
+
+      currentPage =
+        1;
+
+      if(allHistories.length === 0){
+        status.textContent =
+          "参加履歴はありません。";
+        return;
+      }
+
+      renderHistory();
+
+      if(!eventId && allHistories.length >= 300){
+        status.textContent =
+          status.textContent +
+          "（最新300件）";
+      }
+    }
+  );
+}
+
+
+function renderHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    getFilteredHistories();
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "条件に一致する参加履歴はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(h){
+
+    const historyIndex =
+      allHistories.indexOf(h);
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(h.date) + "</td>" +
+      "<td>" +
+        escapeHtml(h.trainingTitle || "") +
+        '<div class="muted">' +
+        escapeHtml(h.eventId || "") +
+        '</div>' +
+      "</td>" +
+      "<td>" + escapeHtml(h.method) + "</td>" +
+      "<td>" + escapeHtml(h.memberNo) + "</td>" +
+      "<td>" +
+        escapeHtml(h.companyName) +
+        (
+          h.participantName
+            ? '<div class="muted">' + escapeHtml(h.participantName) + '</div>'
+            : ''
+        ) +
+        (
+          h.personalId
+            ? '<div class="muted">個人ID：' + escapeHtml(h.personalId) + '</div>'
+            : ''
+        ) +
+      "</td>" +
+      "<td>" + escapeHtml(h.result) + "</td>" +
+      "<td>" + escapeHtml(h.note) + "</td>" +
+      "<td>" +
+        '<button type="button" class="btn sub" onclick="showHistoryDetail(' +
+        historyIndex +
+        ')">詳細</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function showHistoryDetail(index){
+
+  const h =
+    allHistories[index];
+
+  if(!h){
+    return;
+  }
+
+  const cancelHtml =
+    h.cancelReason || h.canceledAt || h.canceledBy
+      ? buildDetailRows([
+          { label:"取消日時", value:h.canceledAt || "" },
+          { label:"取消者", value:h.canceledBy || "" },
+          { label:"取消理由", value:h.cancelReason || "" }
+        ])
+      : '<div class="muted">取消情報はありません。</div>';
+
+  const restoreHtml =
+    h.restoreReason || h.restoredAt || h.restoredBy
+      ? buildDetailRows([
+          { label:"復活日時", value:h.restoredAt || "" },
+          { label:"復活者", value:h.restoredBy || "" },
+          { label:"復活理由", value:h.restoreReason || "" }
+        ])
+      : '<div class="muted">復活情報はありません。</div>';
+
+  const body =
+    buildDetailRows([
+      { label:"受付日時", value:h.date || "" },
+      { label:"研修会", value:(h.trainingTitle || "") + (h.eventId ? " / " + h.eventId : "") },
+      { label:"受付区分", value:h.receptionCategory || "" },
+      { label:"照合状態", value:h.verificationStatus || "" },
+      { label:"受付単位", value:h.attendanceUnit || "" },
+      { label:"会社名", value:h.companyName || "" },
+      { label:"参加者名", value:h.participantName || "" },
+      { label:"個人ID", value:h.personalId || "" },
+      { label:"業者番号", value:h.memberNo || "" },
+      { label:"受付方法", value:getReceptionTypeLabel(h.method || "") },
+      { label:"結果", value:h.result || "" },
+      { label:"所属", value:[h.block || "", h.branch || "", h.district || ""].filter(function(v){ return v; }).join(" / ") },
+      { label:"メール", value:h.mail || "" },
+      { label:"電話", value:h.phone || "" },
+      { label:"備考", value:h.note || "" }
+    ]) +
+    '<h3>取消</h3>' +
+    cancelHtml +
+    '<h3>復活</h3>' +
+    restoreHtml;
+
+  openAppModal(
+    "参加履歴詳細",
+    body
+  );
+}
+
+function getFilteredHistories(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const yearValue =
+    document.getElementById("yearFilter").value;
+
+  return allHistories.filter(function(h){
+
+      if(selectedBranch && h.branch !== selectedBranch){
+        return false;
+      }
+
+      if(selectedDistrict && h.district !== selectedDistrict){
+        return false;
+      }
+
+      if(
+        !eventId &&
+        yearValue &&
+        yearValue !== "all" &&
+        getHistoryFiscalYear(h) !== yearValue
+      ){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          h.date,
+          h.eventId,
+          h.trainingTitle,
+          h.method,
+          h.memberNo,
+          h.personalId,
+          h.companyName,
+          h.receptionCategory,
+          h.verificationStatus,
+          h.attendanceUnit,
+          h.participantName,
+          h.mail,
+          h.phone,
+          h.block,
+          h.branch,
+          h.district,
+          h.result,
+          h.note
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+}
+
+
+function renderAreaFilters(){
+
+  const branchMap =
+    {};
+
+  const districtMap =
+    {};
+
+  allHistories.forEach(function(h){
+
+    if(h.branch){
+      branchMap[h.branch] =
+        true;
+    }
+
+    if(
+      selectedBranch &&
+      h.district &&
+      h.branch === selectedBranch
+    ){
+      districtMap[h.district] =
+        true;
+    }
+  });
+
+  renderFilterButtons(
+    "branchFilters",
+    "支部",
+    Object.keys(branchMap).sort(),
+    selectedBranch,
+    function(value){
+      selectedBranch =
+        value;
+      selectedDistrict =
+        "";
+      currentPage =
+        1;
+      renderAreaFilters();
+      renderHistory();
+    }
+  );
+
+  renderFilterButtons(
+    "districtFilters",
+    "地区",
+    Object.keys(districtMap).sort(),
+    selectedDistrict,
+    function(value){
+      selectedDistrict =
+        value;
+      currentPage =
+        1;
+      renderAreaFilters();
+      renderHistory();
+    }
+  );
+
+  updateAreaFilterSummary();
+}
+
+
+function renderFilterButtons(id, label, values, selectedValue, onSelect){
+
+  let html =
+    '<button type="button" class="filter-button ' +
+    (!selectedValue ? "active" : "") +
+    '" data-value="">全' +
+    escapeHtml(label) +
+    '</button>';
+
+  values.forEach(function(value){
+
+    html +=
+      '<button type="button" class="filter-button ' +
+      (selectedValue === value ? "active" : "") +
+      '" data-value="' +
+      escapeHtml(value) +
+      '">' +
+      escapeHtml(value) +
+      '</button>';
+  });
+
+  const box =
+    document.getElementById(id);
+
+  box.innerHTML =
+    html;
+
+  Array.prototype.forEach.call(
+    box.querySelectorAll("button"),
+    function(button){
+      button.onclick = function(){
+        onSelect(
+          button.getAttribute("data-value") || ""
+        );
+      };
+    }
+  );
+}
+
+
+function updateAreaFilterSummary(){
+
+  const parts =
+    [];
+
+  if(selectedBranch){
+    parts.push(selectedBranch);
+  }
+
+  if(selectedDistrict){
+    parts.push(selectedDistrict);
+  }
+
+  document.getElementById("areaFilterSummary").textContent =
+    parts.length
+      ? parts.join(" / ")
+      : "全体";
+}
+
+
+function toggleAreaFilterPanel(){
+
+  const panel =
+    document.getElementById("areaFilterPanel");
+
+  const collapsed =
+    panel.classList.toggle("collapsed");
+
+  document.getElementById("areaFilterToggleButton").textContent =
+    collapsed
+      ? "開く"
+      : "閉じる";
+}
+
+function buildYearFilter(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  if(eventId){
+    select.innerHTML =
+      '<option value="all">すべて</option>';
+    select.value =
+      "all";
+    return;
+  }
+
+  const currentValue =
+    select.value;
+
+  const years =
+    getHistoryYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    currentValue && (currentValue === "all" || years.indexOf(currentValue) >= 0)
+      ? currentValue
+      : years.indexOf(currentYear) >= 0
+        ? currentYear
+        : "all";
+}
+
+function getHistoryYears(){
+
+  const map = {};
+
+  allHistories.forEach(function(item){
+
+    const year =
+      getHistoryFiscalYear(item);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+function getHistoryFiscalYear(item){
+
+  const eventYear =
+    getFiscalYearFromEventId(item && item.eventId);
+
+  if(eventYear){
+    return eventYear;
+  }
+
+  return getFiscalYearFromDateText(item && item.date);
+}
+
+function getFiscalYearFromEventId(eventId){
+
+  const match =
+    String(eventId || "").trim().match(/^(\d{4})-/);
+
+  return match ? match[1] : "";
+}
+
+function getFiscalYearFromDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  const match =
+    text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+
+  if(!match){
+    return "";
+  }
+
+  const year =
+    Number(match[1]);
+
+  const month =
+    Number(match[2]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+
+function onSearchChanged(){
+
+  currentPage =
+    1;
+
+  renderAreaFilters();
+
+  renderHistory();
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderHistory();
+}
+
+
+function nextPage(){
+
+  const totalPages =
+    Math.ceil(getFilteredHistories().length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderHistory();
+}
+
+setupBackLink();
+loadHistory();
+</script>
+
+</body>
+</html>

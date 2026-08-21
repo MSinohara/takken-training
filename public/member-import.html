@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会員マスタCSV取込</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.mapping{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:10px;
+  align-items:center;
+  margin-top:12px;
+}
+
+.preview{
+  margin-top:18px;
+}
+
+.example-box{
+  margin-top:14px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.example-box pre{
+  margin:8px 0 0;
+  padding:10px;
+  background:#fff;
+  border:1px solid #ddd;
+  overflow:auto;
+  font-family:Consolas,monospace;
+  font-size:14px;
+}
+
+@media screen and (max-width:800px){
+  .mapping{
+    display:block;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会員マスタCSV取込</h1>
+</header>
+
+<main>
+<div class="card">
+
+	<div class="notice">
+	  <strong>会員マスタ取込について</strong><br>
+	  この画面では、会員マスタをCSVの内容で更新します。<br>
+	  取込対象は、業者番号・会社名・代表者名・ブロック・支部・地区・メールです。<br>
+	  既存の会員マスタはバックアップ作成後、CSVの内容に置き換わります。<br>
+	  会員設定の送信対象・備考は引き継がれ、新規会員は「送信する」として追加されます。
+	</div>
+
+  <div class="example-box">
+    <strong>必要な列と必須項目</strong><br>
+    必須：業者番号、会社名、ブロック、支部、地区<br>
+    任意：代表者名、メール<br>
+    メールが無い会員は空欄のまま取り込めます。<br>
+    ブロック・支部・地区は研修対象の絞り込みに使うため、空欄の行は取り込み対象外になります。
+    <pre>業者番号,会社名,代表者名,ブロック,支部,地区,メール
+41796,大境不動産株式会社,山田 太郎,第十ブロック,杉並支部,阿佐谷・西武地区,sample@example.com
+94447,株式会社エフエンタープライズ,佐藤 花子,第十ブロック,杉並支部,阿佐谷・西武地区,sample2@example.com</pre>
+  </div>
+
+  <label>文字コード</label>
+  <select id="encoding">
+    <option value="shift-jis">Shift_JIS</option>
+    <option value="utf-8">UTF-8</option>
+  </select>
+  <div class="help">
+    Excelで保存したCSVはShift_JIS、Googleスプレッドシート等から出力したCSVはUTF-8の場合があります。文字化けする場合は、もう一方を選んで読み込み直してください。
+  </div>
+
+  <label>CSVファイル</label>
+  <input type="file" id="csvFile" accept=".csv,text/csv">
+
+  <div class="actions">
+    <button class="btn" onclick="readCsv()">CSVを読み込む</button>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div id="mappingArea" style="display:none;">
+
+    <h2>列の対応</h2>
+
+    <div class="mapping">
+      <div>業者番号</div>
+      <select id="colMemberNo"></select>
+
+      <div>会社名</div>
+      <select id="colCompanyName"></select>
+
+      <div>代表者名</div>
+      <select id="colRepresentativeName"></select>
+
+			<div>ブロック</div>
+			<select id="colBlock"></select>
+
+			<div>支部</div>
+			<select id="colBranch"></select>
+
+			<div>地区</div>
+			<select id="colDistrict"></select>
+
+			<div>メール</div>
+			<select id="colMail"></select>
+
+    <div class="actions">
+      <button class="btn" onclick="makePreview()">プレビュー</button>
+      <button class="btn danger" id="importButton" onclick="executeImport()" disabled>
+        取込実行
+      </button>
+    </div>
+
+  </div>
+
+  <div id="previewArea" class="preview"></div>
+
+</div>
+</main>
+
+<script>
+let csvRows =
+  [];
+
+let mappedRows =
+  [];
+
+function readCsv(){
+
+  const file =
+    document.getElementById("csvFile").files[0];
+
+  if(!file){
+    alert("CSVファイルを選択してください。");
+    return;
+  }
+
+  const encoding =
+    document.getElementById("encoding").value;
+
+  const reader =
+    new FileReader();
+
+  reader.onload = function(e){
+
+    const buffer =
+      e.target.result;
+
+    const decoder =
+      new TextDecoder(encoding);
+
+    const text =
+      decoder.decode(buffer);
+
+    csvRows =
+      parseCsv(text);
+
+    if(csvRows.length < 2){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">CSVの行数が不足しています。</span>';
+      return;
+    }
+
+    setupMapping(
+      csvRows[0]
+    );
+
+    document.getElementById("status").innerHTML =
+      '<span class="ok">CSVを読み込みました。</span><br>' +
+      '行数：' + (csvRows.length - 1) + '件';
+
+    document.getElementById("mappingArea").style.display =
+      "block";
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function setupMapping(headers){
+
+		const selects = [
+		  "colMemberNo",
+		  "colCompanyName",
+		  "colRepresentativeName",
+		  "colBlock",
+		  "colBranch",
+		  "colDistrict",
+		  "colMail"
+		];
+
+  selects.forEach(function(id){
+
+    const select =
+      document.getElementById(id);
+
+    select.innerHTML =
+      '<option value="">選択しない</option>';
+
+    headers.forEach(function(header, index){
+
+      const option =
+        document.createElement("option");
+
+      option.value =
+        index;
+
+      option.textContent =
+        header;
+
+      select.appendChild(option);
+    });
+  });
+
+  autoSelect(
+    "colMemberNo",
+    headers,
+    ["業者番号","免許番号","会員番号"]
+  );
+
+  autoSelect(
+    "colCompanyName",
+    headers,
+    ["会社名","商号","業者名","名称"]
+  );
+
+  autoSelect(
+    "colRepresentativeName",
+    headers,
+    ["代表者名","代表者","代表者氏名","担当者名","連絡担当者名"]
+  );
+
+	autoSelect(
+	  "colBlock",
+	  headers,
+	  ["ブロック"]
+	);
+
+	autoSelect(
+	  "colBranch",
+	  headers,
+	  ["支部","所属支部"]
+	);
+
+	autoSelect(
+	  "colDistrict",
+	  headers,
+	  ["地区"]
+	);
+
+	autoSelect(
+	  "colMail",
+	  headers,
+	  ["メール","メールアドレス","E-mail","Email","mail"]
+	);
+}
+
+function autoSelect(id, headers, candidates){
+
+  const select =
+    document.getElementById(id);
+
+  for(let i = 0; i < headers.length; i++){
+
+    const h =
+      String(headers[i] || "").trim();
+
+    if(candidates.indexOf(h) !== -1){
+      select.value =
+        i;
+      return;
+    }
+  }
+}
+
+function makePreview(){
+
+  const colMemberNo =
+    document.getElementById("colMemberNo").value;
+
+  const colCompanyName =
+    document.getElementById("colCompanyName").value;
+
+  const colRepresentativeName =
+    document.getElementById("colRepresentativeName").value;
+
+  const colMail =
+    document.getElementById("colMail").value;
+
+  const colBranch =
+    document.getElementById("colBranch").value;
+
+  const colDistrict =
+    document.getElementById("colDistrict").value;
+
+  const colBlock =
+    document.getElementById("colBlock").value;
+
+  if(
+    colMemberNo === "" ||
+    colCompanyName === "" ||
+    colBlock === "" ||
+    colBranch === "" ||
+    colDistrict === ""
+  ){
+    alert("業者番号、会社名、ブロック、支部、地区は必須です。");
+    return;
+  }
+
+  mappedRows =
+    [];
+
+  let blankRequiredCount =
+    0;
+
+  for(let i = 1; i < csvRows.length; i++){
+
+    const row =
+      csvRows[i];
+
+    const mappedRow =
+      [
+        getCell(row, colMemberNo),
+        getCell(row, colCompanyName),
+        colRepresentativeName === "" ? "" : getCell(row, colRepresentativeName),
+        getCell(row, colBlock),
+        getCell(row, colBranch),
+        getCell(row, colDistrict),
+        colMail === "" ? "" : getCell(row, colMail)
+      ];
+
+    if(
+      !mappedRow[0] ||
+      !mappedRow[1] ||
+      !mappedRow[3] ||
+      !mappedRow[4] ||
+      !mappedRow[5]
+    ){
+      blankRequiredCount++;
+      continue;
+    }
+
+    mappedRows.push(mappedRow);
+  }
+
+  if(blankRequiredCount > 0){
+    if(!confirm(
+      "必須項目に空欄がある行が " +
+      blankRequiredCount +
+      " 件あります。\n" +
+      "この行は取り込まずに続行しますか？"
+    )){
+      mappedRows =
+        [];
+      document.getElementById("importButton").disabled =
+        true;
+      return;
+    }
+  }
+
+  if(mappedRows.length === 0){
+    alert("取り込める行がありません。必須項目を確認してください。");
+    document.getElementById("importButton").disabled =
+      true;
+    return;
+  }
+
+  let html =
+    '<div class="info">' +
+    '取込予定件数：' +
+    mappedRows.length +
+    '件';
+
+  if(blankRequiredCount > 0){
+    html +=
+      '<br>必須項目が空欄のため取り込まない行：' +
+      blankRequiredCount +
+      '件';
+  }
+
+  html +=
+    '</div>';
+
+  html +=
+    '<table>' +
+    '<thead>' +
+    '<tr>' +
+    '<th>業者番号</th>' +
+    '<th>会社名</th>' +
+    '<th>代表者名</th>' +
+		'<th>ブロック</th>' +
+		'<th>支部</th>' +
+		'<th>地区</th>' +
+		'<th>メール</th>' +
+    '</tr>' +
+    '</thead><tbody>';
+
+  mappedRows
+    .slice(0, 10)
+    .forEach(function(row){
+
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(row[0]) + '</td>' +
+        '<td>' + escapeHtml(row[1]) + '</td>' +
+        '<td>' + escapeHtml(row[2]) + '</td>' +
+        '<td>' + escapeHtml(row[3]) + '</td>' +
+        '<td>' + escapeHtml(row[4]) + '</td>' +
+        '<td>' + escapeHtml(row[5]) + '</td>' +
+        '<td>' + escapeHtml(row[6]) + '</td>' +
+        '</tr>';
+    });
+
+  html +=
+    '</tbody></table>';
+
+  document.getElementById("previewArea").innerHTML =
+    html;
+
+  document.getElementById("importButton").disabled =
+    false;
+}
+
+function getCell(row, index){
+
+  if(index === ""){
+    return "";
+  }
+
+  return String(row[Number(index)] || "").trim();
+}
+
+function executeImport(){
+
+  if(mappedRows.length === 0){
+    alert("先にプレビューを実行してください。");
+    return;
+  }
+
+  if(!confirm("会員マスタを全件入れ替えます。\n現在の会員マスタはバックアップされます。\n\n実行しますか？")){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "取込準備中...";
+
+  jsonp(
+    "startMemberImportJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">取込準備に失敗しました。</span>';
+        return;
+      }
+
+      sendChunks(0);
+    }
+  );
+}
+
+function sendChunks(start){
+
+  const chunkSize =
+    10;
+
+  const chunk =
+    mappedRows.slice(
+      start,
+      start + chunkSize
+    );
+
+  if(chunk.length === 0){
+    finishImport();
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "取込中... " +
+    Math.min(start + chunkSize, mappedRows.length) +
+    " / " +
+    mappedRows.length;
+
+  jsonp(
+    "appendMemberImportChunkJsonp",
+    {
+      rows: JSON.stringify(chunk)
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">取込中にエラーが発生しました。</span>';
+        return;
+      }
+
+      sendChunks(
+        start + chunkSize
+      );
+    }
+  );
+}
+
+function finishImport(){
+
+  document.getElementById("status").textContent =
+    "最終処理中...";
+
+  jsonp(
+    "finishMemberImportJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">取込完了処理に失敗しました。</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message) +
+        '</span><br>' +
+        '取込件数：' +
+        escapeHtml(res.imported) +
+        '件<br>' +
+        '除外件数：' +
+        escapeHtml(res.skipped) +
+        '件<br>' +
+        '会員設定新規追加：' +
+        escapeHtml(res.addedSettings) +
+        '件';
+
+      document.getElementById("importButton").disabled =
+        true;
+    }
+  );
+}
+
+function parseCsv(text){
+
+  const rows =
+    [];
+
+  let row =
+    [];
+
+  let cell =
+    "";
+
+  let inQuote =
+    false;
+
+  for(let i = 0; i < text.length; i++){
+
+    const char =
+      text[i];
+
+    const next =
+      text[i + 1];
+
+    if(char === '"' && inQuote && next === '"'){
+      cell += '"';
+      i++;
+      continue;
+    }
+
+    if(char === '"'){
+      inQuote =
+        !inQuote;
+      continue;
+    }
+
+    if(char === "," && !inQuote){
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if((char === "\n" || char === "\r") && !inQuote){
+
+      if(char === "\r" && next === "\n"){
+        i++;
+      }
+
+      row.push(cell);
+
+      if(row.some(function(v){ return String(v).trim() !== ""; })){
+        rows.push(row);
+      }
+
+      row =
+        [];
+
+      cell =
+        "";
+
+      continue;
+    }
+
+    cell +=
+      char;
+  }
+
+  row.push(cell);
+
+  if(row.some(function(v){ return String(v).trim() !== ""; })){
+    rows.push(row);
+  }
+
+  return rows;
+}
+</script>
+
+</body>
+</html>

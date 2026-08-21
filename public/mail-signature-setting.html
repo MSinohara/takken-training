@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>メール署名設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.table-wrap{
+  overflow-x:auto;
+}
+
+.signature-preview{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.7;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 160px;
+  gap:14px;
+}
+
+@media (max-width:700px){
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>メール署名設定</h1>
+  <p>案内メールの末尾に付ける署名を登録します。</p>
+</header>
+
+<main>
+  <div class="actions">
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+    <button class="btn" onclick="openSignatureModal('')">新規登録</button>
+    <button class="btn sub" onclick="loadSignatures()">再読み込み</button>
+  </div>
+
+  <section class="card">
+    <h2>登録済み署名</h2>
+    <p class="muted">
+      研修会作成・編集画面で署名を選択すると、案内メールの末尾に自動で追加されます。
+    </p>
+    <div id="status" class="status">読み込み中...</div>
+    <div id="signatureTable" class="table-wrap"></div>
+  </section>
+</main>
+
+<script>
+let signatures =
+  [];
+
+function loadSignatures(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  jsonp(
+    "getMailSignaturesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "メール署名を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      signatures =
+        res.signatures || [];
+
+      renderSignatures();
+    }
+  );
+}
+
+function renderSignatures(){
+
+  const status =
+    document.getElementById("status");
+
+  const box =
+    document.getElementById("signatureTable");
+
+  if(signatures.length === 0){
+    status.textContent =
+      "メール署名はまだ登録されていません。";
+    box.innerHTML =
+      "";
+    return;
+  }
+
+  status.textContent =
+    signatures.length + "件の署名があります。";
+
+  box.innerHTML =
+    '<table>' +
+      '<thead><tr>' +
+        '<th>署名名</th>' +
+        '<th>署名本文</th>' +
+        '<th>有効</th>' +
+        '<th>更新日時</th>' +
+        '<th>操作</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      signatures.map(function(signature){
+        return '<tr>' +
+          '<td>' + escapeHtml(signature.signatureName || "") + '</td>' +
+          '<td><div class="signature-preview">' + escapeHtml(signature.signatureBody || "") + '</div></td>' +
+          '<td>' + (signature.active === "FALSE" ? "停止" : "有効") + '</td>' +
+          '<td>' + escapeHtml(signature.updatedAt || "") + '</td>' +
+          '<td><button class="btn sub" onclick="openSignatureModal(\'' +
+            escapeJs(signature.signatureId || "") +
+          '\')">編集</button></td>' +
+        '</tr>';
+      }).join("") +
+      '</tbody>' +
+    '</table>';
+}
+
+function openSignatureModal(signatureId){
+
+  const signature =
+    signatures.find(function(item){
+      return item.signatureId === signatureId;
+    }) || {};
+
+  const body =
+    '<input id="modalSignatureId" type="hidden" value="' + escapeHtml(signature.signatureId || "") + '">' +
+    '<div class="form-grid">' +
+      '<label>署名名<input id="modalSignatureName" type="text" value="' + escapeHtml(signature.signatureName || "") + '"></label>' +
+      '<label>有効' +
+        '<select id="modalSignatureActive">' +
+          '<option value="TRUE">有効</option>' +
+          '<option value="FALSE">停止</option>' +
+        '</select>' +
+      '</label>' +
+    '</div>' +
+    '<label>署名本文<textarea id="modalSignatureBody" rows="8"></textarea></label>' +
+    '<label>備考<textarea id="modalSignatureNote" rows="3"></textarea></label>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveSignature()">保存</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>' +
+    '<div id="modalResult" class="result"></div>';
+
+  openAppModal(
+    signatureId ? "メール署名を編集" : "メール署名を新規登録",
+    body,
+    { wide: true }
+  );
+
+  document.getElementById("modalSignatureBody").value =
+    signature.signatureBody || "";
+
+  document.getElementById("modalSignatureNote").value =
+    signature.note || "";
+
+  document.getElementById("modalSignatureActive").value =
+    signature.active === "FALSE"
+      ? "FALSE"
+      : "TRUE";
+}
+
+function saveSignature(){
+
+  const data =
+    {
+      signatureId: document.getElementById("modalSignatureId").value,
+      signatureName: document.getElementById("modalSignatureName").value.trim(),
+      signatureBody: document.getElementById("modalSignatureBody").value,
+      active: document.getElementById("modalSignatureActive").value,
+      note: document.getElementById("modalSignatureNote").value
+    };
+
+  if(!data.signatureName || !data.signatureBody.trim()){
+    showModalResult("署名名と署名本文を入力してください。", false);
+    return;
+  }
+
+  showModalResult("保存中...", true);
+
+  jsonp(
+    "saveMailSignatureJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        showModalResult(
+          res && res.message ? res.message : "保存できませんでした。",
+          false
+        );
+        return;
+      }
+
+      closeAppModal();
+      loadSignatures();
+    }
+  );
+}
+
+function showModalResult(message, ok){
+
+  const result =
+    document.getElementById("modalResult");
+
+  result.style.display =
+    "block";
+
+  result.className =
+    "result " + (ok ? "ok" : "ng");
+
+  result.textContent =
+    message;
+}
+
+document.addEventListener("DOMContentLoaded", loadSignatures);
+</script>
+
+</body>
+</html>

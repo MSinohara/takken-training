@@ -1,0 +1,13 @@
+{
+  "name": "takken-training-gas",
+  "private": true,
+  "scripts": {
+    "clasp": "clasp",
+    "pull": "clasp pull",
+    "push": "clasp push",
+    "status": "clasp status"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.0.6"
+  }
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修案内メール確認</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+body{
+  background:#fff;
+  -webkit-text-size-adjust:100%;
+}
+
+header,
+.global-nav{
+  display:none;
+}
+
+main{
+  max-width:720px;
+  margin:0 auto;
+  padding:22px 24px 36px;
+}
+
+.mail-card{
+  background:#fff;
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+}
+
+.mail-body{
+  padding:0;
+  font-size:17px;
+  line-height:1.68;
+  color:#111;
+}
+
+.mail-subject{
+  margin:0 0 24px;
+  font-size:21px;
+  font-weight:bold;
+  line-height:1.35;
+}
+
+.plain-mail{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.mail-link{
+  color:#1473d1;
+  text-decoration:underline;
+  overflow-wrap:anywhere;
+}
+
+@media (max-width:640px){
+  main{
+    padding:22px 24px 36px;
+  }
+
+  .mail-body{
+    font-size:17px;
+    line-height:1.68;
+  }
+
+  .mail-subject{
+    font-size:21px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修案内メール確認</h1>
+</header>
+
+<main>
+  <div id="status" class="status">読み込み中です...</div>
+
+  <div id="mailCard" class="mail-card" style="display:none;">
+    <div class="mail-body">
+      <div id="subject" class="mail-subject"></div>
+      <div id="mailBeforeUrl" class="plain-mail"></div>
+      <a id="locationUrl" class="mail-link" href="#"></a>
+      <div id="mailAfterUrl" class="plain-mail"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "2026-015";
+
+const memberNo =
+  params.get("member") || "";
+
+loadDemoMail();
+
+function loadDemoMail(){
+
+  if(!memberNo){
+    showError("業者番号が指定されていません。");
+    return;
+  }
+
+  jsonp(
+    "getDemoLocationMailJsonp",
+    {
+      event: eventId,
+      member: memberNo
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showError(res && res.message ? res.message : "研修案内メールを作成できませんでした。");
+        return;
+      }
+
+      renderDemoMail(res);
+    },
+    30000
+  );
+}
+
+function renderDemoMail(data){
+
+  const training =
+    data.training || {};
+
+  const member =
+    data.member || {};
+
+  document.getElementById("subject").textContent =
+    training.title || "研修会のご案内";
+
+  const locationUrl =
+    data.locationUrl || "";
+
+  document.getElementById("mailBeforeUrl").textContent =
+    (member.companyName || "") + " 様\n\n" +
+    (training.body || "研修会のご案内です。") +
+    "\n\n" +
+    "【当日の受付方法】\n" +
+    "当日は会場に掲示された受付用QRコードから受付を行います。\n" +
+    "会場到着後、受付案内に従って、会社名または業者番号で検索して受付してください。\n\n" +
+    "※このメールは研修会参加確認システムから送信しています。\n\n" +
+    "【位置情報受付】\n" +
+    "当日は上記の受付方法に加えて、位置情報受付をすることも可能です。\n" +
+    "受付可能時間: " +
+    (training.locationCheckinStart || "開始未設定") +
+    " から " +
+    (training.locationCheckinEnd || "終了未設定") +
+    " まで\n" +
+    "会場に到着後、下記URLを開いて位置情報の取得を許可し、受付ボタンを押してください。\n";
+
+  document.getElementById("locationUrl").href =
+    locationUrl || "#";
+
+  document.getElementById("locationUrl").textContent =
+    locationUrl;
+
+  document.getElementById("mailAfterUrl").textContent =
+    data.signatureBody
+      ? "\n\n" + data.signatureBody
+      : "";
+
+  document.getElementById("status").style.display =
+    "none";
+
+  document.getElementById("mailCard").style.display =
+    "block";
+}
+
+function showError(message){
+
+  const status =
+    document.getElementById("status");
+
+  status.className =
+    "status error";
+
+  status.textContent =
+    message;
+}
+</script>
+
+</body>
+</html>

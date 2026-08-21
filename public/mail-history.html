@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>メール送信履歴</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1.4fr 150px 1fr 1fr auto;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+@media screen and (max-width:900px){
+  .search{
+    display:block;
+  }
+
+  .search button{
+    width:100%;
+    margin-top:10px;
+  }
+
+  .search select,
+  .search input{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>メール送信履歴</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="search">
+    <select id="eventId">
+      <option value="">研修会を読み込み中...</option>
+    </select>
+    <select id="yearFilter" onchange="onFilterChanged()">
+      <option value="">年度を読み込み中...</option>
+    </select>
+    <input id="keyword" placeholder="会社名・参加者名・個人ID・業者番号・メール">
+    <input id="note" placeholder="備考：一括送信 / テスト送信">
+    <button class="btn" onclick="loadHistory()">検索</button>
+  </div>
+
+  <div class="actions">
+    <button class="btn sub" onclick="clearSearch()">条件クリア</button>
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status">
+    読み込み中...
+  </div>
+
+  <table id="historyTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>日時</th>
+        <th>研修ID</th>
+        <th>研修名</th>
+        <th>業者番号</th>
+        <th>会社名</th>
+        <th>参加者名</th>
+        <th>個人ID</th>
+        <th>メール</th>
+        <th>結果</th>
+        <th>備考</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allHistories =
+  [];
+
+let currentPage =
+  1;
+
+let allTrainings =
+  [];
+
+const pageSize =
+  10;
+
+function loadTrainingOptions(){
+
+  jsonp(
+    "getActiveTrainingsJsonp",
+    {},
+    function(res){
+
+      const select =
+        document.getElementById("eventId");
+
+      select.innerHTML =
+        '<option value="">すべての研修</option>';
+
+      if(!res || !res.ok){
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      allTrainings.forEach(function(training){
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          training.eventId || "";
+
+        option.textContent =
+          [
+            training.eventId,
+            training.title,
+            training.hostType
+          ].filter(function(value){
+            return !!value;
+          }).join(" / ");
+
+        select.appendChild(option);
+      });
+    }
+  );
+}
+
+function loadHistory(){
+
+  const eventId =
+    document.getElementById("eventId").value.trim();
+
+  const keyword =
+    document.getElementById("keyword").value.trim();
+
+  const note =
+    document.getElementById("note").value.trim();
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  status.textContent =
+    "読み込み中...";
+
+  table.style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getMailHistoryJsonp",
+    {
+      event: eventId,
+      keyword: keyword,
+      note: note
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">送信履歴を取得できませんでした。</span>' +
+          (res && res.message
+            ? '<br>' + escapeHtml(res.message)
+            : '');
+        return;
+      }
+
+      allHistories =
+        res.histories || [];
+
+      buildYearFilter();
+
+      currentPage =
+        1;
+
+      if(allHistories.length === 0){
+        status.textContent =
+          "該当する送信履歴はありません。";
+        return;
+      }
+
+      renderHistory();
+    }
+  );
+}
+
+
+function renderHistory(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("historyTable");
+
+  const tbody =
+    document.getElementById("historyBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  tbody.innerHTML =
+    "";
+
+  const histories =
+    getFilteredHistories();
+
+  if(histories.length === 0){
+    status.textContent =
+      "該当する送信履歴はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(histories.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    histories.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(h){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(h.date) + "</td>" +
+      "<td>" + escapeHtml(h.eventId) + "</td>" +
+      "<td>" +
+        '<a href="training-detail.html?event=' +
+        encodeURIComponent(h.eventId) +
+        '&return=mail">' +
+        escapeHtml(h.trainingTitle) +
+        "</a>" +
+      "</td>" +
+      "<td>" + escapeHtml(h.memberNo) + "</td>" +
+      "<td>" + escapeHtml(h.companyName) + "</td>" +
+      "<td>" + escapeHtml(h.participantName || "") + "</td>" +
+      "<td>" + escapeHtml(h.personalId || "") + "</td>" +
+      "<td>" + escapeHtml(h.mail) + "</td>" +
+      "<td>" + escapeHtml(h.result) + "</td>" +
+      "<td>" + escapeHtml(h.note) + "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    histories.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function getFilteredHistories(){
+
+  const yearValue =
+    document.getElementById("yearFilter").value;
+
+  return allHistories.filter(function(item){
+
+    if(!yearValue || yearValue === "all"){
+      return true;
+    }
+
+    return getHistoryFiscalYear(item) === yearValue;
+  });
+}
+
+function buildYearFilter(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const currentValue =
+    select.value;
+
+  const years =
+    getHistoryYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    currentValue && (currentValue === "all" || years.indexOf(currentValue) >= 0)
+      ? currentValue
+      : years.indexOf(currentYear) >= 0
+        ? currentYear
+        : "all";
+}
+
+function getHistoryYears(){
+
+  const map = {};
+
+  allHistories.forEach(function(item){
+
+    const year =
+      getHistoryFiscalYear(item);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+function getHistoryFiscalYear(item){
+
+  const eventYear =
+    getFiscalYearFromEventId(item && item.eventId);
+
+  if(eventYear){
+    return eventYear;
+  }
+
+  return getFiscalYearFromDateText(item && item.date);
+}
+
+function getFiscalYearFromEventId(eventId){
+
+  const match =
+    String(eventId || "").trim().match(/^(\d{4})-/);
+
+  return match ? match[1] : "";
+}
+
+function getFiscalYearFromDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  const match =
+    text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+
+  if(!match){
+    return "";
+  }
+
+  const year =
+    Number(match[1]);
+
+  const month =
+    Number(match[2]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function onFilterChanged(){
+
+  currentPage =
+    1;
+
+  renderHistory();
+}
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderHistory();
+}
+
+
+function nextPage(){
+
+  const totalPages =
+    Math.ceil(getFilteredHistories().length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderHistory();
+}
+
+function clearSearch(){
+
+  document.getElementById("eventId").value =
+    "";
+
+  document.getElementById("keyword").value =
+    "";
+
+  document.getElementById("note").value =
+    "";
+
+  document.getElementById("yearFilter").value =
+    "";
+
+  loadHistory();
+}
+
+document.addEventListener("keydown", function(e){
+
+  if(e.key === "Enter"){
+    loadHistory();
+  }
+
+});
+
+loadHistory();
+loadTrainingOptions();
+</script>
+
+</body>
+</html>

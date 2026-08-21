@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>個別研修会集計</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+
+.summary-reference{
+  grid-column:1 / -1;
+  border:2px solid #222;
+  border-radius:8px;
+  padding:12px;
+  background:#fff;
+}
+
+.summary-reference-title{
+  font-weight:bold;
+  margin-bottom:10px;
+  line-height:1.5;
+}
+
+.summary-reference-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+}
+
+.summary-reference-text{
+  line-height:1.8;
+  font-size:15px;
+}
+
+.summary-reference-text strong{
+  font-size:20px;
+}
+
+.summary-item{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+}
+
+.summary-label{
+  color:#666;
+  font-size:14px;
+}
+
+.summary-value{
+  font-size:26px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+.rate{
+  color:#0a7a2f;
+}
+
+.section-title{
+  margin-top:28px;
+  font-size:20px;
+  border-left:5px solid #12345a;
+  padding-left:10px;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:12px;
+  align-items:end;
+}
+
+@media screen and (max-width:800px){
+  .filter-grid{
+    display:block;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>個別研修会集計</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="notice">
+    <strong>この画面の集計について</strong><br>
+    1つの研修会の現在の参加状況を確認します。同じ内容は研修会詳細の下部にも表示されます。
+  </div>
+
+  <div class="filter-grid">
+    <div>
+      <label>年度</label>
+      <select id="yearFilter" onchange="renderTrainingOptions()">
+        <option value="">読み込み中...</option>
+      </select>
+    </div>
+
+    <div>
+      <label>研修会を選択</label>
+      <select id="eventId" onchange="markReady()">
+        <option value="">読み込み中...</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="loadStats()">集計を表示</button>
+    <a class="btn sub" href="stats.html">集計メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status">研修会一覧を読み込み中...</div>
+  <div id="statsArea" style="display:none;"></div>
+
+</div>
+</main>
+
+<script>
+let allTrainings =
+  [];
+
+function loadTrainings(){
+
+  jsonp(
+    "getStatsTrainingOptionsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "研修会一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      renderYearOptions();
+      renderTrainingOptions();
+    },
+    60000
+  );
+}
+
+function renderYearOptions(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const years =
+    getTrainingYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    years.indexOf(currentYear) >= 0
+      ? currentYear
+      : "all";
+}
+
+function renderTrainingOptions(){
+
+  const select =
+    document.getElementById("eventId");
+
+  const year =
+    document.getElementById("yearFilter").value;
+
+  const trainings =
+    allTrainings.filter(function(t){
+      return !year ||
+        year === "all" ||
+        getTrainingFiscalYear(t) === year;
+    });
+
+  select.innerHTML =
+    '<option value="">研修会を選択してください</option>';
+
+  trainings.forEach(function(t){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      t.eventId;
+
+    option.textContent =
+      t.eventId +
+      " / " +
+      (t.eventDate ? t.eventDate + " / " : "") +
+      t.title +
+      " / " +
+      t.hostType;
+
+    select.appendChild(option);
+  });
+
+  markReady();
+}
+
+function markReady(){
+
+  document.getElementById("statsArea").style.display =
+    "none";
+
+  document.getElementById("status").textContent =
+    "研修会を選択して「集計を表示」を押してください。";
+}
+
+function loadStats(){
+
+  const eventId =
+    document.getElementById("eventId").value;
+
+  if(!eventId){
+    document.getElementById("status").textContent =
+      "研修会を選択してください。";
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "集計中...";
+
+  document.getElementById("statsArea").style.display =
+    "none";
+
+  jsonp(
+    "getTrainingStatsJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      const s =
+        res.stats;
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">集計を表示しています。</span>';
+
+      const area =
+        document.getElementById("statsArea");
+
+      area.style.display =
+        "block";
+
+      area.innerHTML =
+        '<h2>' + escapeHtml(s.title || "研修会") + '</h2>' +
+        '<div class="summary-grid">' +
+          makeSummaryItem("対象人数", s.targetCount + "件", "") +
+          makeSummaryItem("送信成功", s.sentCount + "件", "") +
+          makeSummaryItem("対象内参加", s.attendedCount + "件", "") +
+          makeSummaryItem("対象外参加", (s.outsideAttendedCount || 0) + "件", "") +
+          makeSummaryItem("未参加人数", s.absentCount + "件", "") +
+          makeSummaryItem("参加率", s.attendanceRate, "rate") +
+          makeReferenceParticipationItems(s) +
+        '</div>' +
+        makeStatsTable("支部別", s.branchStats) +
+        makeStatsTable("地区別", s.districtStats) +
+        makeStatsTable("所属組織別", s.organizationStats) +
+        makeMethodStatsTable("受付方法別", s.methodStats) +
+        '<div class="actions">' +
+          '<a class="btn sub" href="training-detail.html?event=' +
+          encodeURIComponent(s.eventId || eventId) +
+          '">研修会詳細を開く</a>' +
+        '</div>';
+    },
+    60000
+  );
+}
+
+function makeReferenceParticipationItems(stats){
+
+  const categoryStats =
+    stats.receptionCategoryStats || [];
+
+  if(categoryStats.length === 0){
+    return "";
+  }
+
+  const referenceStats =
+    categoryStats.filter(function(item){
+      const name =
+        String(item.name || "").trim();
+
+      return name && name !== "第十ブロック会員";
+    });
+
+  const referenceTotal =
+    referenceStats.reduce(function(sum, item){
+      return sum + Number(item.count || 0);
+    }, 0);
+
+  if(referenceTotal === 0){
+    return "";
+  }
+
+  const detailText =
+    referenceStats.map(function(item){
+      return (
+        String(item.name || "未設定").trim() +
+        " " +
+        Number(item.count || 0) +
+        "件"
+      );
+    }).join("、");
+
+  let text =
+    "参加率対象外 <strong>" +
+    escapeHtml(referenceTotal + "件") +
+    "</strong>";
+
+  if(detailText){
+    text +=
+      "（内訳：" +
+      escapeHtml(detailText) +
+      "）";
+  }
+
+  return (
+    '<div class="summary-reference">' +
+      '<div class="summary-reference-title">参考参加（参加率には含めません）</div>' +
+      '<div class="summary-reference-text">' +
+        text +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function makeSummaryItem(label, value, className){
+
+  return '<div class="summary-item">' +
+    '<div class="summary-label">' + escapeHtml(label) + '</div>' +
+    '<div class="summary-value ' + className + '">' + escapeHtml(value) + '</div>' +
+  '</div>';
+}
+
+function makeStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  const hasOutside =
+    list.some(function(item){
+      return Number(item.outsideAttendedCount || 0) > 0;
+    });
+
+  let html =
+    '<div class="section-title">' + escapeHtml(title) + '</div>' +
+    '<table>';
+
+  if(hasOutside){
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>対象内参加</th>' +
+      '<th>対象外参加</th>' +
+      '<th>参加者合計</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(item.targetCount === null || item.targetCount === undefined ? "-" : item.targetCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendedCount === null || item.attendedCount === undefined ? "-" : item.attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.totalAttendedCount || item.attendedCount || item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+  } else {
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>参加</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(item.targetCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+  }
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function makeMethodStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  let html =
+    '<div class="section-title">' + escapeHtml(title) + '</div>' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th>受付方法</th>' +
+    '<th>件数</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(item){
+    html +=
+      '<tr>' +
+      '<td>' + escapeHtml(item.name) + '</td>' +
+      '<td>' + escapeHtml(item.count) + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function getTrainingYears(){
+
+  const map = {};
+
+  allTrainings.forEach(function(t){
+    const year =
+      getTrainingFiscalYear(t);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+function getTrainingFiscalYear(t){
+
+  const eventId =
+    String(t && t.eventId ? t.eventId : "").trim();
+
+  const match =
+    eventId.match(/^(\d{4})-/);
+
+  if(match){
+    return match[1];
+  }
+
+  const eventDate =
+    normalizeDateText(t && t.eventDate ? t.eventDate : "");
+
+  if(!eventDate){
+    return "";
+  }
+
+  const parts =
+    eventDate.split("-");
+
+  const year =
+    Number(parts[0]);
+
+  const month =
+    Number(parts[1]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function normalizeDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(!text){
+    return "";
+  }
+
+  if(text.indexOf("/") !== -1){
+    const parts =
+      text.split("/");
+
+    if(parts.length >= 3){
+      return parts[0].padStart(4, "0") + "-" +
+        parts[1].padStart(2, "0") + "-" +
+        parts[2].padStart(2, "0");
+    }
+  }
+
+  return text;
+}
+
+loadTrainings();
+</script>
+
+</body>
+</html>

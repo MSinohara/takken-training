@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ログイン権限管理</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1180px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;
+}
+
+.switch-row{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:14px;
+}
+
+.switch-row label{
+  margin:0;
+  display:flex;
+  gap:7px;
+  align-items:center;
+}
+
+.switch-row input{
+  width:auto;
+  margin:0;
+}
+
+.table-wrap{
+  overflow-x:auto;
+}
+
+.small-input{
+  min-width:130px;
+}
+
+.bulk-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:16px 0 8px;
+}
+
+.row-check{
+  width:auto;
+  margin:0;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>ログイン権限管理</h1>
+  <p>事務局・受付担当・業者のIDと権限を管理します。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+    <button class="btn" type="button" onclick="openNewUserModal()">新規登録</button>
+    <button class="btn" type="button" onclick="loadUsers()">再読み込み</button>
+  </div>
+
+  <section class="card">
+    <h2>登録済みID</h2>
+    <p class="muted">
+      2年ごとの見直しでは、不要になった事務局・受付担当IDを停止し、必要なIDだけ残す運用にできます。
+    </p>
+    <div id="result" class="result"></div>
+    <div class="bulk-actions">
+      <button class="btn sub" type="button" onclick="checkReviewTargets()">見直し対象を選択</button>
+      <button class="btn warn" type="button" onclick="stopSelectedUsers()">選択したIDを停止</button>
+    </div>
+    <div class="table-wrap" id="userTable"></div>
+  </section>
+
+</main>
+
+<script>
+let authUsers_ =
+  [];
+
+function roleLabel(role){
+
+  return {
+    admin: "管理者",
+    staff: "事務局",
+    reception: "受付担当",
+    vendor: "未使用"
+  }[role] || role || "";
+}
+
+function showResult(message, ok){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.className =
+    "result " + (ok ? "ok" : "ng");
+
+  result.textContent =
+    message;
+}
+
+function showModalResult(message, ok){
+
+  const result =
+    document.getElementById("userModalResult");
+
+  if(!result){
+    showResult(message, ok);
+    return;
+  }
+
+  result.style.display =
+    "block";
+
+  result.className =
+    "result " + (ok ? "ok" : "ng");
+
+  result.textContent =
+    message;
+}
+
+function buildUserFormHtml(){
+
+  return '' +
+    '<p class="muted">' +
+      'ログインIDは、事務局は staff01、受付担当は reception01 など分かりやすいIDにできます。' +
+      '<br>パスワード欄を空にして保存すると、既存パスワードは変更されません。' +
+    '</p>' +
+    '<input id="userId" type="hidden">' +
+    '<div class="form-grid">' +
+      '<label>ログインID<input id="loginId" type="text"></label>' +
+      '<label>権限' +
+        '<select id="role">' +
+          '<option value="admin">管理者</option>' +
+          '<option value="staff">事務局</option>' +
+          '<option value="reception">受付担当</option>' +
+        '</select>' +
+      '</label>' +
+      '<label>表示名<input id="displayName" type="text"></label>' +
+      '<label>メール<input id="email" type="email"></label>' +
+      '<label>パスワード<input id="password" type="password" autocomplete="new-password"></label>' +
+    '</div>' +
+    '<label>メモ<textarea id="note" rows="3"></textarea></label>' +
+    '<div class="switch-row">' +
+      '<label><input id="active" type="checkbox" checked> 有効</label>' +
+      '<label><input id="mustChangePw" type="checkbox"> 初回PW変更</label>' +
+      '<label><input id="reviewRequired" type="checkbox" checked> 見直し対象</label>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn" type="button" onclick="saveUser()">保存</button>' +
+      '<button class="btn sub" type="button" onclick="closeAppModal()">閉じる</button>' +
+    '</div>' +
+    '<div id="userModalResult" class="result"></div>';
+}
+
+function openUserFormModal(title){
+
+  openAppModal(
+    title,
+    buildUserFormHtml(),
+    { wide: true }
+  );
+}
+
+function clearForm(){
+
+  [
+    "userId",
+    "loginId",
+    "displayName",
+    "email",
+    "password",
+    "note"
+  ].forEach(function(id){
+    document.getElementById(id).value =
+      "";
+  });
+
+  document.getElementById("role").value =
+    "staff";
+
+  document.getElementById("active").checked =
+    true;
+
+  document.getElementById("mustChangePw").checked =
+    false;
+
+  document.getElementById("reviewRequired").checked =
+    true;
+}
+
+function openNewUserModal(){
+
+  openUserFormModal("ログインIDを新規登録");
+  clearForm();
+}
+
+function editUser(index){
+
+  const user =
+    authUsers_[index];
+
+  if(!user){
+    return;
+  }
+
+  openUserFormModal("ログインIDを編集");
+
+  document.getElementById("userId").value =
+    user.userId || "";
+
+  document.getElementById("loginId").value =
+    user.loginId || "";
+
+  document.getElementById("role").value =
+    (
+      user.role === "admin" ||
+      user.role === "staff" ||
+      user.role === "reception"
+    )
+      ? user.role
+      : "staff";
+
+  document.getElementById("displayName").value =
+    user.displayName || "";
+
+  document.getElementById("email").value =
+    user.email || "";
+
+  document.getElementById("password").value =
+    "";
+
+  document.getElementById("note").value =
+    user.note || "";
+
+  document.getElementById("active").checked =
+    String(user.active || "").toUpperCase() === "TRUE";
+
+  document.getElementById("mustChangePw").checked =
+    String(user.mustChangePw || "").toUpperCase() === "TRUE";
+
+  document.getElementById("reviewRequired").checked =
+    String(user.reviewRequired || "").toUpperCase() === "TRUE";
+}
+
+function renderUsers(){
+
+  const box =
+    document.getElementById("userTable");
+
+  if(!authUsers_.length){
+    box.innerHTML =
+      '<p class="muted">まだログインIDが登録されていません。</p>';
+    return;
+  }
+
+  box.innerHTML =
+    '<table>' +
+    '<thead><tr>' +
+    '<th>停止</th>' +
+    '<th>ID</th>' +
+    '<th>表示名</th>' +
+    '<th>権限</th>' +
+    '<th>有効</th>' +
+    '<th>見直し</th>' +
+    '<th>最終ログイン</th>' +
+    '<th>操作</th>' +
+    '</tr></thead><tbody>' +
+    authUsers_.map(function(user, index){
+      const active =
+        String(user.active).toUpperCase() === "TRUE";
+
+      const canBulkStop =
+        active &&
+        user.role !== "admin";
+
+      return '<tr>' +
+        '<td>' +
+        (
+          canBulkStop
+            ? '<input class="row-check user-stop-check" type="checkbox" value="' + escapeHtml(user.userId || user.loginId) + '" data-review="' + escapeHtml(user.reviewRequired) + '">'
+            : '-'
+        ) +
+        '</td>' +
+        '<td>' + escapeHtml(user.loginId) + '</td>' +
+        '<td>' + escapeHtml(user.displayName) + '</td>' +
+        '<td>' + escapeHtml(roleLabel(user.role)) + '</td>' +
+        '<td>' + (active ? "有効" : "停止") + '</td>' +
+        '<td>' + (String(user.reviewRequired).toUpperCase() === "TRUE" ? "対象" : "-") + '</td>' +
+        '<td>' + escapeHtml(user.lastLoginAt) + '</td>' +
+        '<td><button class="btn sub" type="button" onclick="editUser(' + index + ')">編集</button></td>' +
+        '</tr>';
+    }).join("") +
+    '</tbody></table>';
+}
+
+function getSelectedUserIds(){
+
+  return Array.prototype.slice
+    .call(document.querySelectorAll(".user-stop-check:checked"))
+    .map(function(input){
+      return input.value;
+    })
+    .filter(Boolean);
+}
+
+function checkReviewTargets(){
+
+  document
+    .querySelectorAll(".user-stop-check")
+    .forEach(function(input){
+      input.checked =
+        String(input.getAttribute("data-review") || "").toUpperCase() === "TRUE";
+    });
+}
+
+function loadUsers(){
+
+  jsonp(
+    "getAuthUsersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          res && res.message
+            ? res.message
+            : "ログインIDを読み込めませんでした。",
+          false
+        );
+        return;
+      }
+
+      authUsers_ =
+        res.users || [];
+
+      renderUsers();
+    }
+  );
+}
+
+function saveUser(){
+
+  const data =
+    {
+      userId: document.getElementById("userId").value,
+      loginId: document.getElementById("loginId").value.trim(),
+      role: document.getElementById("role").value,
+      vendorNo: "",
+      displayName: document.getElementById("displayName").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value,
+      note: document.getElementById("note").value,
+      active: document.getElementById("active").checked ? "TRUE" : "FALSE",
+      mustChangePw: document.getElementById("mustChangePw").checked ? "TRUE" : "FALSE",
+      reviewRequired: document.getElementById("reviewRequired").checked ? "TRUE" : "FALSE"
+    };
+
+  if(!data.loginId){
+    showModalResult("ログインIDを入力してください。", false);
+    return;
+  }
+
+  if(!data.userId && !data.password){
+    showModalResult("新規登録時はパスワードを入力してください。", false);
+    return;
+  }
+
+  jsonp(
+    "saveAuthUserJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        showModalResult(
+          res && res.message
+            ? res.message
+            : "保存できませんでした。",
+          false
+        );
+        return;
+      }
+
+      showResult("保存しました。", true);
+      closeAppModal();
+      loadUsers();
+    }
+  );
+}
+
+function stopSelectedUsers(){
+
+  const userIds =
+    getSelectedUserIds();
+
+  if(!userIds.length){
+    showResult("停止するIDにチェックを入れてください。", false);
+    return;
+  }
+
+  if(!confirm("チェックしたIDを停止します。\n停止後はログインできなくなります。よろしいですか？")){
+    return;
+  }
+
+  jsonp(
+    "updateAuthUsersActiveJsonp",
+    {
+      userIds: userIds.join(","),
+      active: "FALSE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          res && res.message
+            ? res.message
+            : "一括停止できませんでした。",
+          false
+        );
+        return;
+      }
+
+      showResult(
+        (res.updated || 0) + "件を停止しました。",
+        true
+      );
+
+      loadUsers();
+    }
+  );
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  loadUsers();
+});
+</script>
+
+</body>
+</html>

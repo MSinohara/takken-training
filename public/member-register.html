@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>受付用スマホ登録</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+  background:#f4f6f8;
+  color:#222;
+}
+
+header{
+  background:#12345a;
+  color:#fff;
+  padding:20px 24px;
+}
+
+main{
+  max-width:680px;
+  margin:24px auto;
+  padding:0 16px;
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+
+.notice{
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+  padding:14px;
+  line-height:1.8;
+  margin:18px 0;
+}
+
+.info{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+  line-height:1.8;
+  margin:18px 0;
+}
+
+.company{
+  font-size:24px;
+  font-weight:bold;
+  margin:18px 0;
+  text-align:center;
+}
+
+.training-title{
+  font-size:22px;
+  font-weight:bold;
+  text-align:center;
+  margin-top:10px;
+}
+
+.training-date{
+  font-size:18px;
+  text-align:center;
+  margin-top:8px;
+}
+
+.btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:8px;
+  background:#12345a;
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.result{
+  margin-top:18px;
+  padding:16px;
+  border-radius:8px;
+  background:#f7f7f7;
+  line-height:1.9;
+  display:none;
+}
+
+.ok{
+  color:#0a7a2f;
+  font-weight:bold;
+  font-size:20px;
+}
+
+.ng{
+  color:#b00020;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>受付用スマホ登録</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="status">
+    情報を読み込み中...
+  </div>
+
+  <div id="registerArea" style="display:none;">
+
+    <div class="training-title" id="trainingTitle"></div>
+    <div class="training-date" id="trainingDate"></div>
+
+    <div class="notice">
+      <strong>【ご確認ください】</strong><br><br>
+
+      この登録は、研修会当日の受付をスムーズに行うためのものです。<br><br>
+
+      必ず、研修会当日に会場へお持ちになるスマートフォンで登録してください。<br><br>
+
+      登録後は、会場に設置された受付用QRコードをこのスマートフォンで読み取ることで、
+      受付を行うことができます。<br><br>
+
+      ※会社のパソコンや、当日お持ちにならないスマートフォンでは登録しないでください。<br>
+      ※操作が難しい場合は、当日受付にて担当者へお申し出ください。
+    </div>
+
+    <div class="info">
+      <strong>登録する会社</strong>
+      <div class="company" id="companyName"></div>
+    </div>
+
+    <button class="btn" onclick="registerMember()">
+      このスマホに登録する
+    </button>
+
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+</main>
+
+<script>
+const GAS_WEB_APP_URL =
+  location.hostname === "tokyo-takken-10block.web.app" ||
+  location.hostname === "tokyo-takken-10block.firebaseapp.com"
+    ? "https://script.google.com/macros/s/AKfycbytZZvMaBdbLd4XxSY4Im0Qc86UCSNbcKbyF4qAm5Vl0tb1_12gBnwoe7qLrLADHbRwLQ/exec"
+    : "https://script.google.com/macros/s/AKfycbz89atrbyCIjnYNBMR8hhACapdhBbhuqNphHX6dlmmCsjrKg0YcZjdvRUghkH6cFIZx/exec";
+
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const memberNo =
+  params.get("member") || "";
+
+let currentMember =
+  null;
+
+let currentTraining =
+  null;
+
+function jsonp(action, params, callback){
+
+  const callbackName =
+    "jsonp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+
+  window[callbackName] = function(res){
+    callback(res);
+    delete window[callbackName];
+  };
+
+  let url =
+    GAS_WEB_APP_URL +
+    "?action=" + encodeURIComponent(action) +
+    "&callback=" + callbackName;
+
+  Object.keys(params || {}).forEach(function(key){
+    url +=
+      "&" +
+      encodeURIComponent(key) +
+      "=" +
+      encodeURIComponent(params[key]);
+  });
+
+  const script =
+    document.createElement("script");
+
+  script.src =
+    url;
+
+  document.body.appendChild(script);
+}
+
+function loadData(){
+
+  if(!eventId){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  if(!memberNo){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">会員番号が指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(trainingRes){
+
+      if(!trainingRes || !trainingRes.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      currentTraining =
+        trainingRes.training;
+
+      jsonp(
+        "getMemberJsonp",
+        { member: memberNo },
+        function(memberRes){
+
+          if(!memberRes || !memberRes.ok){
+            document.getElementById("status").innerHTML =
+              '<span class="ng">' +
+              escapeHtml(memberRes && memberRes.message ? memberRes.message : "会員情報を取得できませんでした。") +
+              '</span>';
+            return;
+          }
+
+          currentMember =
+            memberRes.member;
+
+          showRegisterArea();
+        }
+      );
+    }
+  );
+}
+
+function showRegisterArea(){
+
+  document.getElementById("status").textContent =
+    "内容をご確認ください。";
+
+  document.getElementById("trainingTitle").textContent =
+    currentTraining.title || "";
+
+  document.getElementById("trainingDate").textContent =
+    currentTraining.eventDate
+      ? "開催日：" + currentTraining.eventDate
+      : "";
+
+  document.getElementById("companyName").textContent =
+    currentMember.companyName || "";
+
+  document.getElementById("registerArea").style.display =
+    "block";
+}
+
+function registerMember(){
+
+  if(!currentMember || !currentTraining){
+    alert("情報が読み込まれていません。");
+    return;
+  }
+
+  const nowText =
+    formatNow();
+
+  localStorage.setItem(
+    "takken_memberNo",
+    currentMember.memberNo
+  );
+
+  localStorage.setItem(
+    "takken_companyName",
+    currentMember.companyName
+  );
+
+  localStorage.setItem(
+    "takken_registeredAt",
+    nowText
+  );
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.innerHTML =
+    '<span class="ok">受付用スマートフォンの登録が完了しました。</span><br><br>' +
+
+    '<strong>研修名</strong><br>' +
+    escapeHtml(currentTraining.title) + '<br><br>' +
+
+    '<strong>開催日</strong><br>' +
+    escapeHtml(currentTraining.eventDate || "") + '<br><br>' +
+
+    '<strong>登録会社</strong><br>' +
+    escapeHtml(currentMember.companyName) + '<br><br>' +
+
+    '<strong>登録日時</strong><br>' +
+    escapeHtml(nowText) + '<br><br>' +
+
+    '研修会当日は、このスマートフォンで会場の受付用QRコードを読み取ってください。<br>' +
+    'この画面は閉じていただいて構いません。';
+}
+
+function formatNow(){
+
+  const d =
+    new Date();
+
+  const yyyy =
+    d.getFullYear();
+
+  const mm =
+    String(d.getMonth() + 1).padStart(2, "0");
+
+  const dd =
+    String(d.getDate()).padStart(2, "0");
+
+  const hh =
+    String(d.getHours()).padStart(2, "0");
+
+  const mi =
+    String(d.getMinutes()).padStart(2, "0");
+
+  return yyyy + "年" + mm + "月" + dd + "日 " + hh + ":" + mi;
+}
+
+function escapeHtml(text){
+  return String(text || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+loadData();
+</script>
+
+</body>
+</html>

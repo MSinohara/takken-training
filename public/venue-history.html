@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会場履歴</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.filter-box{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+  margin:14px 0;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:1fr 180px;
+  gap:12px;
+  align-items:end;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+
+.summary-item{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+}
+
+.summary-label{
+  color:#666;
+  font-size:13px;
+}
+
+.summary-value{
+  margin-top:4px;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.venue-name{
+  font-weight:bold;
+  line-height:1.45;
+}
+
+.venue-sub{
+  color:#555;
+  font-size:13px;
+  line-height:1.6;
+  margin-top:4px;
+}
+
+.compact{
+  font-size:13px;
+  line-height:1.6;
+}
+
+.money{
+  white-space:nowrap;
+  font-weight:bold;
+}
+
+.history-list{
+  margin-top:6px;
+  color:#555;
+  font-size:13px;
+  line-height:1.7;
+}
+
+@media screen and (max-width:800px){
+  .filter-grid{
+    display:block;
+  }
+
+  .filter-grid select{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:8px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会場履歴</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" onclick="loadRecords()">再読み込み</button>
+    <a class="btn sub" href="training-record.html">研修会記録一覧へ</a>
+    <a class="btn sub" href="venue-master.html">会場マスタへ</a>
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+  </div>
+
+  <div class="filter-box">
+    <div class="filter-grid">
+      <div>
+        <label>検索</label>
+        <input id="keyword" placeholder="会場名・住所・担当者・連絡先・メモで検索" oninput="renderVenues()">
+      </div>
+      <div>
+        <label>並び順</label>
+        <select id="sortType" onchange="renderVenues()">
+          <option value="latest">最近利用した順</option>
+          <option value="count">利用回数順</option>
+          <option value="cost">平均会場費順</option>
+          <option value="name">会場名順</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="summary" class="summary-grid" style="display:none;"></div>
+
+  <table id="venueTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>会場</th>
+        <th>担当・連絡先</th>
+        <th>費用・条件</th>
+        <th>利用履歴</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="venueBody"></tbody>
+  </table>
+
+</div>
+</main>
+
+<script>
+let allRecords =
+  [];
+
+let venues =
+  [];
+
+function loadRecords(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  document.getElementById("venueTable").style.display =
+    "none";
+
+  jsonp(
+    "getTrainingRecordsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会場履歴を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      allRecords =
+        res.records || [];
+
+      venues =
+        buildVenues(allRecords);
+
+      renderVenues();
+    }
+  );
+}
+
+function buildVenues(records){
+
+  const map =
+    {};
+
+  records.forEach(function(record){
+
+    const venueName =
+      String(record.venueName || "").trim();
+
+    if(!venueName){
+      return;
+    }
+
+    const venueAddress =
+      String(record.venueAddress || "").trim();
+
+    const key =
+      venueName + "\n" + venueAddress;
+
+    if(!map[key]){
+      map[key] = {
+        venueName: venueName,
+        venueAddress: venueAddress,
+        venueContactName: "",
+        venueContactPhone: "",
+        venueContactMail: "",
+        venueUrl: "",
+        venueCapacity: "",
+        venueFeeMemo: "",
+        count: 0,
+        latestDate: "",
+        venueCosts: [],
+        records: []
+      };
+    }
+
+    const venue =
+      map[key];
+
+    venue.count +=
+      1;
+
+    [
+      "venueContactName",
+      "venueContactPhone",
+      "venueContactMail",
+      "venueUrl",
+      "venueCapacity",
+      "venueFeeMemo"
+    ].forEach(function(field){
+      if(record[field]){
+        venue[field] =
+          record[field];
+      }
+    });
+
+    if(record.eventDate && String(record.eventDate) > String(venue.latestDate || "")){
+      venue.latestDate =
+        record.eventDate;
+    }
+
+    const cost =
+      toNumber(record.venueCost);
+
+    if(cost > 0){
+      venue.venueCosts.push(cost);
+    }
+
+    venue.records.push(record);
+  });
+
+  return Object.keys(map).map(function(key){
+    const venue =
+      map[key];
+
+    venue.averageVenueCost =
+      venue.venueCosts.length === 0
+        ? 0
+        : Math.round(
+            venue.venueCosts.reduce(function(sum, value){
+              return sum + value;
+            }, 0) / venue.venueCosts.length
+          );
+
+    venue.records.sort(function(a, b){
+      return String(b.eventDate || "").localeCompare(String(a.eventDate || ""));
+    });
+
+    return venue;
+  });
+}
+
+function renderVenues(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const sortType =
+    document.getElementById("sortType").value;
+
+  let list =
+    venues.filter(function(venue){
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          venue.venueName,
+          venue.venueAddress,
+          venue.venueContactName,
+          venue.venueContactPhone,
+          venue.venueContactMail,
+          venue.venueUrl,
+          venue.venueFeeMemo,
+          venue.records.map(function(record){
+            return [
+              record.title,
+              record.eventId,
+              record.costNote,
+              record.eventMemo
+            ].join(" ");
+          }).join(" ")
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  list.sort(function(a, b){
+    if(sortType === "count"){
+      return b.count - a.count;
+    }
+
+    if(sortType === "cost"){
+      return b.averageVenueCost - a.averageVenueCost;
+    }
+
+    if(sortType === "name"){
+      return a.venueName.localeCompare(b.venueName, "ja");
+    }
+
+    return String(b.latestDate || "").localeCompare(String(a.latestDate || ""));
+  });
+
+  renderSummary(list);
+  renderTable(list);
+}
+
+function renderSummary(list){
+
+  const summary =
+    document.getElementById("summary");
+
+  const totalUses =
+    list.reduce(function(sum, venue){
+      return sum + venue.count;
+    }, 0);
+
+  const costList =
+    list
+      .map(function(venue){
+        return venue.averageVenueCost;
+      })
+      .filter(function(cost){
+        return cost > 0;
+      });
+
+  const averageCost =
+    costList.length === 0
+      ? 0
+      : Math.round(
+          costList.reduce(function(sum, cost){
+            return sum + cost;
+          }, 0) / costList.length
+        );
+
+  summary.style.display =
+    "grid";
+
+  summary.innerHTML =
+    makeSummaryItem("会場数", list.length + "件") +
+    makeSummaryItem("利用記録", totalUses + "件") +
+    makeSummaryItem("平均会場費", averageCost ? formatMoney(averageCost) : "未入力");
+}
+
+function makeSummaryItem(label, value){
+
+  return (
+    '<div class="summary-item">' +
+      '<div class="summary-label">' + escapeHtml(label) + '</div>' +
+      '<div class="summary-value">' + escapeHtml(value) + '</div>' +
+    '</div>'
+  );
+}
+
+function renderTable(list){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("venueTable");
+
+  const tbody =
+    document.getElementById("venueBody");
+
+  tbody.innerHTML =
+    "";
+
+  if(list.length === 0){
+    status.textContent =
+      "該当する会場履歴がありません。";
+
+    table.style.display =
+      "none";
+    return;
+  }
+
+  list.forEach(function(venue){
+    appendVenueRow(venue, tbody);
+  });
+
+  status.textContent =
+    list.length + "件の会場を表示中";
+
+  table.style.display =
+    "table";
+}
+
+function appendVenueRow(venue, tbody){
+
+  const latest =
+    venue.records[0] || {};
+
+  const history =
+    venue.records.slice(0, 3).map(function(record){
+      return escapeHtml(record.eventDate || "") +
+        " " +
+        escapeHtml(record.title || "");
+    }).join("<br>");
+
+  const contact =
+    [
+      venue.venueContactName ? "担当: " + escapeHtml(venue.venueContactName) : "",
+      venue.venueContactPhone ? "電話: " + escapeHtml(venue.venueContactPhone) : "",
+      venue.venueContactMail ? "メール: " + escapeHtml(venue.venueContactMail) : "",
+      venue.venueUrl ? '<a href="' + escapeHtml(venue.venueUrl) + '" target="_blank">会場URL</a>' : ""
+    ].filter(function(value){
+      return value !== "";
+    }).join("<br>");
+
+  const cost =
+    [
+      venue.averageVenueCost ? "平均: " + escapeHtml(formatMoney(venue.averageVenueCost)) : "",
+      latest.venueCost ? "最新: " + escapeHtml(formatMoney(latest.venueCost)) : "",
+      venue.venueCapacity ? "定員: " + escapeHtml(venue.venueCapacity) + "名" : "",
+      venue.venueFeeMemo ? escapeHtml(venue.venueFeeMemo) : ""
+    ].filter(function(value){
+      return value !== "";
+    }).join("<br>");
+
+  const tr =
+    document.createElement("tr");
+
+  tr.innerHTML =
+    '<td>' +
+      '<div class="venue-name">' + escapeHtml(venue.venueName) + '</div>' +
+      '<div class="venue-sub">' + escapeHtml(venue.venueAddress || "住所未入力") + '</div>' +
+    '</td>' +
+    '<td class="compact">' + (contact || "未入力") + '</td>' +
+    '<td class="compact">' + (cost || "未入力") + '</td>' +
+    '<td class="compact">' +
+      '<div><strong>' + escapeHtml(venue.count + "回利用") + '</strong></div>' +
+      '<div>最新: ' + escapeHtml(venue.latestDate || "未入力") + '</div>' +
+      '<div class="history-list">' + history + '</div>' +
+    '</td>' +
+    '<td>' +
+      '<a class="btn sub" href="training-record-edit.html?event=' +
+      encodeURIComponent(latest.eventId || "") +
+      '">最新記録を開く</a>' +
+    '</td>';
+
+  tbody.appendChild(tr);
+}
+
+function toNumber(value){
+
+  const num =
+    Number(value || 0);
+
+  return isNaN(num)
+    ? 0
+    : num;
+}
+
+function formatMoney(value){
+
+  const num =
+    toNumber(value);
+
+  if(!num){
+    return "";
+  }
+
+  return num.toLocaleString("ja-JP") + "円";
+}
+
+loadRecords();
+</script>
+
+</body>
+</html>

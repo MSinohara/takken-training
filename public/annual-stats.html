@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>年間研修会集計</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+
+.summary-item{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:14px;
+}
+
+.summary-label{
+  color:#666;
+  font-size:14px;
+}
+
+.summary-value{
+  font-size:28px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+.rate{
+  color:#0a7a2f;
+}
+
+.section-title{
+  margin-top:28px;
+  font-size:20px;
+  border-left:5px solid #12345a;
+  padding-left:10px;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:150px 1fr 1fr 1fr;
+  gap:12px;
+  align-items:end;
+}
+
+@media screen and (max-width:800px){
+  .filter-grid{
+    display:block;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>年間研修会集計</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="notice">
+    <strong>この画面の集計について</strong><br>
+    イベント詳細では、1つのイベントの現在の参加状況を確認します。<br>
+    この「年間集計」では、選択した年度とイベント種別の参加者数・支部別・地区別・イベント別の状況を確認します。
+  </div>
+
+  <div class="filter-grid">
+    <div>
+      <label>年度</label>
+      <select id="yearFilter" onchange="onAnnualFilterChanged()">
+        <option value="">読み込み中...</option>
+      </select>
+    </div>
+
+    <div>
+      <label>イベント種別</label>
+      <select id="eventTypeFilter" onchange="onAnnualFilterChanged()">
+        <option value="研修会">読み込み中...</option>
+      </select>
+    </div>
+
+    <div>
+      <label>主催区分</label>
+      <select id="hostTypeFilter" onchange="markAnnualStatsReady()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+
+    <div>
+      <label>対象支部</label>
+      <select id="targetBranchFilter" onchange="markAnnualStatsReady()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+
+    <div>
+      <label>対象組織</label>
+      <select id="targetOrgFilter" onchange="markAnnualStatsReady()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="loadAnnualStats()">年間集計を表示</button>
+    <a class="btn sub" href="stats.html">集計メニューへ戻る</a>
+  </div>
+
+  <div id="status" class="status">研修会一覧を読み込み中...</div>
+
+  <div id="statsArea" style="display:none;"></div>
+
+</div>
+</main>
+
+<script>
+let allTrainings =
+  [];
+
+let allEventTypes =
+  [];
+
+function loadTrainings(){
+
+  jsonp(
+    "getStatsTrainingOptionsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "研修会一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      allEventTypes =
+        res.eventTypes || ["研修会"];
+
+      renderYearOptions();
+      renderEventTypeOptions();
+      renderAnnualFilterOptions();
+
+      document.getElementById("status").textContent =
+        "条件を選択して「年間集計を表示」を押してください。";
+
+    },
+    90000
+  );
+}
+
+
+function renderEventTypeOptions(){
+
+  const select =
+    document.getElementById("eventTypeFilter");
+
+  const current =
+    select.value || "研修会";
+
+  let html =
+    "";
+
+  allEventTypes.forEach(function(eventType){
+
+    html +=
+      '<option value="' +
+      escapeHtml(eventType) +
+      '">' +
+      escapeHtml(eventType) +
+      '</option>';
+  });
+
+  html +=
+    '<option value="all">すべて</option>';
+
+  select.innerHTML =
+    html;
+
+  select.value =
+    current === "all" ||
+    allEventTypes.indexOf(current) >= 0
+      ? current
+      : allEventTypes.indexOf("研修会") >= 0
+        ? "研修会"
+        : allEventTypes[0] || "all";
+}
+
+
+function renderYearOptions(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const years =
+    getTrainingYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    years.indexOf(currentYear) >= 0
+      ? currentYear
+      : "all";
+}
+
+function renderAnnualFilterOptions(){
+
+  const year =
+    document.getElementById("yearFilter").value;
+  const eventType =
+    document.getElementById("eventTypeFilter").value || "研修会";
+  const hostType =
+    document.getElementById("hostTypeFilter").value;
+  const targetBranch =
+    document.getElementById("targetBranchFilter").value;
+
+  renderDistinctSelect(
+    "hostTypeFilter",
+    allTrainings
+      .filter(function(t){
+        return isAnnualFilterTrainingMatched(t, year, eventType);
+      })
+      .map(function(t){ return t.hostType || ""; })
+  );
+
+  renderDistinctSelect(
+    "targetBranchFilter",
+    allTrainings
+      .filter(function(t){
+        return isAnnualFilterTrainingMatched(t, year, eventType);
+      })
+      .map(function(t){ return t.targetBranch || ""; })
+  );
+
+  renderOrgFilterOptions(
+    allTrainings.filter(function(t){
+      return isAnnualFilterTrainingMatched(t, year, eventType);
+    })
+  );
+}
+
+
+function isAnnualFilterTrainingMatched(training, year, eventType){
+
+  if(year && year !== "all" && getTrainingFiscalYear(training) !== year){
+    return false;
+  }
+
+  if(
+    eventType &&
+    eventType !== "all" &&
+    String(training.eventType || "研修会") !== eventType
+  ){
+    return false;
+  }
+
+  return true;
+}
+
+function renderDistinctSelect(id, values){
+
+  const select =
+    document.getElementById(id);
+
+  const currentValue =
+    select.value;
+
+  const map = {};
+
+  values.forEach(function(value){
+    const text =
+      String(value || "").trim();
+
+    if(text){
+      map[text] =
+        true;
+    }
+  });
+
+  select.innerHTML =
+    '<option value="">すべて</option>';
+
+  Object.keys(map).sort().forEach(function(value){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      value;
+
+    option.textContent =
+      value;
+
+    select.appendChild(option);
+  });
+
+  select.value =
+    currentValue && map[currentValue]
+      ? currentValue
+      : "";
+}
+
+function renderOrgFilterOptions(trainings){
+
+  const select =
+    document.getElementById("targetOrgFilter");
+
+  const currentValue =
+    select.value;
+
+  const map = {};
+
+  trainings.forEach(function(training){
+
+    const ids =
+      splitCsvText(training.targetOrgIdsNew);
+
+    const names =
+      splitCsvText(training.targetOrgNames);
+
+    ids.forEach(function(id, index){
+      if(!id){
+        return;
+      }
+
+      map[id] =
+        names[index] || names[0] || id;
+    });
+  });
+
+  select.innerHTML =
+    '<option value="">すべて</option>' +
+    '<option value="__NONE__">なし</option>';
+
+  Object.keys(map).sort(function(a, b){
+    return String(map[a]).localeCompare(String(map[b]), "ja");
+  }).forEach(function(id){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      id;
+
+    option.textContent =
+      map[id];
+
+    select.appendChild(option);
+  });
+
+  select.value =
+    currentValue === "__NONE__" ||
+    currentValue && map[currentValue]
+      ? currentValue
+      : "__NONE__";
+}
+
+function splitCsvText(text){
+
+  return String(text || "")
+    .split(/[,\u3001]/)
+    .map(function(value){
+      return String(value || "").trim();
+    })
+    .filter(function(value){
+      return value !== "";
+    });
+}
+
+function onAnnualFilterChanged(){
+
+  renderAnnualFilterOptions();
+  markAnnualStatsReady();
+}
+
+function markAnnualStatsReady(){
+
+  document.getElementById("statsArea").style.display =
+    "none";
+
+  document.getElementById("status").textContent =
+    "条件を選択して「年間集計を表示」を押してください。";
+}
+
+function makeAnnualFilterTitle(year, eventType, hostType, targetBranch){
+
+  const parts =
+    [year + "年度"];
+  const targetOrgSelect =
+    document.getElementById("targetOrgFilter");
+  const targetOrgName =
+    targetOrgSelect && targetOrgSelect.value
+      ? targetOrgSelect.options[targetOrgSelect.selectedIndex].textContent
+      : "";
+
+  if(eventType){
+    parts.push("イベント種別: " + (eventType === "all" ? "すべて" : eventType));
+  }
+
+  if(hostType){
+    parts.push("主催区分: " + hostType);
+  }
+
+  if(targetBranch){
+    parts.push("対象支部: " + targetBranch);
+  }
+
+  if(targetOrgName){
+    parts.push("対象組織: " + targetOrgName);
+  }
+
+  return parts.join(" / ");
+}
+
+
+function makeAnnualEventCountLabel(eventType){
+
+  if(eventType === "all"){
+    return "イベント数";
+  }
+
+  return String(eventType || "研修会") + "数";
+}
+
+
+function getTrainingYears(){
+
+  const map = {};
+
+  allTrainings.forEach(function(t){
+
+    const year =
+      getTrainingFiscalYear(t);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+
+function getTrainingFiscalYear(t){
+
+  const eventId =
+    String(t && t.eventId ? t.eventId : "").trim();
+
+  const match =
+    eventId.match(/^(\d{4})-/);
+
+  if(match){
+    return match[1];
+  }
+
+  const eventDate =
+    normalizeDateText(t && t.eventDate ? t.eventDate : "");
+
+  if(!eventDate){
+    return "";
+  }
+
+  const parts =
+    eventDate.split("-");
+
+  const year =
+    Number(parts[0]);
+
+  const month =
+    Number(parts[1]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+
+function normalizeDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(!text){
+    return "";
+  }
+
+  if(text.indexOf("/") !== -1){
+    const parts =
+      text.split("/");
+
+    if(parts.length >= 3){
+      return (
+        parts[0].padStart(4, "0") + "-" +
+        parts[1].padStart(2, "0") + "-" +
+        parts[2].padStart(2, "0")
+      );
+    }
+  }
+
+  return text;
+}
+
+
+function loadAnnualStats(){
+
+  const year =
+    document.getElementById("yearFilter").value;
+  const eventType =
+    document.getElementById("eventTypeFilter").value || "研修会";
+  const hostType =
+    document.getElementById("hostTypeFilter").value;
+  const targetBranch =
+    document.getElementById("targetBranchFilter").value;
+  const targetOrgId =
+    document.getElementById("targetOrgFilter").value;
+
+  if(!year || year === "all"){
+    document.getElementById("statsArea").style.display =
+      "none";
+
+    document.getElementById("status").textContent =
+      "年度を選択してください。";
+
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "年間集計を作成中...";
+
+  document.getElementById("statsArea").style.display =
+    "none";
+
+  jsonp(
+    "getAnnualTrainingStatsJsonp",
+    {
+      year: year,
+      eventType: eventType,
+      hostType: hostType,
+      targetBranch: targetBranch,
+      targetOrgId: targetOrgId
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      const s =
+        res.annualStats;
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(makeAnnualFilterTitle(year, eventType, hostType, targetBranch)) +
+        ' の年間集計を表示しています。</span>';
+
+      const area =
+        document.getElementById("statsArea");
+
+      area.style.display =
+        "block";
+
+      area.innerHTML =
+        '<h2>' + escapeHtml(makeAnnualFilterTitle(s.year || year, s.eventType || eventType, hostType, targetBranch)) + '</h2>' +
+
+			'<div class="summary-grid">' +
+			  makeSummaryItem(makeAnnualEventCountLabel(s.eventType || eventType), s.trainingCount + "件", "") +
+			  makeSummaryItem("延べ対象数", s.targetTotal + "件", "") +
+			  makeSummaryItem("延べ対象内参加", s.attendedTotal + "件", "") +
+			  makeSummaryItem("延べ対象外参加", (s.outsideTotal || 0) + "件", "") +
+			  makeSummaryItem("延べ参加合計", (s.totalAttended || 0) + "件", "") +
+			  makeSummaryItem("実参加会社数", (s.uniqueAttendedCount || 0) + "件", "") +
+			  makeSummaryItem("実対象会社数", (s.uniqueTargetCount || 0) + "件", "") +
+			  makeSummaryItem("延べ参加率", s.attendanceRate, "rate") +
+			  makeSummaryItem("実参加率", s.uniqueAttendanceRate, "rate") +
+			'</div>' +
+
+        makeStatsTable("支部別", s.branchStats) +
+        makeStatsTable("地区別", s.districtStats) +
+        makeMethodStatsTable("受付区分別", s.receptionCategoryStats) +
+        makeMethodStatsTable("受付方法別", s.methodStats) +
+        makeAnnualTrainingTable("イベント別", s.trainingStats);
+    },
+    90000
+  );
+}
+
+
+function makeSummaryItem(label, value, className){
+
+  return (
+    '<div class="summary-item">' +
+      '<div class="summary-label">' +
+      escapeHtml(label) +
+      '</div>' +
+      '<div class="summary-value ' + className + '">' +
+      escapeHtml(value) +
+      '</div>' +
+    '</div>'
+  );
+}
+
+
+function makeStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  const hasOutside =
+    list.some(function(item){
+      return Number(item.outsideAttendedCount || 0) > 0;
+    });
+
+  let html =
+    '<div class="section-title">' + escapeHtml(title) + '</div>' +
+    '<table>';
+
+  if(hasOutside){
+
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>対象内参加</th>' +
+      '<th>対象外参加</th>' +
+      '<th>参加者合計</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+
+      const targetCount =
+        item.targetCount === null ||
+        item.targetCount === undefined
+          ? "-"
+          : item.targetCount;
+
+      const attendedCount =
+        item.attendedCount === null ||
+        item.attendedCount === undefined
+          ? "-"
+          : item.attendedCount;
+
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(targetCount) + '</td>' +
+        '<td>' + escapeHtml(attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.totalAttendedCount || item.attendedCount || item.outsideAttendedCount || 0) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+
+  } else {
+
+    html +=
+      '<thead><tr>' +
+      '<th>区分</th>' +
+      '<th>対象</th>' +
+      '<th>参加</th>' +
+      '<th>参加率</th>' +
+      '</tr></thead><tbody>';
+
+    list.forEach(function(item){
+
+      html +=
+        '<tr>' +
+        '<td>' + escapeHtml(item.name) + '</td>' +
+        '<td>' + escapeHtml(item.targetCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendedCount) + '</td>' +
+        '<td>' + escapeHtml(item.attendanceRate) + '</td>' +
+        '</tr>';
+    });
+  }
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+
+function makeMethodStatsTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  let html =
+    '<div class="section-title">' + escapeHtml(title) + '</div>' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th>受付方法</th>' +
+    '<th>件数</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(item){
+
+    html +=
+      '<tr>' +
+      '<td>' + escapeHtml(item.name) + '</td>' +
+      '<td>' + escapeHtml(item.count) + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+function makeAnnualTrainingTable(title, list){
+
+  if(!list || list.length === 0){
+    return "";
+  }
+
+  let html =
+    '<div class="section-title">' + escapeHtml(title) + '</div>' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th>開催日</th>' +
+    '<th>研修ID</th>' +
+    '<th>イベント種別</th>' +
+    '<th>研修名</th>' +
+    '<th>主催区分</th>' +
+    '<th>対象支部</th>' +
+    '<th>対象組織</th>' +
+    '<th>対象</th>' +
+    '<th>対象内参加</th>' +
+    '<th>対象外参加</th>' +
+    '<th>参加者合計</th>' +
+    '<th>未参加</th>' +
+    '<th>参加率</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(item){
+
+    html +=
+      '<tr>' +
+      '<td>' + escapeHtml(item.eventDate || "") + '</td>' +
+      '<td>' + escapeHtml(item.eventId || "") + '</td>' +
+      '<td>' + escapeHtml(item.eventType || "研修会") + '</td>' +
+      '<td>' + escapeHtml(item.title || "") + '</td>' +
+      '<td>' + escapeHtml(item.hostType || "") + '</td>' +
+      '<td>' + escapeHtml(item.targetBranch || "") + '</td>' +
+      '<td>' + escapeHtml(item.targetOrgNames || "") + '</td>' +
+      '<td>' + escapeHtml(item.targetCount || 0) + '</td>' +
+      '<td>' + escapeHtml(item.attendedCount || 0) + '</td>' +
+      '<td>' + escapeHtml(item.outsideAttendedCount || 0) + '</td>' +
+      '<td>' + escapeHtml(item.totalAttendedCount || 0) + '</td>' +
+      '<td>' + escapeHtml(item.absentCount || 0) + '</td>' +
+      '<td>' + escapeHtml(item.attendanceRate || "") + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+    '</tbody></table>';
+
+  return html;
+}
+
+loadTrainings();
+</script>
+
+</body>
+</html>

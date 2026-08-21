@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出欠回答 印刷用</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1120px;
+}
+
+.print-title{
+  margin-bottom:8px;
+}
+
+.print-meta{
+  color:#555;
+  line-height:1.7;
+  margin-bottom:14px;
+}
+
+.filter-row{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:10px;
+  align-items:end;
+  margin:14px 0;
+}
+
+.answer-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:2.1em;
+  min-height:2.1em;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#f1f3f5;
+  font-weight:bold;
+  font-size:20px;
+  line-height:1;
+}
+
+.answer-mark.yes{
+  color:#007a2f;
+  background:#e8f6ed;
+}
+
+.answer-mark.no{
+  color:#b00020;
+  background:#fdebed;
+}
+
+.answer-mark.maybe{
+  color:#9a6200;
+  background:#fff3d8;
+}
+
+.print-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+
+.print-table th,
+.print-table td{
+  border:1px solid #999;
+  padding:7px 8px;
+  text-align:left;
+  vertical-align:top;
+  font-size:13px;
+}
+
+.print-table th{
+  background:#f1f3f5;
+}
+
+.count-line{
+  margin-top:12px;
+  font-weight:bold;
+}
+
+@media print{
+  header,
+  .actions,
+  .filter-row,
+  .no-print{
+    display:none !important;
+  }
+
+  body{
+    background:#fff;
+  }
+
+  main{
+    max-width:none;
+    margin:0;
+    padding:0;
+  }
+
+  .card{
+    box-shadow:none;
+    border:none;
+    padding:0;
+  }
+
+  .print-table th,
+  .print-table td{
+    font-size:11px;
+    padding:5px 6px;
+  }
+
+  .answer-mark{
+    font-size:16px;
+    min-width:1.9em;
+    min-height:1.9em;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>出欠回答 印刷用</h1>
+</header>
+
+<main>
+<div class="card">
+  <div class="actions no-print">
+    <button class="btn" onclick="window.print()">印刷する</button>
+    <a id="responsesLink" class="btn sub" href="#">出欠回答一覧へ戻る</a>
+    <a id="detailLink" class="btn sub" href="#">イベント詳細へ戻る</a>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="filterArea" class="filter-row no-print" style="display:none;">
+    <label>
+      表示
+      <select id="printMode" onchange="renderPrintContent()">
+        <option value="all">全回答者</option>
+        <option value="positive">参加予定者のみ</option>
+        <option value="item">項目ごとに参加者を表示</option>
+      </select>
+    </label>
+
+    <label id="itemFilterLabel" style="display:none;">
+      出欠項目
+      <select id="itemFilter" onchange="renderPrintContent()"></select>
+    </label>
+
+    <button class="btn sub" onclick="renderPrintContent()">表示更新</button>
+  </div>
+
+  <div id="content"></div>
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let currentTraining =
+  null;
+
+let currentItems =
+  [];
+
+let currentResponses =
+  [];
+
+function loadResponses(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  document.getElementById("responsesLink").href =
+    "attendance-responses.html?event=" + encodeURIComponent(eventId);
+
+  document.getElementById("detailLink").href =
+    "training-detail.html?event=" + encodeURIComponent(eventId);
+
+  jsonp(
+    "getAttendanceResponsesJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "出欠回答を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training || {};
+
+      currentItems =
+        res.items || [];
+
+      currentResponses =
+        res.responses || [];
+
+      renderItemFilter();
+
+      document.getElementById("status").style.display =
+        "none";
+
+      document.getElementById("filterArea").style.display =
+        "grid";
+
+      renderPrintContent();
+    }
+  );
+}
+
+function renderItemFilter(){
+
+  const select =
+    document.getElementById("itemFilter");
+
+  select.innerHTML =
+    "";
+
+  currentItems.forEach(function(item){
+    const option =
+      document.createElement("option");
+
+    option.value =
+      item.itemId || "";
+
+    option.textContent =
+      item.itemName || "";
+
+    select.appendChild(option);
+  });
+}
+
+function renderPrintContent(){
+
+  const mode =
+    document.getElementById("printMode").value;
+
+  document.getElementById("itemFilterLabel").style.display =
+    mode === "item"
+      ? "block"
+      : "none";
+
+  let responses =
+    currentResponses.slice();
+
+  if(mode === "positive"){
+    responses =
+      responses.filter(hasPositiveAnswer);
+  }
+
+  if(mode === "item"){
+    const itemId =
+      document.getElementById("itemFilter").value;
+
+    responses =
+      responses.filter(function(response){
+        return isPositiveAnswer((response.answers || {})[itemId]);
+      });
+  }
+
+  let html =
+    '<h2 class="print-title">' +
+      escapeHtml(currentTraining.title || "出欠回答一覧") +
+    '</h2>' +
+    '<div class="print-meta">' +
+      'イベントID：' + escapeHtml(currentTraining.eventId || eventId) +
+      (currentTraining.eventDate ? '　開催日：' + escapeHtml(currentTraining.eventDate) : "") +
+      (currentTraining.hostType ? '　主催：' + escapeHtml(currentTraining.hostType) : "") +
+      '<br>' +
+      '表示：' + escapeHtml(getModeLabel(mode)) +
+      '　出力日時：' + escapeHtml(formatNow()) +
+    '</div>' +
+    '<div class="count-line">表示件数：' + escapeHtml(responses.length) + '件</div>';
+
+  if(responses.length === 0){
+    html +=
+      '<div class="info">該当する回答はありません。</div>';
+
+    document.getElementById("content").innerHTML =
+      html;
+    return;
+  }
+
+  html +=
+    '<table class="print-table">' +
+      '<thead><tr>' +
+        '<th>No</th>' +
+        '<th>会社名</th>' +
+        '<th>参加者名</th>';
+
+  currentItems.forEach(function(item){
+    html +=
+      '<th>' + escapeHtml(item.itemName || "") + '</th>';
+  });
+
+  html +=
+        '<th>備考</th>' +
+      '</tr></thead><tbody>';
+
+  responses.forEach(function(response, index){
+    html +=
+      '<tr>' +
+        '<td>' + (index + 1) + '</td>' +
+        '<td>' + escapeHtml(response.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(response.participantName || "") + '</td>';
+
+    currentItems.forEach(function(item){
+      html +=
+        '<td>' + formatAnswerValue((response.answers || {})[item.itemId] || "") + '</td>';
+    });
+
+    html +=
+        '<td>' + escapeHtml(response.note || "") + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+      '</tbody>' +
+    '</table>';
+
+  document.getElementById("content").innerHTML =
+    html;
+}
+
+function getModeLabel(mode){
+
+  if(mode === "positive"){
+    return "参加予定者のみ";
+  }
+
+  if(mode === "item"){
+    const select =
+      document.getElementById("itemFilter");
+
+    return (select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : "項目") +
+      " の参加予定者";
+  }
+
+  return "全回答者";
+}
+
+function hasPositiveAnswer(response){
+
+  return currentItems.some(function(item){
+    return isPositiveAnswer((response.answers || {})[item.itemId]);
+  });
+}
+
+function isPositiveAnswer(value){
+
+  const text =
+    String(value || "").trim();
+
+  return text === "出席" ||
+    text === "参加" ||
+    text === "可" ||
+    text === "○";
+}
+
+function formatAnswerValue(value){
+
+  const text =
+    String(value || "").trim();
+
+  const mark =
+    getAnswerMark(text);
+
+  if(!mark){
+    return escapeHtml(text);
+  }
+
+  return '<span class="answer-mark ' + mark.className + '">' +
+    mark.label +
+    '</span>';
+}
+
+function getAnswerMark(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(text === "出席" || text === "参加" || text === "可" || text === "○"){
+    return {
+      label: "○",
+      className: "yes"
+    };
+  }
+
+  if(text === "欠席" || text === "不参加" || text === "不可" || text === "×" || text === "✕"){
+    return {
+      label: "×",
+      className: "no"
+    };
+  }
+
+  if(text === "未定" || text === "保留" || text === "△"){
+    return {
+      label: "△",
+      className: "maybe"
+    };
+  }
+
+  return null;
+}
+
+function formatNow(){
+
+  const now =
+    new Date();
+
+  return now.getFullYear() +
+    "/" +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    "/" +
+    String(now.getDate()).padStart(2, "0") +
+    " " +
+    String(now.getHours()).padStart(2, "0") +
+    ":" +
+    String(now.getMinutes()).padStart(2, "0");
+}
+
+loadResponses();
+</script>
+
+</body>
+</html>

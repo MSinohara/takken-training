@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出欠回答</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:720px;
+}
+
+.answer-item{
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:16px;
+  margin:14px 0;
+  background:#fff;
+}
+
+.answer-options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+
+.answer-options label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  padding:10px 12px;
+  margin:0;
+  cursor:pointer;
+}
+
+.answer-options label:has(input:checked){
+  border-color:#123a63;
+  background:#eef5ff;
+  font-weight:bold;
+}
+
+.answer-options input{
+  width:auto;
+  margin:0;
+}
+
+.answer-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:2.1em;
+  min-height:2.1em;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#f1f3f5;
+  font-weight:bold;
+  font-size:20px;
+  line-height:1;
+}
+
+.answer-mark.yes{
+  color:#007a2f;
+  background:#e8f6ed;
+}
+
+.answer-mark.no{
+  color:#b00020;
+  background:#fdebed;
+}
+
+.answer-mark.maybe{
+  color:#9a6200;
+  background:#fff3d8;
+}
+
+.own-answer{
+  margin:14px 0;
+  padding:14px;
+  border:1px solid #d7e2ee;
+  border-radius:10px;
+  background:#f8fbff;
+}
+
+.public-status{
+  margin-top:22px;
+  padding-top:16px;
+  border-top:1px solid #ddd;
+}
+
+.public-status table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+.public-status th,
+.public-status td{
+  border-bottom:1px solid #ddd;
+  padding:9px 6px;
+  text-align:left;
+  vertical-align:top;
+  font-size:14px;
+}
+
+.public-status tr.own-response-row td{
+  background:#f8fbff;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>出欠回答</h1>
+</header>
+
+<main>
+<div class="card">
+  <div id="status" class="status">読み込み中...</div>
+  <div id="formArea" style="display:none;"></div>
+  <div id="result" class="result"></div>
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let items =
+  [];
+
+let member =
+  null;
+
+let currentResponse =
+  null;
+
+let currentTraining =
+  null;
+
+let editingAnswer =
+  false;
+
+let statusPublic =
+  false;
+
+let publicResponses =
+  [];
+
+function loadAnswer(){
+
+  jsonp(
+    "getAttendanceAnswerJsonp",
+    {
+      event: eventId,
+      member: params.get("member") || "",
+      personal: params.get("personal") || "",
+      name: params.get("name") || "",
+      mail: params.get("mail") || ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "出欠回答を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      items =
+        res.items || [];
+
+      member =
+        res.member || {};
+
+      currentResponse =
+        res.response || null;
+
+      currentTraining =
+        res.training || {};
+
+      statusPublic =
+        res.statusPublic === true;
+
+      publicResponses =
+        res.publicResponses || [];
+
+      document.getElementById("status").style.display =
+        "none";
+
+      renderForm(currentTraining);
+      renderPublicStatus();
+    }
+  );
+}
+
+function renderForm(training){
+
+  const formArea =
+    document.getElementById("formArea");
+
+  formArea.style.display =
+    "block";
+
+  if(items.length === 0){
+    formArea.innerHTML =
+      '<div class="info">現在、このイベントの出欠確認項目はありません。</div>';
+    return;
+  }
+
+  if(currentResponse && !editingAnswer){
+    renderAnsweredView(training);
+    return;
+  }
+
+  let html =
+    '<h2>' + escapeHtml(training.title || "") + '</h2>' +
+    '<div class="info">' +
+      escapeHtml(training.eventId || "") +
+      (training.eventDate ? " / " + escapeHtml(training.eventDate) : "") +
+      '<br>' +
+      escapeHtml(member.companyName || "") +
+      (member.participantName ? " / " + escapeHtml(member.participantName) + " 様" : " 様") +
+    '</div>';
+
+  if(currentResponse && currentResponse.updatedAt){
+    html +=
+      '<div class="info">前回回答：' +
+      escapeHtml(currentResponse.updatedAt) +
+      '。内容を変更して再送信できます。</div>';
+  }
+
+  const answers =
+    currentResponse && currentResponse.answers
+      ? currentResponse.answers
+      : {};
+
+  items.forEach(function(item){
+
+    html +=
+      '<div class="answer-item">' +
+        '<strong>' + escapeHtml(item.itemName || "") + '</strong>';
+
+    if(item.answerType === "自由記入"){
+      html +=
+        '<textarea id="answer_' + escapeHtml(item.itemId) + '" rows="3">' +
+        escapeHtml(answers[item.itemId] || "") +
+        '</textarea>';
+    }else{
+      html +=
+        '<div class="answer-options">';
+
+      (item.optionList || []).forEach(function(option){
+        const checked =
+          String(answers[item.itemId] || "") === String(option)
+            ? " checked"
+            : "";
+
+        html +=
+          '<label>' +
+            '<input type="radio" name="answer_' + escapeHtml(item.itemId) + '" value="' + escapeHtml(option) + '"' + checked + '>' +
+            formatAnswerLabel(option) +
+          '</label>';
+      });
+
+      html +=
+        '</div>';
+    }
+
+    html +=
+      '</div>';
+  });
+
+  html +=
+    '<label>備考（任意）</label>' +
+    '<textarea id="note" rows="3">' +
+    escapeHtml(currentResponse && currentResponse.note ? currentResponse.note : "") +
+    '</textarea>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveAnswer()">回答を送信する</button>' +
+    '</div>';
+
+  formArea.innerHTML =
+    html;
+}
+
+function renderAnsweredView(training){
+
+  const answers =
+    currentResponse && currentResponse.answers
+      ? currentResponse.answers
+      : {};
+
+  let html =
+    '<h2>' + escapeHtml(training.title || "") + '</h2>' +
+    '<div class="info">' +
+      escapeHtml(training.eventId || "") +
+      (training.eventDate ? " / " + escapeHtml(training.eventDate) : "") +
+      '<br>' +
+      escapeHtml(member.companyName || "") +
+      (member.participantName ? " / " + escapeHtml(member.participantName) + " 様" : " 様") +
+    '</div>' +
+    '<div class="own-answer">' +
+      '<strong>自分の回答</strong>';
+
+  items.forEach(function(item){
+    html +=
+      '<div style="margin-top:10px;">' +
+        escapeHtml(item.itemName || "") +
+        '：' +
+        formatAnswerValue(answers[item.itemId] || "") +
+      '</div>';
+  });
+
+  if(currentResponse.note){
+    html +=
+      '<div style="margin-top:10px;">備考：' +
+      escapeHtml(currentResponse.note) +
+      '</div>';
+  }
+
+  if(currentResponse.updatedAt){
+    html +=
+      '<div class="help">更新日時：' +
+      escapeHtml(currentResponse.updatedAt) +
+      '</div>';
+  }
+
+  html +=
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="editAnswer()">自分の回答を修正する</button>' +
+    '</div>';
+
+  document.getElementById("formArea").innerHTML =
+    html;
+}
+
+function editAnswer(){
+
+  editingAnswer =
+    true;
+
+  document.getElementById("result").innerHTML =
+    "";
+
+  renderForm(currentTraining || {});
+  renderPublicStatus();
+}
+
+function renderPublicStatus(){
+
+  const existing =
+    document.getElementById("publicStatusArea");
+
+  if(existing){
+    existing.remove();
+  }
+
+  if(!statusPublic){
+    return;
+  }
+
+  const formArea =
+    document.getElementById("formArea");
+
+  const area =
+    document.createElement("div");
+
+  area.id =
+    "publicStatusArea";
+
+  area.className =
+    "public-status";
+
+  if(publicResponses.length === 0){
+    area.innerHTML =
+      '<h3>出欠状況</h3>' +
+      '<div class="info">まだ回答はありません。</div>';
+
+    formArea.appendChild(area);
+    return;
+  }
+
+  let html =
+    '<h3>出欠状況</h3>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th>会社名</th>' +
+        '<th>参加者</th>';
+
+  items.forEach(function(item){
+    html +=
+      '<th>' + escapeHtml(item.itemName || "") + '</th>';
+  });
+
+  html +=
+        '<th>更新日時</th>' +
+      '</tr></thead><tbody>';
+
+  publicResponses.forEach(function(response){
+
+    const ownRow =
+      response.respondentKey === buildCurrentRespondentKey();
+
+    html +=
+      '<tr' + (ownRow ? ' class="own-response-row"' : "") + '>' +
+        '<td>' + escapeHtml(response.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(response.participantName || "") + '</td>';
+
+    items.forEach(function(item){
+      html +=
+        '<td>' + formatAnswerValue(response.answers && response.answers[item.itemId] ? response.answers[item.itemId] : "") + '</td>';
+    });
+
+    html +=
+        '<td>' + escapeHtml(response.updatedAt || "") + '</td>' +
+      '</tr>';
+  });
+
+  html +=
+      '</tbody>' +
+    '</table>';
+
+  area.innerHTML =
+    html;
+
+  formArea.appendChild(area);
+}
+
+function buildCurrentRespondentKey(){
+
+  if(member && member.personalId){
+    return "P:" + member.personalId;
+  }
+
+  if(member && member.memberNo){
+    return "M:" + member.memberNo;
+  }
+
+  return "";
+}
+
+function formatAnswerLabel(value){
+
+  return formatAnswerValue(value) +
+    '<span>' + escapeHtml(value || "") + '</span>';
+}
+
+function formatAnswerValue(value){
+
+  const text =
+    String(value || "").trim();
+
+  const mark =
+    getAnswerMark(text);
+
+  if(!mark){
+    return escapeHtml(text);
+  }
+
+  return '<span class="answer-mark ' + mark.className + '">' +
+    mark.label +
+    '</span>';
+}
+
+function getAnswerMark(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(text === "出席" || text === "参加" || text === "可" || text === "○"){
+    return {
+      label: "○",
+      className: "yes"
+    };
+  }
+
+  if(text === "欠席" || text === "不参加" || text === "不可" || text === "×" || text === "✕"){
+    return {
+      label: "×",
+      className: "no"
+    };
+  }
+
+  if(text === "未定" || text === "保留" || text === "△"){
+    return {
+      label: "△",
+      className: "maybe"
+    };
+  }
+
+  return null;
+}
+
+function saveAnswer(){
+
+  const answers = {};
+
+  for(let i = 0; i < items.length; i++){
+
+    const item =
+      items[i];
+
+    let value =
+      "";
+
+    if(item.answerType === "自由記入"){
+      const input =
+        document.getElementById("answer_" + item.itemId);
+
+      value =
+        input ? input.value.trim() : "";
+    }else{
+      const checked =
+        document.querySelector('input[name="answer_' + item.itemId + '"]:checked');
+
+      value =
+        checked ? checked.value : "";
+    }
+
+    if(!value){
+      alert(item.itemName + " を選択してください。");
+      return;
+    }
+
+    answers[item.itemId] =
+      value;
+  }
+
+  document.getElementById("result").innerHTML =
+    "送信中...";
+
+  jsonp(
+    "saveAttendanceAnswerJsonp",
+    {
+      event: eventId,
+      member: member.memberNo || "",
+      personal: member.personalId || "",
+      companyName: member.companyName || "",
+      name: member.participantName || "",
+      mail: member.mail || "",
+      answersJson: JSON.stringify(answers),
+      note: document.getElementById("note").value.trim()
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("result").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "送信できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("result").innerHTML =
+        '<span class="ok">出欠回答を保存しました。</span>';
+
+      editingAnswer =
+        false;
+
+      loadAnswer();
+    },
+    60000
+  );
+}
+
+loadAnswer();
+</script>
+
+</body>
+</html>

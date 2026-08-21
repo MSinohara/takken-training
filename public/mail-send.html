@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>メール確認・送信</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1000px;
+}
+
+textarea{
+  height:300px;
+}
+
+.checks{
+  margin-top:20px;
+  padding:14px;
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+  line-height:1.6;
+}
+
+.check-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
+  font-weight:normal;
+}
+
+.check-item input{
+  width:auto;
+  margin:0;
+  flex:none;
+}
+
+.mail-preview-note{
+  margin-top:16px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.send-body-preview{
+  margin-top:14px;
+  padding:14px;
+  background:#f7fbff;
+  border:1px solid #c9d9ee;
+  border-radius:8px;
+}
+
+.send-body-preview-title{
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.send-subject-preview{
+  margin:8px 0;
+  padding:10px 12px;
+  background:#fff;
+  border:1px solid #e1e5ea;
+  border-radius:6px;
+  font-weight:bold;
+}
+
+.send-body-preview-text{
+  white-space:pre-wrap;
+  line-height:1.7;
+  max-height:360px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid #e1e5ea;
+  border-radius:6px;
+  padding:12px;
+}
+
+.resend-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.resend-actions .btn{
+  margin:0;
+  white-space:nowrap;
+}
+
+.mail-target-toolbar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+
+.mail-target-search{
+  min-width:240px;
+  flex:1;
+}
+
+.mail-target-table-wrap{
+  max-height:55vh;
+  overflow:auto;
+  border:1px solid #ddd;
+  border-radius:8px;
+}
+
+.mail-target-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+
+.mail-target-table th,
+.mail-target-table td{
+  padding:8px;
+  border-bottom:1px solid #e5e5e5;
+  text-align:left;
+  vertical-align:top;
+}
+
+.mail-target-table th{
+  position:sticky;
+  top:0;
+  background:#f2f4f7;
+  z-index:1;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>メール確認・送信</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="status" class="info">読み込み中...</div>
+
+  <div id="editArea" style="display:none;">
+
+    <div class="mail-preview-note">
+      <strong>注意</strong><br>
+      参加者へ送信するメールには、受付担当者用URLは入れません。<br>
+      受付担当者用の操作は、研修会詳細画面または係員用受付画面から行います。
+    </div>
+
+    <label>メール件名</label>
+    <input id="subject">
+
+		<label>メール本文</label>
+		<textarea id="body" oninput="updateBodyCount()"></textarea>
+		<div class="help">
+		  詳細な案内や資料はPDF添付をご利用ください。出欠回答を使う設定の場合は、送信時に各会員用の出欠回答URLが自動で末尾に追加されます。
+		</div>
+		<div id="bodyCount" class="help">本文文字数：0文字</div>
+
+    <div class="actions">
+      <button class="btn sub" type="button" onclick="openSendMailPreviewModal()">
+        送信メールプレビュー
+      </button>
+    </div>
+
+		<label>添付PDF</label>
+
+		<div id="pdfInfo" class="info" style="display:none;"></div>
+
+		<div class="actions">
+		  <button class="btn sub" type="button" onclick="openPdfUploadPage()">
+		    PDFを添付（PCから）
+		  </button>
+
+		  <button class="btn sub" type="button" onclick="loadPreview()">
+		    添付状態を更新
+		  </button>
+
+		  <button class="btn danger" type="button" onclick="deletePdfFile()">
+		    添付を削除
+		  </button>
+		</div>
+
+		<select id="pdfSelect" onchange="selectPdfFile()" style="display:none;">
+		  <option value="">PDFを選択してください</option>
+		</select>
+
+		<input id="pdfFileId" type="hidden">
+
+		<div class="help">
+		  PCから添付した後は「添付状態を更新」を押してください。削除するとDrive上のPDFも削除されます。
+		</div>
+
+		<div class="actions">
+		  <button class="btn" onclick="saveMailContent()">保存</button>
+
+			<button class="btn" onclick="sendTestOne()">
+			  テスト送信（管理設定アドレス）
+			</button>
+
+		  <a class="btn sub"
+		     href="mail-history.html">
+		     送信履歴を見る
+		  </a>
+
+			<a class="btn sub"
+			   id="detailLink"
+			   href="mail-select.html">
+			   メール送信メニューへ戻る
+			</a>
+		</div>
+
+		<div class="mail-preview-note">
+		  <strong>個別再送</strong><br>
+		  メールが届いていない場合や、別のメールアドレスへ送りたい場合に使用します。
+
+		  <label>会社名・業者番号・メールで検索</label>
+		  <input id="resendKeyword" placeholder="例：会社名 または 業者番号">
+
+		  <div class="actions">
+		    <button class="btn sub" onclick="searchResendMembers()">再送対象を検索</button>
+		  </div>
+
+		  <div id="resendStatus" class="result"></div>
+		  <div id="resendList"></div>
+		</div>
+
+		<div class="mail-preview-note">
+		  <strong>追加送信（集計対象外）</strong><br>
+		  急遽案内したい人へ、この研修会のメールだけを送ります。対象人数・参加率・修了証条件には含めません。
+
+		  <label>会社名・参加者名・業者番号・メールで検索</label>
+		  <input id="additionalMailKeyword" placeholder="例：会社名 または 業者番号">
+
+		  <div class="actions">
+		    <button class="btn sub" onclick="searchAdditionalMailMembers()">追加送信先を検索</button>
+		  </div>
+
+		  <div id="additionalMailStatus" class="result"></div>
+		  <div id="additionalMailList"></div>
+		</div>
+
+    <div class="checks">
+      <strong>本番一括送信前の確認</strong><br>
+
+      <label class="check-item">
+        <input type="checkbox" class="confirmCheck" onchange="updateSendButton()">
+        件名・本文を確認しました
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" class="confirmCheck" onchange="updateSendButton()">
+        PDF添付の有無を確認しました
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" class="confirmCheck" onchange="updateSendButton()">
+        送信対象件数を確認しました
+      </label>
+
+      <div class="actions">
+        <button type="button" class="btn sub" onclick="openMailTargetsModal()">
+          送信対象者を確認
+        </button>
+      </div>
+
+      <div class="actions">
+        <button id="sendAllButton" class="btn danger" onclick="sendAll()" disabled>
+          本番一括送信
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+let currentTraining =
+  null;
+
+let mailTargetMembers =
+  [];
+
+let mailSignatureBody =
+  "";
+
+let mailSignatureName =
+  "";
+
+let mailPreviewMember =
+  null;
+
+let mailPreviewUrls =
+  {};
+
+let mailSender =
+  null;
+
+let attendanceItemCount =
+  0;
+
+function setupBackLink(){
+
+  const link =
+    document.getElementById("detailLink");
+
+  if(returnTo === "detail" && eventId){
+    link.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId);
+
+    link.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  link.href =
+    "mail-select.html";
+
+  link.textContent =
+    "メール送信メニューへ戻る";
+}
+
+function loadPreview(){
+
+  if(!eventId){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getMailPreviewJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training;
+
+      mailSignatureBody =
+        res.mailSignatureBody || "";
+
+      mailSignatureName =
+        res.mailSignatureName || "";
+
+      mailPreviewMember =
+        res.mailPreviewMember || null;
+
+      mailPreviewUrls =
+        res.mailPreviewUrls || {};
+
+      mailSender =
+        res.mailSender || null;
+
+      attendanceItemCount =
+        Number(res.attendanceItemCount || 0);
+
+      let pdfHtml =
+        "PDF添付：なし";
+
+      if(currentTraining.pdfFileId){
+
+        pdfHtml =
+          "PDF添付：あり";
+
+        if(currentTraining.pdfFileName){
+          pdfHtml +=
+            "<br>添付PDF：" +
+            escapeHtml(currentTraining.pdfFileName);
+        }
+
+        if(currentTraining.pdfFileUrl){
+          pdfHtml +=
+            '<br><a class="btn sub" href="' +
+            escapeHtml(currentTraining.pdfFileUrl) +
+            '" target="_blank">添付PDFをプレビュー</a>';
+        }
+      }
+
+			document.getElementById("status").innerHTML =
+			  "研修ID：" + escapeHtml(currentTraining.eventId) + "<br>" +
+			  "研修名：" + escapeHtml(currentTraining.title) + "<br>" +
+			  "主催：" + escapeHtml(currentTraining.hostType) + "<br>" +
+			  "受付方式：" + escapeHtml(getReceptionTypeLabel(currentTraining.receptionType || "")) + "<br>" +
+			  "差出人表示名：" + escapeHtml(mailSender && mailSender.displayName ? mailSender.displayName : "未設定") + "<br>" +
+			  "送信元メール：" + escapeHtml(mailSender && mailSender.fromMail ? mailSender.fromMail : "未設定") + "<br>" +
+			  "送信元設定：" + escapeHtml(mailSender && mailSender.source ? mailSender.source : "") +
+          (mailSender && mailSender.targetText ? "（" + escapeHtml(mailSender.targetText) + "）" : "") + "<br>" +
+			  "位置情報受付：" + escapeHtml(isLocationCheckEnabled(currentTraining) ? "使う" : "使わない") + "<br>" +
+			  "出欠回答：" + escapeHtml(getAttendanceConfirmStatusText(currentTraining, attendanceItemCount)) + "<br>" +
+			  "研修対象：" + escapeHtml(res.targetCount || 0) + "件<br>" +
+			  "メール送信対象：" + escapeHtml(res.mailTargetCount || 0) + "件<br>" +
+			  pdfHtml;
+
+      document.getElementById("subject").value =
+        currentTraining.subject || "";
+
+      document.getElementById("body").value =
+        currentTraining.body || "";
+
+			updateBodyCount();
+
+      document.getElementById("pdfFileId").value =
+        currentTraining.pdfFileId || "";
+
+      showPdfInfoFromTraining();
+
+      document.getElementById("editArea").style.display =
+        "block";
+    }
+  );
+}
+
+function showPdfInfoFromTraining(){
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  if(!currentTraining || !currentTraining.pdfFileId){
+
+    pdfInfo.style.display =
+      "block";
+
+    pdfInfo.innerHTML =
+      "現在、添付PDFは設定されていません。";
+
+    return;
+  }
+
+  pdfInfo.style.display =
+    "block";
+
+  let html =
+    '<span class="ok">現在の添付PDF</span><br>';
+
+  if(currentTraining.pdfFileName){
+    html +=
+      escapeHtml(currentTraining.pdfFileName) +
+      "<br>";
+  }
+
+  if(currentTraining.pdfFileUrl){
+    html +=
+      '<a class="btn sub" href="' +
+      escapeHtml(currentTraining.pdfFileUrl) +
+      '" target="_blank">PDFをプレビュー</a><br><br>';
+  }
+
+  html +=
+    '<span class="muted">このPDFがメールに添付されます。</span>';
+
+  pdfInfo.innerHTML =
+    html;
+}
+
+
+function loadPdfFiles(){
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.textContent =
+    "PDF一覧を読み込み中...";
+
+  jsonp(
+    "getPdfFilesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        pdfInfo.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "PDF一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      pdfSelect.innerHTML =
+        '<option value="">PDFを選択してください</option>';
+
+      res.files.forEach(function(file){
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          file.id;
+
+        option.textContent =
+          file.name;
+
+        option.setAttribute(
+          "data-name",
+          file.name
+        );
+
+        option.setAttribute(
+          "data-url",
+          file.url
+        );
+
+        pdfSelect.appendChild(option);
+      });
+
+      pdfSelect.style.display =
+        "block";
+
+      pdfInfo.innerHTML =
+        '<span class="ok">PDF一覧を読み込みました。</span><br>' +
+        res.files.length +
+        "件";
+    }
+  );
+}
+
+
+function selectPdfFile(){
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  const fileId =
+    pdfSelect.value;
+
+  const selected =
+    pdfSelect.options[pdfSelect.selectedIndex];
+
+  const fileName =
+    selected
+      ? selected.getAttribute("data-name") || ""
+      : "";
+
+  const fileUrl =
+    selected
+      ? selected.getAttribute("data-url") || ""
+      : "";
+
+  document.getElementById("pdfFileId").value =
+    fileId;
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  if(!fileId){
+    pdfInfo.style.display =
+      "block";
+
+    pdfInfo.innerHTML =
+      "添付PDFは選択されていません。";
+
+    return;
+  }
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.innerHTML =
+    '<span class="ok">選択中のPDF</span><br>' +
+    escapeHtml(fileName) +
+    '<br>' +
+    '<a class="btn sub" href="' +
+    escapeHtml(fileUrl) +
+    '" target="_blank">PDFをプレビュー</a>' +
+    '<br><br>' +
+    '<span class="muted">このPDFがメールに添付されます。</span><br><br>' +
+    '<span class="ng">PDFを変更した場合は、必ず「保存」を押してください。</span>';
+}
+
+
+function clearPdfFile(){
+
+  if(!confirm("この研修会メールから添付PDFを外します。\nよろしいですか？\n\n※Google Drive上のPDFファイル自体は削除されません。")){
+    return;
+  }
+
+  document.getElementById("pdfFileId").value =
+    "";
+
+  const pdfSelect =
+    document.getElementById("pdfSelect");
+
+  if(pdfSelect){
+    pdfSelect.value =
+      "";
+  }
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.innerHTML =
+    '<span class="ng">添付PDFを外しました。</span><br>' +
+    'この変更を反映するには「保存」を押してください。';
+}
+
+
+function deletePdfFile(){
+
+  const pdfFileId =
+    document.getElementById("pdfFileId").value.trim();
+
+  if(!pdfFileId){
+    alert("削除する添付PDFがありません。");
+    return;
+  }
+
+  if(!confirm("添付PDFをGoogle Driveから削除し、この研修会メールからも外します。\nよろしいですか？\n\n※同じPDFを他の研修会でも使っている場合、そのPDFも開けなくなります。")){
+    return;
+  }
+
+  const pdfInfo =
+    document.getElementById("pdfInfo");
+
+  pdfInfo.style.display =
+    "block";
+
+  pdfInfo.textContent =
+    "PDFを削除中...";
+
+  jsonp(
+    "deleteTrainingPdfJsonp",
+    {
+      event: eventId,
+      pdfFileId: pdfFileId
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        pdfInfo.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "PDFを削除できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("pdfFileId").value =
+        "";
+
+      pdfInfo.innerHTML =
+        '<span class="ok">添付PDFをDriveから削除し、研修会から外しました。</span>';
+
+      loadPreview();
+    }
+  );
+}
+
+
+function openPdfUploadPage(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  window.open(
+    GAS_WEB_APP_URL +
+    "?page=pdfUpload&event=" +
+    encodeURIComponent(eventId),
+    "_blank"
+  );
+}
+
+function saveMailContent(){
+
+  if(!currentTraining){
+    alert("研修会情報が読み込まれていません。");
+    return;
+  }
+
+		const data = {
+		  eventId: currentTraining.eventId,
+		  title: currentTraining.title,
+		  hostType: currentTraining.hostType,
+		  receptionType: currentTraining.receptionType,
+		  attendanceUnit: currentTraining.attendanceUnit || "会社",
+		  eventDate: currentTraining.eventDate,
+		  subject: document.getElementById("subject").value.trim(),
+		  body: document.getElementById("body").value,
+		  pdfFileId: document.getElementById("pdfFileId").value.trim(),
+		  active:
+		    currentTraining.active === false ||
+		    String(currentTraining.active).toUpperCase() === "FALSE"
+		      ? "FALSE"
+		      : "TRUE",
+
+				targetBlock: currentTraining.targetBlock || "",
+				targetBranch: currentTraining.targetBranch || "",
+				targetDistrict: currentTraining.targetDistrict || "",
+				targetOrgIdsNew: currentTraining.targetOrgIdsNew || "",
+
+				targetOrgIds: "",
+				senderOrgId: currentTraining.senderOrgId || "",
+        mailSignatureId: currentTraining.mailSignatureId || "",
+				certificateEnabled:
+		    currentTraining.certificateEnabled === false ||
+		    String(currentTraining.certificateEnabled).toUpperCase() === "FALSE"
+		      ? "FALSE"
+		      : "TRUE",
+				locationCheckEnabled:
+		    isLocationCheckEnabled(currentTraining)
+		      ? "TRUE"
+		      : "FALSE",
+				locationCheckinStart: currentTraining.locationCheckinStart || "",
+				locationCheckinEnd: currentTraining.locationCheckinEnd || ""
+		};
+
+  if(!data.subject || !data.body){
+    alert("件名と本文は必須です。");
+    return;
+  }
+
+  showResult("保存中...");
+
+	jsonpWithLongBody(
+	  "saveTrainingJsonp",
+	  data,
+	  function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>'
+        );
+        return;
+      }
+
+      showResult(
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>'
+      );
+
+      loadPreview();
+    }
+  );
+}
+
+function searchResendMembers(){
+
+  const keyword =
+    document.getElementById("resendKeyword").value.trim();
+
+  if(!keyword || keyword.length < 2){
+    alert("会社名・参加者名・業者番号・メールを2文字以上入力してください。");
+    return;
+  }
+
+  const status =
+    document.getElementById("resendStatus");
+
+  const list =
+    document.getElementById("resendList");
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "検索中...";
+
+  list.innerHTML =
+    "";
+
+  jsonp(
+    "getMailTargetMembersJsonp",
+    {
+      event: eventId,
+      includeWithoutMail: "TRUE"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "検索に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      const word =
+        keyword.toLowerCase();
+
+      const members =
+        (res.members || []).filter(function(m){
+          return [
+            m.memberNo,
+            m.personalId,
+            m.companyName,
+            m.participantName,
+            m.mail,
+            m.block,
+            m.branch,
+            m.district
+          ].join(" ").toLowerCase().indexOf(word) !== -1;
+        });
+
+      if(members.length === 0){
+        status.textContent =
+          "該当する送信対象者が見つかりませんでした。";
+        return;
+      }
+
+      status.textContent =
+        members.length + "件見つかりました。";
+
+      let html =
+        '<table>' +
+        '<thead><tr>' +
+        '<th>業者番号</th>' +
+        '<th>会社名</th>' +
+        '<th>参加者</th>' +
+        '<th>メール</th>' +
+        '<th>操作</th>' +
+        '</tr></thead><tbody>';
+
+      members.forEach(function(m){
+
+        const participantName =
+          m.participantName || "";
+
+        const personalId =
+          m.personalId || "";
+
+        html +=
+          '<tr>' +
+          '<td>' + escapeHtml(m.memberNo || "") + '</td>' +
+          '<td>' + escapeHtml(m.companyName) + '</td>' +
+          '<td>' +
+            escapeHtml(participantName) +
+            (personalId ? '<div class="help">' + escapeHtml(personalId) + '</div>' : '') +
+          '</td>' +
+          '<td>' + escapeHtml(m.mail || "") + '</td>' +
+          '<td>' +
+            '<div class="resend-actions">' +
+            '<button class="btn sub" onclick="resendRegisteredMail(\'' +
+            escapeJs(m.memberNo) +
+            '\',\'' +
+            escapeJs(m.companyName) +
+            '\',\'' +
+            escapeJs(m.mail || "") +
+            '\',\'' +
+            escapeJs(personalId) +
+            '\',\'' +
+            escapeJs(participantName) +
+            '\')">登録メールへ再送</button>' +
+
+            '<button class="btn sub" onclick="showOtherMailResendForm(\'' +
+            escapeJs(m.memberNo) +
+            '\',\'' +
+            escapeJs(m.companyName) +
+            '\',\'' +
+            escapeJs(personalId) +
+            '\',\'' +
+            escapeJs(participantName) +
+            '\')">別アドレスへ再送</button>' +
+            '</div>' +
+          '</td>' +
+          '</tr>';
+      });
+
+      html +=
+        '</tbody></table>';
+
+      list.innerHTML =
+        html;
+    }
+  );
+}
+
+
+function resendRegisteredMail(memberNo, companyName, mail, personalId, participantName){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  if(!mail){
+    alert("登録メールアドレスがありません。");
+    return;
+  }
+
+  openResendConfirmModal(
+    memberNo,
+    companyName,
+    mail,
+    "",
+    personalId || "",
+    participantName || ""
+  );
+}
+
+
+function showOtherMailResendForm(memberNo, companyName, personalId, participantName){
+
+  const rows =
+    [
+      { label:"会社名", value:companyName || "" }
+    ];
+
+  if(personalId || participantName){
+    rows.push({
+      label:"参加者",
+      value:(participantName || "") + (personalId ? " / " + personalId : "")
+    });
+  }
+
+  rows.push({
+    label:"送信先",
+    html:'<input id="resendOtherMailInput" type="email" placeholder="メールアドレス">'
+  });
+
+  const body =
+    buildDetailRows(rows) +
+    '<div class="actions">' +
+      '<button type="button" class="btn" onclick="sendOtherMailFromModal(\'' +
+      escapeJs(memberNo) +
+      '\',\'' +
+      escapeJs(companyName) +
+      '\',\'' +
+      escapeJs(personalId || "") +
+      '\',\'' +
+      escapeJs(participantName || "") +
+      '\')">この宛先へ再送</button>' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "別アドレスへ再送",
+    body
+  );
+}
+
+function sendOtherMailFromModal(memberNo, companyName, personalId, participantName){
+
+  const input =
+    document.getElementById("resendOtherMailInput");
+
+  const mail =
+    input ? input.value.trim() : "";
+
+  if(!mail || mail.indexOf("@") === -1){
+    alert("メールアドレスの形式を確認してください。");
+    return;
+  }
+
+  openResendConfirmModal(
+    memberNo,
+    companyName,
+    mail,
+    mail,
+    personalId || "",
+    participantName || ""
+  );
+}
+
+function openResendConfirmModal(
+  memberNo,
+  companyName,
+  displayMail,
+  sendMail,
+  personalId,
+  participantName
+){
+
+  const rows =
+    [
+      { label:"会社名", value:companyName || "" }
+    ];
+
+  if(personalId || participantName){
+    rows.push({
+      label:"参加者",
+      value:(participantName || "") + (personalId ? " / " + personalId : "")
+    });
+  }
+
+  const body =
+    buildDetailRows(rows.concat([
+      { label:"送信先", value:displayMail || "" }
+    ])) +
+    '<div class="actions">' +
+      '<button type="button" class="btn" onclick="sendResendMailFromModal(\'' +
+      escapeJs(memberNo) +
+      '\',\'' +
+      escapeJs(sendMail || "") +
+      '\',\'' +
+      escapeJs(personalId || "") +
+      '\')">再送する</button>' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "研修案内メールの個別再送",
+    body
+  );
+}
+
+function sendResendMailFromModal(memberNo, mail, personalId){
+
+  closeAppModal();
+
+  sendResendMail(
+    memberNo,
+    mail,
+    personalId || ""
+  );
+}
+
+
+function sendResendMail(memberNo, mail, personalId){
+
+  const status =
+    document.getElementById("resendStatus");
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "メール再送中...";
+
+  jsonp(
+    "resendTrainingMailJsonp",
+    {
+      event: eventId,
+      member: memberNo,
+      personal: personalId || "",
+      mail: mail || ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "メール再送に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "メールを再送しました。") +
+        '</span><br>' +
+        escapeHtml(res.companyName || "") +
+        (res.participantName ? ' / ' + escapeHtml(res.participantName) : '') +
+        ' / ' +
+        escapeHtml(res.mail || "") +
+        '<br>送信元：' +
+        escapeHtml(res.fromName || "") +
+        (res.fromMail ? ' <' + escapeHtml(res.fromMail) + '>' : '');
+    }
+  );
+}
+
+function searchAdditionalMailMembers(){
+
+  const keyword =
+    document.getElementById("additionalMailKeyword").value.trim();
+
+  if(!keyword || keyword.length < 2){
+    alert("会社名・参加者名・業者番号・メールを2文字以上入力してください。");
+    return;
+  }
+
+  const status =
+    document.getElementById("additionalMailStatus");
+
+  const list =
+    document.getElementById("additionalMailList");
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "検索中...";
+
+  list.innerHTML =
+    "";
+
+  jsonp(
+    "searchAdditionalMailMembersJsonp",
+    {
+      event: eventId,
+      keyword: keyword
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "検索に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      const members =
+        res.members || [];
+
+      if(members.length === 0){
+        status.textContent =
+          "該当する会員が見つかりませんでした。";
+        return;
+      }
+
+      status.textContent =
+        members.length + "件見つかりました。";
+
+      let html =
+        '<table>' +
+        '<thead><tr>' +
+        '<th>業者番号</th>' +
+        '<th>会社名</th>' +
+        '<th>参加者</th>' +
+        '<th>メール</th>' +
+        '<th>所属</th>' +
+        '<th>操作</th>' +
+        '</tr></thead><tbody>';
+
+      members.forEach(function(m){
+
+        const participantName =
+          m.participantName || "";
+
+        const personalId =
+          m.personalId || "";
+
+        html +=
+          '<tr>' +
+          '<td>' + escapeHtml(m.memberNo || "") + '</td>' +
+          '<td>' + escapeHtml(m.companyName || "") + '</td>' +
+          '<td>' +
+            escapeHtml(participantName) +
+            (personalId ? '<div class="help">' + escapeHtml(personalId) + '</div>' : '') +
+          '</td>' +
+          '<td>' + escapeHtml(m.mail || "") + '</td>' +
+          '<td>' + escapeHtml([m.branch, m.district].filter(Boolean).join(" / ")) + '</td>' +
+          '<td>' +
+            '<div class="resend-actions">' +
+            '<button class="btn sub" onclick="sendAdditionalRegisteredMail(\'' +
+            escapeJs(m.memberNo || "") +
+            '\',\'' +
+            escapeJs(m.companyName || "") +
+            '\',\'' +
+            escapeJs(m.mail || "") +
+            '\',\'' +
+            escapeJs(personalId) +
+            '\',\'' +
+            escapeJs(participantName) +
+            '\')">登録メールへ送信</button>' +
+
+            '<button class="btn sub" onclick="showAdditionalOtherMailForm(\'' +
+            escapeJs(m.memberNo || "") +
+            '\',\'' +
+            escapeJs(m.companyName || "") +
+            '\',\'' +
+            escapeJs(personalId) +
+            '\',\'' +
+            escapeJs(participantName) +
+            '\')">別アドレスへ送信</button>' +
+            '</div>' +
+          '</td>' +
+          '</tr>';
+      });
+
+      html +=
+        '</tbody></table>';
+
+      list.innerHTML =
+        html;
+    }
+  );
+}
+
+function sendAdditionalRegisteredMail(memberNo, companyName, mail, personalId, participantName){
+
+  if(!mail){
+    alert("登録メールアドレスがありません。別アドレスへ送信してください。");
+    return;
+  }
+
+  openAdditionalMailConfirmModal(
+    memberNo,
+    companyName,
+    mail,
+    "",
+    personalId || "",
+    participantName || ""
+  );
+}
+
+function showAdditionalOtherMailForm(memberNo, companyName, personalId, participantName){
+
+  const rows =
+    [
+      { label:"会社名", value:companyName || "" }
+    ];
+
+  if(personalId || participantName){
+    rows.push({
+      label:"参加者",
+      value:(participantName || "") + (personalId ? " / " + personalId : "")
+    });
+  }
+
+  rows.push({
+    label:"送信先",
+    html:'<input id="additionalOtherMailInput" type="email" placeholder="メールアドレス">'
+  });
+
+  const body =
+    buildDetailRows(rows) +
+    '<div class="actions">' +
+      '<button type="button" class="btn" onclick="sendAdditionalOtherMailFromModal(\'' +
+      escapeJs(memberNo) +
+      '\',\'' +
+      escapeJs(companyName) +
+      '\',\'' +
+      escapeJs(personalId || "") +
+      '\',\'' +
+      escapeJs(participantName || "") +
+      '\')">この宛先へ追加送信</button>' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "追加送信（別アドレス）",
+    body
+  );
+}
+
+function sendAdditionalOtherMailFromModal(memberNo, companyName, personalId, participantName){
+
+  const input =
+    document.getElementById("additionalOtherMailInput");
+
+  const mail =
+    input ? input.value.trim() : "";
+
+  if(!mail || mail.indexOf("@") === -1){
+    alert("メールアドレスの形式を確認してください。");
+    return;
+  }
+
+  openAdditionalMailConfirmModal(
+    memberNo,
+    companyName,
+    mail,
+    mail,
+    personalId || "",
+    participantName || ""
+  );
+}
+
+function openAdditionalMailConfirmModal(
+  memberNo,
+  companyName,
+  displayMail,
+  sendMail,
+  personalId,
+  participantName
+){
+
+  const rows =
+    [
+      { label:"会社名", value:companyName || "" }
+    ];
+
+  if(personalId || participantName){
+    rows.push({
+      label:"参加者",
+      value:(participantName || "") + (personalId ? " / " + personalId : "")
+    });
+  }
+
+  rows.push(
+    { label:"送信先", value:displayMail || "" },
+    { label:"扱い", value:"追加送信（集計対象外）" }
+  );
+
+  const body =
+    buildDetailRows(rows) +
+    '<div class="help">この送信では、対象人数・参加率・修了証条件は変更されません。</div>' +
+    '<div class="actions">' +
+      '<button type="button" class="btn" onclick="sendAdditionalMailFromModal(\'' +
+      escapeJs(memberNo) +
+      '\',\'' +
+      escapeJs(sendMail || "") +
+      '\',\'' +
+      escapeJs(personalId || "") +
+      '\')">追加送信する</button>' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "研修案内メールの追加送信",
+    body
+  );
+}
+
+function sendAdditionalMailFromModal(memberNo, mail, personalId){
+
+  closeAppModal();
+
+  sendAdditionalMail(
+    memberNo,
+    mail,
+    personalId || ""
+  );
+}
+
+function sendAdditionalMail(memberNo, mail, personalId){
+
+  const status =
+    document.getElementById("additionalMailStatus");
+
+  status.style.display =
+    "block";
+
+  status.textContent =
+    "追加送信中... 添付ファイルがある場合は少し時間がかかります。";
+
+  jsonp(
+    "sendAdditionalTrainingMailJsonp",
+    {
+      event: eventId,
+      member: memberNo,
+      personal: personalId || "",
+      mail: mail || ""
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "追加送信に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "追加送信しました。") +
+        '</span><br>' +
+        escapeHtml(res.companyName || "") +
+        (res.participantName ? ' / ' + escapeHtml(res.participantName) : '') +
+        ' / ' +
+        escapeHtml(res.mail || "");
+    },
+    180000
+  );
+}
+
+function openMailTargetsModal(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  openAppModal(
+    "送信対象者の確認",
+    '<div class="info">送信対象者を読み込み中...</div>'
+  );
+
+  jsonp(
+    "getMailTargetMembersJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        openAppModal(
+          "送信対象者の確認",
+          '<div class="ng">' +
+          escapeHtml(res && res.message ? res.message : "送信対象者を取得できませんでした。") +
+          '</div>'
+        );
+        return;
+      }
+
+      mailTargetMembers =
+        res.members || [];
+
+      renderMailTargetsModal(
+        ""
+      );
+    }
+  );
+}
+
+function renderMailTargetsModal(keyword){
+
+  const word =
+    String(keyword || "").trim().toLowerCase();
+
+  const filtered =
+    mailTargetMembers.filter(function(member){
+
+      if(!word){
+        return true;
+      }
+
+      return [
+        member.memberNo,
+        member.personalId,
+        member.companyName,
+        member.participantName,
+        member.mail,
+        member.block,
+        member.branch,
+        member.district
+      ].join(" ").toLowerCase().indexOf(word) !== -1;
+    });
+
+  let rowsHtml =
+    "";
+
+  filtered.forEach(function(member, index){
+
+    rowsHtml +=
+      "<tr>" +
+      "<td>" + escapeHtml(index + 1) + "</td>" +
+      "<td>" + escapeHtml(member.companyName || "") + "</td>" +
+      "<td>" + escapeHtml(member.memberNo || "") + "</td>" +
+      "<td>" + escapeHtml(member.participantName || "") + "</td>" +
+      "<td>" + escapeHtml(member.personalId || "") + "</td>" +
+      "<td>" + escapeHtml(member.mail || "") + "</td>" +
+      "<td>" + escapeHtml(member.branch || "") + "</td>" +
+      "<td>" + escapeHtml(member.district || "") + "</td>" +
+      "</tr>";
+  });
+
+  if(!rowsHtml){
+    rowsHtml =
+      '<tr><td colspan="8">該当する送信対象者はいません。</td></tr>';
+  }
+
+  const body =
+    '<div class="mail-target-toolbar">' +
+      '<div><strong>送信対象：</strong>' +
+      escapeHtml(mailTargetMembers.length) +
+      '件</div>' +
+      '<input id="mailTargetKeyword" class="mail-target-search" placeholder="会社名・業者番号・参加者名・個人ID・メール・支部・地区で検索" value="' +
+      escapeHtml(keyword || "") +
+      '" oninput="renderMailTargetsModal(this.value)">' +
+    '</div>' +
+    '<div class="mail-target-table-wrap">' +
+      '<table class="mail-target-table">' +
+        '<thead>' +
+          '<tr>' +
+            '<th>No</th>' +
+            '<th>会社名</th>' +
+            '<th>業者番号</th>' +
+            '<th>参加者名</th>' +
+            '<th>個人ID</th>' +
+            '<th>メール</th>' +
+            '<th>支部</th>' +
+            '<th>地区</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+          rowsHtml +
+        '</tbody>' +
+      '</table>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "送信対象者の確認",
+    body
+  );
+
+  const input =
+    document.getElementById("mailTargetKeyword");
+
+  if(input){
+    input.focus();
+    input.setSelectionRange(
+      input.value.length,
+      input.value.length
+    );
+  }
+}
+
+function sendTestOne(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+	if(!confirm("管理設定のテスト送信先へ送信します。\n実際の会員には送信されません。\n\n編集した内容は先に保存してください。")){
+	  return;
+	}
+
+  showResult("テスト送信中...");
+
+  jsonp(
+    "sendTrainingMailTestOneJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "送信に失敗しました。") +
+          '</span><br>' +
+          escapeHtml(res && res.detail ? res.detail : "")
+        );
+        return;
+      }
+
+      showResult(
+        '<span class="ok">' +
+        escapeHtml(res.message || "送信しました。") +
+        '</span><br>' +
+        escapeHtml(res.detail || "")
+      );
+    }
+  );
+}
+
+function sendAll(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  if(!confirm("本番一括送信を実行します。\n送信対象全員にメールが送信されます。\n\n本当によろしいですか？")){
+    return;
+  }
+
+  if(!confirm("最終確認です。\nこの操作は取り消せません。\n\n本番送信しますか？")){
+    return;
+  }
+
+  showResult("本番一括送信中...");
+
+  jsonp(
+    "sendTrainingMailAllJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "一括送信に失敗しました。") +
+          '</span><br>' +
+          escapeHtml(res && res.detail ? res.detail : "")
+        );
+        return;
+      }
+
+      showResult(
+        '<span class="ok">' +
+        escapeHtml(res.message || "一括送信しました。") +
+        '</span><br>' +
+        escapeHtml(res.detail || "")
+      );
+    }
+  );
+}
+
+function updateSendButton(){
+
+  const checks =
+    document.querySelectorAll(".confirmCheck");
+
+  let allChecked =
+    true;
+
+  checks.forEach(function(check){
+    if(!check.checked){
+      allChecked = false;
+    }
+  });
+
+  document.getElementById("sendAllButton").disabled =
+    !allChecked;
+}
+
+function showResult(html){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.innerHTML =
+    html;
+}
+
+function updateBodyCount(){
+
+  const body =
+    document.getElementById("body").value;
+
+  document.getElementById("bodyCount").textContent =
+    "本文文字数：" + body.length + "文字";
+}
+
+function openSendMailPreviewModal(){
+
+  const bodyInput =
+    document.getElementById("body");
+
+  const subjectInput =
+    document.getElementById("subject");
+
+  if(!bodyInput || !subjectInput){
+    return;
+  }
+
+  const baseBody =
+    bodyInput.value || "";
+
+  const signature =
+    mailSignatureBody || "";
+
+  const previewBody =
+    buildPreviewMailBody(
+      baseBody,
+      signature
+    );
+
+  const signatureText =
+    signature
+      ? "署名：" + (mailSignatureName || "設定済み")
+      : "署名：なし";
+
+  const senderText =
+    mailSender
+      ? "差出人：" +
+        (mailSender.displayName || "未設定") +
+        " <" +
+        (mailSender.fromMail || "未設定") +
+        "> / " +
+        (mailSender.source || "") +
+        (
+          mailSender.targetText
+            ? "（" + mailSender.targetText + "）"
+            : ""
+        )
+      : "差出人：未設定";
+
+  const previewMemberText =
+    mailPreviewMember && mailPreviewMember.companyName
+      ? "送信対象の先頭1件を例に表示しています：" +
+        mailPreviewMember.companyName +
+        (
+          mailPreviewMember.participantName
+            ? " / " + mailPreviewMember.participantName + " 様"
+            : " 様"
+        )
+      : "送信対象者がいないため、サンプル宛名で表示しています。";
+
+  const body =
+    '<div class="help">' +
+      escapeHtml(senderText) +
+    '</div>' +
+    '<div class="help">' +
+      escapeHtml(signatureText) +
+    '</div>' +
+    '<div class="help">' +
+      escapeHtml(previewMemberText) +
+    '</div>' +
+    '<div class="help">編集した件名・本文で送信する場合は、先に保存してください。</div>' +
+    '<div class="send-subject-preview">' +
+      escapeHtml("件名：" + (subjectInput.value || "")) +
+    '</div>' +
+    '<div class="send-body-preview-text">' +
+      escapeHtml(previewBody) +
+    '</div>' +
+    '<div class="actions">' +
+      '<button type="button" class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    "送信メールプレビュー",
+    body
+  );
+}
+
+function buildPreviewMailBody(baseBody, signature){
+
+  const member =
+    mailPreviewMember || {
+      companyName:"株式会社サンプル",
+      memberNo:"00000"
+    };
+
+  const receptionType =
+    currentTraining
+      ? String(currentTraining.receptionType || "")
+      : "";
+
+  const attendanceUnit =
+    currentTraining
+      ? String(currentTraining.attendanceUnit || "会社")
+      : "会社";
+
+  let body =
+    "";
+
+  const attendanceAnswerUrl =
+    mailPreviewUrls.attendanceAnswerUrl || "";
+
+  const replacedBaseBody =
+    String(baseBody || "")
+      .replace(/{{出欠回答URL}}/g, attendanceAnswerUrl)
+      .replace(/{{出欠確認URL}}/g, attendanceAnswerUrl);
+
+  const bodyWithAttendance =
+    appendPreviewAttendanceAnswerGuide(
+      replacedBaseBody,
+      baseBody,
+      attendanceAnswerUrl
+    );
+
+  if(receptionType === "手入力"){
+    body =
+      (member.companyName || "株式会社サンプル") + " 様\n\n" +
+      bodyWithAttendance + "\n\n" +
+      "【当日の受付方法】\n" +
+      "当日は会場に掲示された受付用QRコードから受付を行います。\n" +
+      "会場到着後、受付案内に従って、会社名または業者番号で検索して受付してください。\n\n" +
+      "※このメールは研修会参加確認システムから送信しています。";
+
+  }else if(receptionType === "スマホ登録"){
+    body =
+      (member.companyName || "株式会社サンプル") + " 様\n\n" +
+      bodyWithAttendance + "\n\n" +
+      "【受付用スマートフォンの事前登録】\n" +
+      "研修会当日に使用するスマートフォンで、下記URLを開いて事前登録を行ってください。\n\n" +
+      (mailPreviewUrls.memberRegisterUrl || "") + "\n\n" +
+      "登録後、当日は会場に掲示された受付用QRコードを読み取って受付してください。\n\n" +
+      "※このメールは研修会参加確認システムから送信しています。";
+
+  }else if(receptionType === "会社QR" && attendanceUnit === "個人"){
+    body =
+      (member.companyName || "株式会社サンプル") + "\n" +
+      (member.participantName || "山田 太郎") + " 様\n\n" +
+      bodyWithAttendance + "\n\n" +
+      "【個人単位受付用QR】\n" +
+      "この研修会は個人単位受付です。下記URLを開き、受付で個人QRをご提示ください。\n" +
+      (mailPreviewUrls.personalQrUrl || "") + "\n\n" +
+      "※このメールは研修会参加確認システムから送信しています。";
+
+  }else{
+    body =
+      (member.companyName || "株式会社サンプル") + " 様\n\n" +
+      bodyWithAttendance + "\n\n" +
+      "【当日の受付用QRコード】\n" +
+      "下記URLを開き、受付で画面をご提示ください。\n" +
+      (mailPreviewUrls.companyQrUrl || "") + "\n\n" +
+      "※このメールは研修会参加確認システムから送信しています。";
+  }
+
+  if(mailPreviewUrls.locationCheckinUrl){
+    body +=
+      "\n\n" +
+      "【位置情報受付】\n" +
+      "当日は上記の受付方法に加えて、位置情報受付をすることも可能です。\n" +
+      buildPreviewLocationTimeText() +
+      "会場に到着後、下記URLを開いて位置情報の取得を許可し、受付ボタンを押してください。\n" +
+      mailPreviewUrls.locationCheckinUrl;
+  }
+
+  if(signature){
+    body +=
+      "\n\n" +
+      signature;
+  }
+
+  return body;
+}
+
+function appendPreviewAttendanceAnswerGuide(body, originalBody, attendanceAnswerUrl){
+
+  if(!currentTraining){
+    return body;
+  }
+
+  const enabled =
+    currentTraining.attendanceConfirmEnabled === true ||
+    String(currentTraining.attendanceConfirmEnabled).toUpperCase() === "TRUE";
+
+  if(!enabled || !attendanceAnswerUrl){
+    return body;
+  }
+
+  if(
+    String(originalBody || "").indexOf("{{出欠回答URL}}") !== -1 ||
+    String(originalBody || "").indexOf("{{出欠確認URL}}") !== -1
+  ){
+    return body;
+  }
+
+  return String(body || "").replace(/\s+$/,"") +
+    "\n\n" +
+    "【出欠回答】\n" +
+    "下記URLから出欠をご回答ください。\n" +
+    attendanceAnswerUrl;
+}
+
+function buildPreviewLocationTimeText(){
+
+  if(!currentTraining){
+    return "";
+  }
+
+  const start =
+    currentTraining.locationCheckinStart || "";
+
+  const end =
+    currentTraining.locationCheckinEnd || "";
+
+  if(!start || !end){
+    return "";
+  }
+
+  return "受付可能時間: " +
+    start +
+    " から " +
+    end +
+    " まで\n";
+}
+
+function getAttendanceConfirmStatusText(training, itemCount){
+
+  const enabled =
+    training &&
+    (
+      training.attendanceConfirmEnabled === true ||
+      String(training.attendanceConfirmEnabled).toUpperCase() === "TRUE"
+    );
+
+  if(!enabled){
+    return "使わない";
+  }
+
+  const publicText =
+    training &&
+    (
+      training.attendanceStatusPublic === true ||
+      String(training.attendanceStatusPublic).toUpperCase() === "TRUE"
+    )
+      ? " / 参加者にも状況表示"
+      : "";
+
+  return "使う（" + Number(itemCount || 0) + "項目）" + publicText;
+}
+
+function isLocationCheckEnabled(training){
+
+  return training &&
+    (
+      training.locationCheckEnabled === true ||
+      String(training.locationCheckEnabled).toUpperCase() === "TRUE"
+    );
+}
+
+setupBackLink();
+loadPreview();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会場QR受付</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:720px;
+}
+
+.companyName{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.member{
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:14px;
+  margin-top:12px;
+  background:#fff;
+}
+
+.memberName{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.memberMeta{
+  margin-top:6px;
+  color:#4b5563;
+  line-height:1.7;
+}
+
+.memberChoiceLabel{
+  display:inline-block;
+  margin-top:8px;
+  padding:4px 8px;
+  border-radius:6px;
+  background:#eef5ff;
+  color:#123a63;
+  font-weight:bold;
+}
+
+.full-btn{
+  width:100%;
+  font-size:18px;
+  padding:14px;
+  margin-top:14px;
+}
+
+.choice-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  margin:14px 0;
+}
+
+.choice-btn{
+  width:100%;
+  text-align:left;
+  padding:14px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.choice-btn.active{
+  border-color:#123a63;
+  background:#eef5ff;
+  font-weight:bold;
+}
+
+.personal-entry{
+  border:1px solid #d6dee8;
+  border-radius:10px;
+  padding:14px;
+  margin-top:14px;
+  background:#f8fbff;
+}
+
+.personal-entry h2{
+  margin:0 0 10px;
+  font-size:20px;
+}
+
+.input-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.input-grid .full{
+  grid-column:1 / -1;
+}
+
+@media screen and (max-width:600px){
+  .input-grid{
+    display:block;
+  }
+}
+
+#resetArea{
+  margin-top:18px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会場QR受付</h1>
+</header>
+
+<main>
+
+<div class="card">
+
+  <div id="status" class="info">
+    情報を確認中...
+  </div>
+
+  <div id="trainingInfo" class="info" style="display:none;"></div>
+
+  <div id="receptionChoiceArea" style="display:none;">
+
+    <div class="notice">
+      受付区分を選択してください。
+    </div>
+
+    <div class="choice-grid">
+      <button type="button" id="choiceTenth" class="choice-btn" onclick="selectReceptionMode('tenth')">
+        第十ブロックの会員
+      </button>
+      <button type="button" id="choiceOtherBlock" class="choice-btn" onclick="selectReceptionMode('otherBlock')">
+        他ブロックの会員
+      </button>
+      <button type="button" id="choiceGeneral" class="choice-btn" onclick="selectReceptionMode('general')">
+        一般参加者
+      </button>
+    </div>
+
+  </div>
+
+  <div id="registeredArea" style="display:none;">
+
+    <div class="notice">
+      このスマートフォンは、下記の会社で登録されています。<br>
+      内容をご確認のうえ、受付してください。
+    </div>
+
+    <div class="info">
+      <strong>登録会社</strong><br>
+      <span id="registeredCompany" class="companyName"></span><br>
+      <span id="registeredMemberNo"></span>
+    </div>
+
+    <button id="registeredCheckinButton" class="btn full-btn" onclick="checkinRegisteredMember()">
+      この会社で受付する
+    </button>
+
+    <div class="notice">
+      別の会社で受付する場合は、受付担当者へお申し出ください。
+    </div>
+
+  </div>
+
+  <div id="searchArea" style="display:none;">
+
+    <div id="searchNotice" class="notice">
+      第十ブロック会員用です。会社名・参加者名の先頭2文字以上、または業者番号で検索し、ご自身の会社を選択してください。<br>
+      1文字の会社名の場合は、業者番号で検索してください。<br>
+      一度受付すると、このスマートフォンには会社情報が保存されます。
+    </div>
+
+    <label>支部</label>
+    <select id="branch">
+      <option value="">支部を選択してください</option>
+      <option value="杉並支部">杉並支部</option>
+      <option value="中野支部">中野支部</option>
+      <option value="世田谷支部">世田谷支部</option>
+    </select>
+
+    <label>会社名・参加者名または業者番号</label>
+    <input id="keyword" placeholder="例：宅建、山田、00000">
+
+    <button class="btn full-btn" onclick="searchMembers()">
+      検索する
+    </button>
+
+    <div id="searchStatus" class="info" style="display:none;"></div>
+    <div id="memberList"></div>
+
+  </div>
+
+  <div id="personalEntryArea" class="personal-entry" style="display:none;">
+
+    <h2>参加者を入力</h2>
+
+    <div class="info">
+      <strong>選択した会社</strong><br>
+      <span id="personalCompanyName" class="companyName"></span><br>
+      <span id="personalMemberNo"></span>
+    </div>
+
+    <div id="representativeArea" class="notice" style="display:none;">
+      <strong>代表者が参加する場合</strong><br>
+      <span id="representativeNameText"></span>
+      <button class="btn full-btn" onclick="registerRepresentativePersonal()">
+        代表者として受付する
+      </button>
+    </div>
+
+    <div id="registeredPersonalArea" class="notice" style="display:none;">
+      <strong>登録済み参加者が参加する場合</strong>
+      <div id="registeredPersonalList"></div>
+    </div>
+
+    <div class="notice">
+      その他の社員の方は、参加者名を入力してください。<br>
+      修了証送付先メールは原則入力してください。分からない場合のみ、未入力のまま受付できます。
+    </div>
+
+    <div class="input-grid">
+      <div>
+        <label>姓</label>
+        <input id="personalFamilyName" placeholder="例：高橋">
+      </div>
+
+      <div>
+        <label>名</label>
+        <input id="personalGivenName" placeholder="例：一郎">
+      </div>
+
+      <div class="full">
+        <label>修了証送付先メール</label>
+        <input id="personalMail" placeholder="例：sample@example.com">
+        <div class="actions" style="margin-top:8px;">
+          <button id="useCompanyMailButton" class="btn sub" type="button" onclick="useCompanyMailForPersonal()" style="display:none;">
+            会社の登録メールを入れる
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn full-btn" onclick="registerEnteredPersonal()">
+      この参加者で受付する
+    </button>
+
+  </div>
+
+  <div id="otherBlockArea" style="display:none;">
+
+    <div class="notice">
+      他ブロックの会員用です。ブロック・支部・会社名・参加者名を入力してください。
+    </div>
+
+    <label>ブロック</label>
+    <select id="otherBlock" onchange="renderOtherBlockBranches()"></select>
+
+    <label>支部</label>
+    <select id="otherBranch"></select>
+
+    <label>会社・団体名</label>
+    <input id="otherCompanyName" placeholder="例：株式会社サンプル">
+
+    <label>参加者名</label>
+    <input id="otherParticipantName" placeholder="例：山田 太郎">
+
+    <label>メール（任意）</label>
+    <input id="otherMail" placeholder="例：sample@example.com">
+
+    <label>電話（任意）</label>
+    <input id="otherPhone" placeholder="例：03-0000-0000">
+
+    <button class="btn full-btn" onclick="registerOtherBlockGuest()">
+      この内容で受付する
+    </button>
+
+  </div>
+
+  <div id="generalArea" style="display:none;">
+
+    <div class="notice">
+      一般参加者用です。参加者名を入力してください。
+    </div>
+
+    <label>参加者名</label>
+    <input id="generalParticipantName" placeholder="例：山田 太郎">
+
+    <label>会社・団体名（任意）</label>
+    <input id="generalCompanyName" placeholder="例：株式会社サンプル">
+
+    <label>メール（任意）</label>
+    <input id="generalMail" placeholder="例：sample@example.com">
+
+    <label>電話（任意）</label>
+    <input id="generalPhone" placeholder="例：03-0000-0000">
+
+    <button class="btn full-btn" onclick="registerGeneralGuest()">
+      この内容で受付する
+    </button>
+
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+
+<div id="resetArea" class="result" style="display:none;">
+  <span class="ng">受付担当者用：登録情報削除</span><br><br>
+  このスマートフォンに保存されている会社情報を削除します。<br>
+  間違って登録した場合のみ使用してください。
+
+  <button class="btn sub full-btn" onclick="clearRegistration()">
+    このスマホの登録情報を削除する
+  </button>
+</div>
+
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const resetMode =
+  params.get("reset") === "1";
+
+let currentTraining =
+  null;
+
+let receptionMode =
+  "";
+
+let manualGuestSubmitting =
+  false;
+
+let selectedMember =
+  null;
+
+let personalSearchGroups =
+  [];
+
+const blockBranchMap = {
+  "第一ブロック": ["千代田中央"],
+  "第二ブロック": ["江東区", "江戸川区", "葛飾区"],
+  "第三ブロック": ["台東区", "墨田区", "足立区"],
+  "第四ブロック": ["文京区", "荒川区", "豊島区"],
+  "第五ブロック": ["品川区", "大田区", "目黒区"],
+  "第六ブロック": ["港区"],
+  "第七ブロック": ["新宿区"],
+  "第八ブロック": ["渋谷区"],
+  "第九ブロック": ["北区", "板橋区", "練馬区"],
+  "第十一ブロック": ["武蔵野中央", "北多摩", "国分寺国立", "調布狛江", "府中稲城"],
+  "第十二ブロック": ["立川", "西多摩", "南多摩", "八王子", "町田"]
+};
+
+function isPersonalAttendanceTraining(){
+
+  return currentTraining &&
+    String(currentTraining.attendanceUnit || "会社") === "個人";
+}
+
+function showResetAreaIfNeeded(){
+
+  if(!resetMode){
+    return;
+  }
+
+  document.getElementById("resetArea").style.display =
+    "block";
+}
+
+function clearRegistration(){
+
+  if(
+    !confirm(
+      "このスマートフォンに保存されている会社情報を削除します。\nよろしいですか？"
+    )
+  ){
+    return;
+  }
+
+  localStorage.removeItem("takken_memberNo");
+  localStorage.removeItem("takken_companyName");
+  localStorage.removeItem("takken_registeredAt");
+
+  alert("登録情報を削除しました。");
+
+  location.href =
+    "guest-checkin.html?event=" + encodeURIComponent(eventId);
+}
+
+function loadPage(){
+
+  if(!eventId){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training;
+
+      document.getElementById("status").style.display =
+        "none";
+
+      document.getElementById("trainingInfo").style.display =
+        "block";
+
+      document.getElementById("trainingInfo").innerHTML =
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining.title || "") +
+        '<br>' +
+        escapeHtml(
+          currentTraining.eventDate
+            ? "開催日：" + currentTraining.eventDate
+            : ""
+        );
+
+      showMode();
+      initializeOtherBlockOptions();
+    }
+  );
+}
+
+function showMode(){
+
+  const savedMemberNo =
+    localStorage.getItem("takken_memberNo") || "";
+
+  const savedCompanyName =
+    localStorage.getItem("takken_companyName") || "";
+
+  if(savedMemberNo && savedCompanyName){
+
+    document.getElementById("receptionChoiceArea").style.display =
+      "none";
+
+    document.getElementById("registeredArea").style.display =
+      "block";
+
+    document.getElementById("searchArea").style.display =
+      "none";
+
+    document.getElementById("personalEntryArea").style.display =
+      "none";
+
+    document.getElementById("registeredCompany").textContent =
+      savedCompanyName;
+
+    document.getElementById("registeredMemberNo").textContent =
+      "\u696d\u8005\u756a\u53f7\uff1a" + savedMemberNo;
+
+    const registeredButton =
+      document.getElementById("registeredCheckinButton");
+
+    if(registeredButton){
+      registeredButton.textContent =
+        isPersonalAttendanceTraining()
+          ? "\u3053\u306e\u4f1a\u793e\u306e\u53c2\u52a0\u8005\u3092\u9078\u3076"
+          : "\u3053\u306e\u4f1a\u793e\u3067\u53d7\u4ed8\u3059\u308b";
+    }
+
+    return;
+  }
+
+  document.getElementById("registeredArea").style.display =
+    "none";
+
+  document.getElementById("receptionChoiceArea").style.display =
+    "block";
+
+  if(!receptionMode){
+    selectReceptionMode("tenth");
+  } else {
+    renderReceptionMode();
+  }
+}
+
+function selectReceptionMode(mode){
+
+  receptionMode =
+    mode;
+
+  renderReceptionMode();
+}
+
+function renderReceptionMode(){
+
+  ["choiceTenth", "choiceOtherBlock", "choiceGeneral"].forEach(function(id){
+    document.getElementById(id).classList.remove("active");
+  });
+
+  document.getElementById("searchArea").style.display =
+    receptionMode === "tenth" ? "block" : "none";
+
+  document.getElementById("personalEntryArea").style.display =
+    receptionMode === "tenth" && selectedMember
+      ? "block"
+      : "none";
+
+  document.getElementById("otherBlockArea").style.display =
+    receptionMode === "otherBlock" ? "block" : "none";
+
+  document.getElementById("generalArea").style.display =
+    receptionMode === "general" ? "block" : "none";
+
+  if(receptionMode === "tenth"){
+    document.getElementById("choiceTenth").classList.add("active");
+  }
+
+  if(receptionMode === "otherBlock"){
+    document.getElementById("choiceOtherBlock").classList.add("active");
+  }
+
+  if(receptionMode === "general"){
+    document.getElementById("choiceGeneral").classList.add("active");
+  }
+
+  updateSearchNotice();
+  scrollToReceptionArea();
+}
+
+function updateSearchNotice(){
+
+  const notice =
+    document.getElementById("searchNotice");
+
+  if(!notice){
+    return;
+  }
+
+  if(isPersonalAttendanceTraining()){
+    notice.innerHTML =
+      '第十ブロック会員用です。支部を選び、会社名・参加者名の先頭2文字以上、または業者番号で検索してご自身の会社を選択してください。<br>' +
+      '会社を選んだ後、代表者を選択するか、参加者名とメールアドレスを入力して受付します。';
+    return;
+  }
+
+  notice.innerHTML =
+    '第十ブロック会員用です。支部を選び、会社名・参加者名の先頭2文字以上、または業者番号で検索してご自身の会社を選択してください。<br>' +
+    '1文字の会社名の場合は、業者番号で検索してください。<br>' +
+    '一度受付すると、このスマートフォンには会社情報が保存されます。';
+}
+
+function scrollToReceptionArea(){
+
+  let target = null;
+
+  if(receptionMode === "tenth"){
+    target =
+      document.getElementById("searchArea");
+  }
+
+  if(receptionMode === "otherBlock"){
+    target =
+      document.getElementById("otherBlockArea");
+  }
+
+  if(receptionMode === "general"){
+    target =
+      document.getElementById("generalArea");
+  }
+
+  if(!target){
+    return;
+  }
+
+  setTimeout(function(){
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 80);
+}
+
+function scrollToResult(){
+
+  const target =
+    document.getElementById("result");
+
+  if(!target){
+    return;
+  }
+
+  setTimeout(function(){
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 80);
+}
+
+function initializeOtherBlockOptions(){
+
+  const select =
+    document.getElementById("otherBlock");
+
+  select.innerHTML =
+    Object.keys(blockBranchMap).map(function(block){
+      return '<option value="' + escapeHtml(block) + '">' + escapeHtml(block) + '</option>';
+    }).join("");
+
+  renderOtherBlockBranches();
+}
+
+function renderOtherBlockBranches(){
+
+  const block =
+    document.getElementById("otherBlock").value;
+
+  const branches =
+    blockBranchMap[block] || [];
+
+  document.getElementById("otherBranch").innerHTML =
+    branches.map(function(branch){
+      return '<option value="' + escapeHtml(branch) + '">' + escapeHtml(branch) + '</option>';
+    }).join("");
+}
+
+function searchMembers(){
+
+  const branch =
+    document.getElementById("branch").value;
+
+  const keyword =
+    document.getElementById("keyword").value.trim();
+
+  const normalizedKeyword =
+    normalizeCompanySearchText(keyword);
+
+  if(!branch){
+    alert("先に支部を選択してください。");
+    document.getElementById("branch").focus();
+    return;
+  }
+
+  if(normalizedKeyword.length < 2){
+    alert(
+      "会社名・参加者名は、先頭2文字以上で検索してください。\n1文字の場合は、業者番号で検索してください。"
+    );
+    return;
+  }
+
+  document.getElementById("searchStatus").style.display =
+    "block";
+
+  document.getElementById("searchStatus").textContent =
+    "検索中...";
+
+  document.getElementById("memberList").innerHTML =
+    "";
+
+  const requestKeyword =
+    isMemberNoSearch(keyword)
+      ? normalizeMemberNo(keyword)
+      : keyword;
+
+  const fallbackKeyword =
+    !isMemberNoSearch(keyword) &&
+    requestKeyword !== normalizedKeyword
+      ? normalizedKeyword
+      : "";
+
+  searchMembersFromIndex(
+    branch,
+    keyword,
+    [requestKeyword, fallbackKeyword].filter(function(v, index, list){
+      return v && list.indexOf(v) === index;
+    }),
+    0
+  );
+}
+
+function searchMembersFromIndex(branch, originalKeyword, keywords, index){
+
+  const searchKeyword =
+    keywords[index] || "";
+
+  jsonp(
+    "searchCheckinIndexMembersJsonp",
+    {
+      event: eventId,
+      branch: branch,
+      keyword: searchKeyword
+    },
+    function(res){
+
+      if(
+        res &&
+        res.ok &&
+        res.members &&
+        res.members.length > 0
+      ){
+        searchMembersFromMaster(
+          branch,
+          originalKeyword,
+          keywords,
+          0,
+          res
+        );
+        return;
+      }
+
+      if(index + 1 < keywords.length){
+        searchMembersFromIndex(
+          branch,
+          originalKeyword,
+          keywords,
+          index + 1
+        );
+        return;
+      }
+
+      searchMembersFromMaster(
+        branch,
+        originalKeyword,
+        keywords,
+        0
+      );
+    }
+  );
+}
+
+function searchMembersFromMaster(branch, originalKeyword, keywords, index, baseResult){
+
+  const searchKeyword =
+    keywords[index] || "";
+
+  document.getElementById("searchStatus").textContent =
+    "会員マスタから検索中...";
+
+  jsonp(
+    "searchMembersJsonp",
+    {
+      branch: branch,
+      keyword: searchKeyword
+    },
+    function(res){
+
+      if(
+        res &&
+        res.ok &&
+        (!res.members || res.members.length === 0) &&
+        index + 1 < keywords.length
+      ){
+        searchMembersFromMaster(
+          branch,
+          originalKeyword,
+          keywords,
+          index + 1,
+          baseResult
+        );
+        return;
+      }
+
+      if(baseResult){
+        renderMemberSearchResult(
+          mergeMemberSearchResults(baseResult, res),
+          originalKeyword
+        );
+        return;
+      }
+
+      renderMemberSearchResult(res, originalKeyword);
+    }
+  );
+}
+
+function mergeMemberSearchResults(baseResult, extraResult){
+
+  if(!baseResult || !baseResult.ok){
+    return extraResult;
+  }
+
+  if(!extraResult || !extraResult.ok){
+    return baseResult;
+  }
+
+  const seen = {};
+  const members = [];
+
+  function add(list){
+    (list || []).forEach(function(member){
+      const key =
+        String(member.personalId || "").trim()
+          ? "P:" + String(member.personalId || "").trim()
+          : "M:" + (
+              normalizeMemberNo(member.memberNo || "") ||
+              normalizeGuestSearchText(member.companyName || "")
+            );
+
+      if(!key || seen[key]){
+        return;
+      }
+
+      seen[key] = true;
+      members.push(member);
+    });
+  }
+
+  add(baseResult.members);
+  add(extraResult.members);
+
+  return {
+    ok: true,
+    members: members,
+    source: String(baseResult.source || "") + "+会員マスタ"
+  };
+}
+
+function renderMemberSearchResult(res, keyword){
+
+  const searchStatus =
+    document.getElementById("searchStatus");
+
+  if(!res || !res.ok){
+    searchStatus.innerHTML =
+      '<span class="ng">' +
+      escapeHtml(res && res.message ? res.message : "検索に失敗しました。") +
+      '</span>';
+    return;
+  }
+
+  document.getElementById("memberList").innerHTML =
+    "";
+
+  const members =
+    (res.members || []).filter(function(m){
+      return isGuestSearchMatch(m, keyword);
+    });
+
+  searchStatus.textContent =
+    isPersonalAttendanceTraining()
+      ? countPersonalMemberSearchGroups(members) + "社見つかりました。"
+      : members.length + "件見つかりました。";
+
+  if(members.length === 0){
+    return;
+  }
+
+  if(isPersonalAttendanceTraining()){
+    renderPersonalMemberSearchResultGroups(members);
+    return;
+  }
+
+  members.forEach(function(m){
+
+    const div =
+      document.createElement("div");
+
+    div.className =
+      "member";
+
+    div.innerHTML =
+      '<div class="memberName">' +
+      escapeHtml(m.companyName) +
+      '</div>' +
+
+      '<button class="btn full-btn" onclick="selectMember(\'' +
+      escapeJs(m.memberNo) +
+      '\',\'' +
+      escapeJs(m.companyName) +
+      '\',\'' +
+      escapeJs(m.representativeName || "") +
+      '\',\'' +
+      escapeJs(m.mail || "") +
+      '\')">' +
+      (
+        isPersonalAttendanceTraining()
+          ? "この会社を選択する"
+          : "この会社で受付する"
+      ) +
+      '</button>';
+
+    document.getElementById("memberList").appendChild(div);
+  });
+}
+
+function renderPersonalMemberSearchResultGroups(members){
+
+  const groups =
+    [];
+
+  const groupMap =
+    {};
+
+  members.forEach(function(member){
+
+    const key =
+      normalizeMemberNo(member.memberNo || "") ||
+      normalizeGuestSearchText(member.companyName || "");
+
+    if(!key){
+      return;
+    }
+
+    if(!groupMap[key]){
+      groupMap[key] = {
+        memberNo: member.memberNo || "",
+        companyName: member.companyName || "",
+        representativeName: member.representativeName || "",
+        mail: member.mail || "",
+        persons: []
+      };
+      groups.push(groupMap[key]);
+    }
+
+    if(member.personalId){
+      groupMap[key].persons.push(member);
+    }
+
+    if(!groupMap[key].representativeName && member.representativeName){
+      groupMap[key].representativeName = member.representativeName;
+    }
+
+    if(!groupMap[key].mail && member.mail){
+      groupMap[key].mail = member.mail;
+    }
+  });
+
+  personalSearchGroups =
+    groups;
+
+  groups.forEach(function(group, index){
+
+    const div =
+      document.createElement("div");
+
+    div.className =
+      "member";
+
+    let html =
+      '<div class="memberName">' +
+      escapeHtml(group.companyName) +
+      '</div>' +
+      (
+        group.memberNo
+          ? '<div class="memberMeta">業者番号：' + escapeHtml(group.memberNo) + '</div>'
+          : ""
+      );
+
+    html +=
+      '<button class="btn full-btn" onclick="selectPersonalMemberGroup(' +
+      index +
+      ')">' +
+      'この会社を選択する' +
+      '</button>';
+
+    div.innerHTML =
+      html;
+
+    document.getElementById("memberList").appendChild(div);
+  });
+}
+
+function countPersonalMemberSearchGroups(members){
+
+  const map =
+    {};
+
+  (members || []).forEach(function(member){
+    const key =
+      normalizeMemberNo(member.memberNo || "") ||
+      normalizeGuestSearchText(member.companyName || "");
+
+    if(key){
+      map[key] = true;
+    }
+  });
+
+  return Object.keys(map).length;
+}
+
+function selectPersonalMemberGroup(index){
+
+  const group =
+    personalSearchGroups[index];
+
+  if(!group){
+    alert("会社情報を取得できませんでした。もう一度検索してください。");
+    return;
+  }
+
+  showPersonalEntry(
+    group.memberNo,
+    group.companyName,
+    group.representativeName || getRepresentativeNameFromPersons(group.persons),
+    group.mail,
+    group.persons || []
+  );
+}
+
+function getRepresentativeNameFromPersons(persons){
+
+  const representative =
+    (persons || []).find(function(person){
+      return isRepresentativePersonalId(person.personalId);
+    });
+
+  return representative
+    ? getMemberParticipantName(representative)
+    : "";
+}
+
+function getMemberParticipantName(member){
+
+  return normalizePersonDisplayName(
+    member.participantName ||
+    member.personName ||
+    member.representativeName ||
+    ""
+  );
+}
+
+function isRepresentativePersonalId(personalId){
+
+  return /-001$/.test(String(personalId || "").trim());
+}
+
+function isGuestSearchMatch(member, keyword){
+
+  const normalizedKeyword =
+    normalizeGuestSearchText(keyword);
+
+  if(isMemberNoSearch(keyword)){
+    return normalizeMemberNo(member.memberNo || "")
+      .indexOf(normalizeMemberNo(keyword)) === 0;
+  }
+
+  const searchText =
+    normalizeGuestSearchText(
+      [
+        member.companyName,
+        member.participantName,
+        member.personName,
+        member.representativeName,
+        member.personalId,
+        member.branch,
+        member.district
+      ].join(" ")
+    );
+
+  return searchText.indexOf(normalizedKeyword) !== -1;
+}
+
+function isMemberNoSearch(value){
+
+  return /^[0-9０-９-]+$/.test(String(value || "").replace(/\s/g, ""));
+}
+
+function normalizeMemberNo(value){
+
+  return String(value || "")
+    .replace(/[０-９]/g, function(ch){
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    })
+    .replace(/[^0-9]/g, "");
+}
+
+function normalizeCompanySearchText(value){
+
+  return String(value || "")
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(ch){
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    })
+    .replace(/\s/g, "")
+    .replace(/[　・･,，.．\-ー－―]/g, "")
+    .replace(/^(株式会社|有限会社|合同会社|合資会社|合名会社|一般社団法人|公益社団法人|一般財団法人|公益財団法人|\(株\)|（株）|\(有\)|（有）)/, "")
+    .replace(/(株式会社|有限会社|合同会社|合資会社|合名会社|一般社団法人|公益社団法人|一般財団法人|公益財団法人|\(株\)|（株）|\(有\)|（有）)$/, "")
+    .toLowerCase();
+}
+
+function normalizeGuestSearchText(value){
+
+  return normalizeCompanySearchText(value)
+    .replace(/第十ブロック/g, "第十")
+    .replace(/区支部/g, "支部")
+    .replace(/髙/g, "高")
+    .replace(/斉/g, "斎");
+}
+
+function normalizePersonDisplayName(value){
+
+  return String(value || "")
+    .replace(/[ 　]+/g, "　")
+    .replace(/^　+|　+$/g, "")
+    .trim();
+}
+
+function isValidMailAddress(value){
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    String(value || "").trim()
+  );
+}
+
+function selectMember(memberNo, companyName, representativeName, mail){
+
+  if(isPersonalAttendanceTraining()){
+    showPersonalEntry(
+      memberNo,
+      companyName,
+      representativeName,
+      mail
+    );
+    return;
+  }
+
+  if(!confirm(companyName + " として受付します。\nよろしいですか？")){
+    return;
+  }
+
+  localStorage.setItem(
+    "takken_memberNo",
+    memberNo
+  );
+
+  localStorage.setItem(
+    "takken_companyName",
+    companyName
+  );
+
+  localStorage.setItem(
+    "takken_registeredAt",
+    formatNow()
+  );
+
+  doCheckin(memberNo, companyName);
+}
+
+function registerExistingPersonal(memberNo, companyName, personalId, participantName, mail){
+
+  if(!memberNo || !personalId){
+    alert("受付に必要な情報が不足しています。");
+    return;
+  }
+
+  selectedMember = {
+    memberNo: memberNo,
+    companyName: companyName,
+    representativeName: isRepresentativePersonalId(personalId) ? participantName : "",
+    mail: mail || ""
+  };
+
+  const isRepresentative =
+    isRepresentativePersonalId(personalId);
+
+  if(!confirm(
+    companyName + "\n" +
+    participantName + " 様を" +
+    (isRepresentative ? "代表者本人" : "登録済み社員") +
+    "として受付します。\nよろしいですか？"
+  )){
+    return;
+  }
+
+  registerGuestPersonal({
+    representative: isRepresentative ? "TRUE" : "FALSE",
+    personalId: isRepresentative ? "" : personalId,
+    familyName: "",
+    givenName: "",
+    mail: mail || ""
+  });
+}
+
+function showNameInputForMember(memberNo, companyName, representativeName, mail){
+
+  showPersonalEntry(
+    memberNo,
+    companyName,
+    representativeName,
+    mail,
+    []
+  );
+}
+
+function showPersonalEntry(memberNo, companyName, representativeName, mail, persons){
+
+  selectedMember = {
+    memberNo: memberNo,
+    companyName: companyName,
+    representativeName: representativeName || "",
+    mail: mail || "",
+    persons: persons || []
+  };
+
+  document.getElementById("personalEntryArea").style.display =
+    "block";
+
+  document.getElementById("personalCompanyName").textContent =
+    companyName || "";
+
+  document.getElementById("personalMemberNo").textContent =
+    "業者番号：" + (memberNo || "");
+
+  document.getElementById("personalFamilyName").value =
+    "";
+
+  document.getElementById("personalGivenName").value =
+    "";
+
+  document.getElementById("personalMail").value =
+    "";
+
+  const useCompanyMailButton =
+    document.getElementById("useCompanyMailButton");
+
+  if(useCompanyMailButton){
+    useCompanyMailButton.style.display =
+      mail ? "inline-block" : "none";
+  }
+
+  if(representativeName){
+    document.getElementById("representativeArea").style.display =
+      "block";
+
+    document.getElementById("representativeNameText").textContent =
+      representativeName + " 様";
+  } else {
+    document.getElementById("representativeArea").style.display =
+      "none";
+  }
+
+  renderRegisteredPersonalButtons(persons || []);
+
+  document.getElementById("result").style.display =
+    "none";
+
+  document.getElementById("personalEntryArea").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function renderRegisteredPersonalButtons(persons){
+
+  const area =
+    document.getElementById("registeredPersonalArea");
+
+  const list =
+    document.getElementById("registeredPersonalList");
+
+  const nonRepresentatives =
+    (persons || []).filter(function(person){
+      return person.personalId && !isRepresentativePersonalId(person.personalId);
+    });
+
+  if(!area || !list){
+    return;
+  }
+
+  if(nonRepresentatives.length === 0){
+    area.style.display =
+      "none";
+    list.innerHTML =
+      "";
+    return;
+  }
+
+  list.innerHTML =
+    nonRepresentatives.map(function(person){
+
+      const participantName =
+        getMemberParticipantName(person);
+
+      return '<button class="btn full-btn" type="button" onclick="registerExistingPersonal(\'' +
+        escapeJs(person.memberNo || selectedMember.memberNo || "") +
+        '\',\'' +
+        escapeJs(person.companyName || selectedMember.companyName || "") +
+        '\',\'' +
+        escapeJs(person.personalId || "") +
+        '\',\'' +
+        escapeJs(participantName || "") +
+        '\',\'' +
+        escapeJs(person.mail || selectedMember.mail || "") +
+        '\')">' +
+        escapeHtml(participantName || "氏名未登録") +
+        ' 様として受付する</button>';
+    }).join("");
+
+  area.style.display =
+    "block";
+}
+
+function useCompanyMailForPersonal(){
+
+  if(!selectedMember || !selectedMember.mail){
+    alert("会社の登録メールが登録されていません。");
+    return;
+  }
+
+  document.getElementById("personalMail").value =
+    selectedMember.mail;
+}
+
+function registerRepresentativePersonal(){
+
+  if(!selectedMember){
+    alert("会社を選択してください。");
+    return;
+  }
+
+  if(!confirm(selectedMember.companyName + "\n" + selectedMember.representativeName + " 様を代表者として受付します。\nよろしいですか？")){
+    return;
+  }
+
+  registerGuestPersonal({
+    representative: "TRUE",
+    personalId: "",
+    familyName: "",
+    givenName: "",
+    mail: selectedMember.mail || ""
+  });
+}
+
+function registerEnteredPersonal(){
+
+  if(!selectedMember){
+    alert("会社を選択してください。");
+    return;
+  }
+
+  const familyName =
+    document.getElementById("personalFamilyName").value.trim();
+
+  const givenName =
+    document.getElementById("personalGivenName").value.trim();
+
+  const mail =
+    document.getElementById("personalMail").value.trim();
+
+  if(!familyName || !givenName){
+    alert("姓、名を入力してください。");
+    return;
+  }
+
+  if(mail && !isValidMailAddress(mail)){
+    alert("メールアドレスの形式を確認してください。");
+    return;
+  }
+
+  if(!mail){
+    if(!confirm("修了証送付先メールが未入力です。\n後で送付先確認が必要になります。\nこのまま受付しますか？")){
+      return;
+    }
+  }
+
+  const personName =
+    normalizePersonDisplayName(familyName + "　" + givenName);
+
+  jsonp(
+    "getGuestPersonalCandidatesJsonp",
+    {
+      memberNo: selectedMember.memberNo,
+      personName: personName
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        alert(res && res.message ? res.message : "個人候補を確認できませんでした。");
+        return;
+      }
+
+      const candidates =
+        res.candidates || [];
+
+      if(candidates.length > 0){
+        const candidate =
+          candidates[0];
+
+        const useExisting =
+          confirm(
+            "登録済みの参加者に近い名前があります。\n\n" +
+            candidate.personName + " 様" +
+            (candidate.personType ? "（" + candidate.personType + "）" : "") +
+            "\n\nこの方として受付しますか？"
+          );
+
+        if(useExisting){
+          registerGuestPersonal({
+            representative: "FALSE",
+            personalId: candidate.personalId,
+            familyName: "",
+            givenName: "",
+            mail: mail
+          });
+          return;
+        }
+
+        if(!confirm("別人として新しく登録して受付しますか？")){
+          return;
+        }
+      }
+
+      registerGuestPersonal({
+        representative: "FALSE",
+        personalId: "",
+        familyName: familyName,
+        givenName: givenName,
+        mail: mail
+      });
+    },
+    30000
+  );
+}
+
+function registerGuestPersonal(data){
+
+  if(manualGuestSubmitting){
+    return;
+  }
+
+  manualGuestSubmitting =
+    true;
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "受付処理中...";
+
+  jsonp(
+    "registerGuestPersonalCheckinJsonp",
+    {
+      event: eventId,
+      memberNo: selectedMember.memberNo,
+      representative: data.representative,
+      personalId: data.personalId,
+      familyName: data.familyName,
+      givenName: data.givenName,
+      mail: data.mail
+    },
+    function(res){
+
+      manualGuestSubmitting =
+        false;
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</span><br><br>' +
+
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining.title || "") +
+        '<br><br>' +
+
+        '<strong>会社名</strong><br>' +
+        escapeHtml(res.companyName || selectedMember.companyName || "") +
+        '<br><br>' +
+
+        '<strong>参加者名</strong><br>' +
+        escapeHtml(res.participantName || "") +
+        '<br><br>' +
+
+        '<strong>個人ID</strong><br>' +
+        escapeHtml(res.personalId || "") +
+        '<br><br>' +
+
+        '<strong>受付日時</strong><br>' +
+        escapeHtml(res.checkedAt || formatNow()) +
+        '<br><br>' +
+
+        'この画面を受付担当者にご提示ください。';
+
+      if(selectedMember && selectedMember.memberNo && selectedMember.companyName){
+        localStorage.setItem(
+          "takken_memberNo",
+          selectedMember.memberNo
+        );
+
+        localStorage.setItem(
+          "takken_companyName",
+          selectedMember.companyName
+        );
+
+        localStorage.setItem(
+          "takken_registeredAt",
+          formatNow()
+        );
+      }
+
+      selectedMember =
+        null;
+
+      document.getElementById("personalEntryArea").style.display =
+        "none";
+
+      showMode();
+
+      scrollToResult();
+    },
+    60000
+  );
+}
+
+function showRegisteredPersonalEntry(memberNo, companyName){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "登録済み参加者を確認中...";
+
+  jsonp(
+    "searchCheckinIndexMembersJsonp",
+    {
+      event: eventId,
+      branch: "",
+      keyword: memberNo
+    },
+    function(indexResult){
+      loadRegisteredPersonalMembersFromMaster(
+        memberNo,
+        companyName,
+        indexResult
+      );
+    },
+    30000
+  );
+}
+
+function loadRegisteredPersonalMembersFromMaster(memberNo, companyName, baseResult){
+
+  jsonp(
+    "searchMembersJsonp",
+    {
+      event: eventId,
+      branch: "",
+      keyword: memberNo
+    },
+    function(masterResult){
+
+      const mergedResult =
+        baseResult
+          ? mergeMemberSearchResults(baseResult, masterResult)
+          : masterResult;
+
+      renderRegisteredPersonalEntryFromResult(
+        memberNo,
+        companyName,
+        mergedResult
+      );
+    },
+    30000
+  );
+}
+
+function renderRegisteredPersonalEntryFromResult(memberNo, companyName, res){
+
+  const normalizedMemberNo =
+    normalizeMemberNo(memberNo);
+
+  const members =
+    (
+      res &&
+      res.ok &&
+      res.members
+        ? res.members
+        : []
+    ).filter(function(member){
+      return normalizeMemberNo(member.memberNo || "") === normalizedMemberNo;
+    });
+
+  const group = {
+    memberNo: memberNo,
+    companyName: companyName,
+    representativeName: "",
+    mail: "",
+    persons: []
+  };
+
+  members.forEach(function(member){
+
+    if(member.companyName && !group.companyName){
+      group.companyName =
+        member.companyName;
+    }
+
+    if(member.mail && !group.mail){
+      group.mail =
+        member.mail;
+    }
+
+    if(member.representativeName && !group.representativeName){
+      group.representativeName =
+        member.representativeName;
+    }
+
+    if(member.personalId){
+      group.persons.push(member);
+    }
+  });
+
+  showPersonalEntry(
+    group.memberNo,
+    group.companyName,
+    group.representativeName || getRepresentativeNameFromPersons(group.persons),
+    group.mail,
+    group.persons
+  );
+}
+
+function checkinRegisteredMember(){
+
+  const memberNo =
+    localStorage.getItem("takken_memberNo") || "";
+
+  const companyName =
+    localStorage.getItem("takken_companyName") || "";
+
+  if(!memberNo || !companyName){
+    alert("\u767b\u9332\u60c5\u5831\u304c\u3042\u308a\u307e\u305b\u3093\u3002");
+    return;
+  }
+
+  if(isPersonalAttendanceTraining()){
+    showRegisteredPersonalEntry(memberNo, companyName);
+    return;
+  }
+
+  if(!confirm(companyName + " \u3068\u3057\u3066\u53d7\u4ed8\u3057\u307e\u3059\u3002\n\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f")){
+    return;
+  }
+
+  doCheckin(memberNo, companyName, "");
+}
+
+function doCheckin(memberNo, companyName, registeredParticipantName){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "受付処理中...";
+
+	jsonp(
+	  "registerCheckinJsonp",
+	  {
+	    event: eventId,
+	    code: "MEMBER:" + memberNo,
+	    method: "会場QR＋検索受付",
+      receptionCategory: "第十ブロック会員",
+      verificationStatus: "会員マスタ照合済み"
+	  },
+	  function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</span><br><br>' +
+
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining.title || "") +
+        '<br><br>' +
+
+        '<strong>会社名</strong><br>' +
+        escapeHtml(res.companyName || companyName) +
+        '<br><br>' +
+
+        '<strong>業者番号</strong><br>' +
+        escapeHtml(res.memberNo || memberNo) +
+        '<br><br>' +
+
+        '<strong>受付日時</strong><br>' +
+        escapeHtml(res.checkedAt || formatNow()) +
+        '<br><br>' +
+
+        'この画面を受付担当者にご提示ください。';
+
+      showMode();
+      scrollToResult();
+    }
+    ,
+    60000
+  );
+}
+
+function registerOtherBlockGuest(){
+
+  const data = {
+    receptionCategory: "他ブロック会員",
+    block: document.getElementById("otherBlock").value,
+    branch: document.getElementById("otherBranch").value,
+    companyName: document.getElementById("otherCompanyName").value.trim(),
+    participantName: document.getElementById("otherParticipantName").value.trim(),
+    mail: document.getElementById("otherMail").value.trim(),
+    phone: document.getElementById("otherPhone").value.trim()
+  };
+
+  if(!data.block || !data.branch || !data.companyName || !data.participantName){
+    alert("ブロック、支部、会社・団体名、参加者名を入力してください。");
+    return;
+  }
+
+  registerManualGuest(data);
+}
+
+function registerGeneralGuest(){
+
+  const data = {
+    receptionCategory: "一般参加",
+    block: "",
+    branch: "",
+    companyName: document.getElementById("generalCompanyName").value.trim(),
+    participantName: document.getElementById("generalParticipantName").value.trim(),
+    mail: document.getElementById("generalMail").value.trim(),
+    phone: document.getElementById("generalPhone").value.trim()
+  };
+
+  if(!data.participantName){
+    alert("参加者名を入力してください。");
+    return;
+  }
+
+  registerManualGuest(data);
+}
+
+function registerManualGuest(data){
+
+  if(manualGuestSubmitting){
+    return;
+  }
+
+  const confirmText =
+    [
+      "受付区分：" + data.receptionCategory,
+      data.block ? "ブロック：" + data.block : "",
+      data.branch ? "支部：" + data.branch : "",
+      data.companyName ? "会社・団体名：" + data.companyName : "",
+      "参加者名：" + data.participantName
+    ].filter(function(v){ return v; }).join("\n");
+
+  if(!confirm(confirmText + "\n\nこの内容で受付します。よろしいですか？")){
+    return;
+  }
+
+  manualGuestSubmitting =
+    true;
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "受付処理中...";
+
+  jsonp(
+    "registerManualGuestCheckinJsonp",
+    {
+      event: eventId,
+      receptionCategory: data.receptionCategory,
+      block: data.block,
+      branch: data.branch,
+      companyName: data.companyName,
+      participantName: data.participantName,
+      mail: data.mail,
+      phone: data.phone
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        manualGuestSubmitting =
+          false;
+
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</span><br><br>' +
+
+        '<strong>受付区分</strong><br>' +
+        escapeHtml(res.receptionCategory || data.receptionCategory) +
+        '<br><br>' +
+
+        (
+          data.companyName
+            ? '<strong>会社・団体名</strong><br>' +
+              escapeHtml(data.companyName) +
+              '<br><br>'
+            : ''
+        ) +
+
+        '<strong>参加者名</strong><br>' +
+        escapeHtml(res.participantName || data.participantName) +
+        '<br><br>' +
+
+        '<strong>受付日時</strong><br>' +
+        escapeHtml(res.checkedAt || formatNow()) +
+        '<br><br>' +
+
+        'この画面を受付担当者にご提示ください。';
+
+      manualGuestSubmitting =
+        false;
+    },
+    60000
+  );
+}
+
+document.getElementById("keyword").addEventListener("keydown",function(e){
+
+  if(e.key === "Enter"){
+    searchMembers();
+  }
+
+});
+
+showResetAreaIfNeeded();
+loadPage();
+</script>
+
+</body>
+</html>

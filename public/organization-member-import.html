@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>組織所属CSV取込</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1000px;
+}
+
+.preview-box{
+  margin-top:16px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.warning{
+  margin-top:12px;
+  padding:12px;
+  background:#fff4e5;
+  border:1px solid #e0b35a;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.example-box{
+  margin-top:14px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.8;
+}
+
+.example-box pre{
+  margin:8px 0 0;
+  padding:10px;
+  background:#fff;
+  border:1px solid #ddd;
+  overflow:auto;
+  font-family:Consolas,monospace;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>組織所属CSV取込</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="notice">
+    <strong>組織所属CSV取込について</strong><br>
+    この画面では、青年部・レディス部・役員・委員会などの組織所属をCSVで更新します。<br>
+    CSVファイル名と組織マスタのCSV取込名が一致する組織を自動判定します。<br>
+    所属入替方式の場合、対象組織の既存所属を一度すべて削除し、CSV内の業者番号で再登録します。<br>
+    会員マスタの会社名・メール・ブロック・支部・地区・送信対象設定は変更されません。<br>
+    CSVは業者番号の一覧だけでも取り込めます。
+  </div>
+
+  <div class="example-box">
+    <strong>最小CSV例</strong><br>
+    業者番号列だけで所属を追加できます。会社名などは会員マスタ側の情報を使用します。
+    <pre>業者番号
+41796
+94447
+12345</pre>
+    <div class="muted">
+      ※CSVファイル名は、組織設定の「CSV取込名」と一致する名前にしてください。
+    </div>
+  </div>
+
+  <div class="actions">
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+  </div>
+
+  <label>文字コード</label>
+  <select id="encoding">
+    <option value="utf-8">UTF-8</option>
+    <option value="shift-jis">Shift_JIS</option>
+  </select>
+
+  <label>CSVファイル</label>
+  <input type="file" id="csvFile" accept=".csv,text/csv" onchange="onFileSelected()">
+
+  <div id="detectedArea" class="preview-box" style="display:none;"></div>
+
+  <div id="mappingArea" style="display:none;">
+
+    <label>業者番号列</label>
+    <select id="memberNoCol"></select>
+
+    <div class="actions">
+      <button class="btn" onclick="makePreview()">プレビュー</button>
+      <button class="btn danger" id="importButton" onclick="executeImport()" disabled>
+        取込実行
+      </button>
+    </div>
+
+  </div>
+
+  <div id="status" class="status">組織設定を読み込み中...</div>
+
+  <div id="previewArea"></div>
+
+</div>
+</main>
+
+<script>
+let organizations =
+  [];
+
+let detectedOrganization =
+  null;
+
+let csvRows =
+  [];
+
+let memberNos =
+  [];
+
+function loadOrganizations(){
+
+  jsonp(
+    "getOrganizationsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">組織設定を取得できませんでした。</span>';
+        return;
+      }
+
+      organizations =
+        (res.organizations || []).filter(function(o){
+          return o.active !== "FALSE";
+        });
+
+      document.getElementById("status").textContent =
+        "CSVファイルを選択してください。";
+    }
+  );
+}
+
+
+function onFileSelected(){
+
+  const file =
+    document.getElementById("csvFile").files[0];
+
+  if(!file){
+    return;
+  }
+
+  detectedOrganization =
+    detectOrganizationFromFileName(file.name);
+
+  const area =
+    document.getElementById("detectedArea");
+
+  area.style.display =
+    "block";
+
+  if(!detectedOrganization){
+
+    area.innerHTML =
+      '<span class="ng">CSVファイル名から対象組織を判定できませんでした。</span><br>' +
+      '組織設定の「CSV取込名」とCSVファイル名が一致しているか確認してください。';
+
+    document.getElementById("mappingArea").style.display =
+      "none";
+
+    document.getElementById("previewArea").innerHTML =
+      "";
+
+    return;
+  }
+
+  area.innerHTML =
+    '<strong>判定された対象組織</strong><br>' +
+    '組織名：' +
+    escapeHtml(detectedOrganization.orgName) +
+    '<br>' +
+    'CSV取込名：' +
+    escapeHtml(detectedOrganization.csvImportName || "") +
+    '<br>' +
+    'CSV取込方式：' +
+    escapeHtml(detectedOrganization.csvImportMode || "");
+
+  readCsv();
+}
+
+
+function detectOrganizationFromFileName(fileName){
+
+  const baseName =
+    String(fileName || "")
+      .replace(/\.[^/.]+$/, "")
+      .trim();
+
+  const normalizedBase =
+    normalizeText(baseName);
+
+  for(let i = 0; i < organizations.length; i++){
+
+    const org =
+      organizations[i];
+
+    const importName =
+      String(org.csvImportName || "").trim();
+
+    if(!importName){
+      continue;
+    }
+
+    if(normalizeText(importName) === normalizedBase){
+      return org;
+    }
+  }
+
+  return null;
+}
+
+
+function readCsv(){
+
+  const file =
+    document.getElementById("csvFile").files[0];
+
+  if(!file){
+    alert("CSVファイルを選択してください。");
+    return;
+  }
+
+  const encoding =
+    document.getElementById("encoding").value;
+
+  const reader =
+    new FileReader();
+
+  reader.onload = function(e){
+
+    const decoder =
+      new TextDecoder(encoding);
+
+    const text =
+      decoder.decode(e.target.result);
+
+    csvRows =
+      parseCsv(text);
+
+    if(csvRows.length < 2){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">CSVの行数が不足しています。</span>';
+      return;
+    }
+
+    setupColumns(
+      csvRows[0]
+    );
+
+    document.getElementById("mappingArea").style.display =
+      "block";
+
+    document.getElementById("status").innerHTML =
+      '<span class="ok">CSVを読み込みました。</span><br>' +
+      "データ行数：" +
+      (csvRows.length - 1) +
+      "件";
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+
+function setupColumns(headers){
+
+  const select =
+    document.getElementById("memberNoCol");
+
+  select.innerHTML =
+    "";
+
+  headers.forEach(function(header, index){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      index;
+
+    option.textContent =
+      header;
+
+    select.appendChild(option);
+  });
+
+  headers.forEach(function(header, index){
+
+    const h =
+      String(header || "").trim();
+
+    if(
+      h === "業者番号" ||
+      h === "会員番号" ||
+      h === "免許番号"
+    ){
+      select.value =
+        index;
+    }
+  });
+}
+
+
+function makePreview(){
+
+  if(!detectedOrganization){
+    alert("対象組織が判定されていません。");
+    return;
+  }
+
+  const col =
+    document.getElementById("memberNoCol").value;
+
+  if(col === ""){
+    alert("業者番号列を選択してください。");
+    return;
+  }
+
+  const map = {};
+
+  for(let i = 1; i < csvRows.length; i++){
+
+    const memberNo =
+      String(csvRows[i][Number(col)] || "")
+        .replace(".0", "")
+        .trim();
+
+    if(memberNo){
+      map[memberNo] =
+        true;
+    }
+  }
+
+  memberNos =
+    Object.keys(map);
+
+  let html =
+    '<div class="preview-box">' +
+    '<strong>取込プレビュー</strong><br>' +
+    '対象組織：' +
+    escapeHtml(detectedOrganization.orgName) +
+    '<br>' +
+    '取込方式：所属入替<br>' +
+    '取込予定件数：' +
+    memberNos.length +
+    '件<br>' +
+    '<div class="warning">' +
+    '実行すると、この組織の現在の所属を一度削除し、CSVの内容に置き換えます。' +
+    '</div>' +
+    '</div>';
+
+  html +=
+    '<table>' +
+    '<thead><tr><th>業者番号</th></tr></thead><tbody>';
+
+  memberNos
+    .slice(0, 30)
+    .forEach(function(memberNo){
+      html +=
+        '<tr><td>' +
+        escapeHtml(memberNo) +
+        '</td></tr>';
+    });
+
+  html +=
+    '</tbody></table>';
+
+  document.getElementById("previewArea").innerHTML =
+    html;
+
+  document.getElementById("importButton").disabled =
+    false;
+}
+
+
+function executeImport(){
+
+  if(!detectedOrganization){
+    alert("対象組織が判定されていません。");
+    return;
+  }
+
+  if(memberNos.length === 0){
+    alert("先にプレビューを実行してください。");
+    return;
+  }
+
+  if(!confirm(
+    "対象組織：" + detectedOrganization.orgName + "\n\n" +
+    "現在の所属を削除し、CSVの内容に置き換えます。\n\n" +
+    "実行しますか？"
+  )){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "取込中...";
+
+  jsonp(
+    "replaceOrganizationMembersJsonp",
+    {
+      orgId: detectedOrganization.orgId,
+      memberNos: memberNos.join(",")
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "取込に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      let html =
+        '<span class="ok">' +
+        escapeHtml(res.message || "取込しました。") +
+        '</span><br>' +
+        "削除件数：" +
+        escapeHtml(res.deleted) +
+        "件<br>" +
+        "登録件数：" +
+        escapeHtml(res.imported) +
+        "件<br>" +
+        "会員マスタ未登録：" +
+        escapeHtml(res.unknown) +
+        "件";
+
+      if(res.unknownList && res.unknownList.length > 0){
+        html +=
+          "<br>未登録業者番号：<br>" +
+          escapeHtml(res.unknownList.join(", "));
+      }
+
+      document.getElementById("status").innerHTML =
+        html;
+
+      document.getElementById("importButton").disabled =
+        true;
+    }
+  );
+}
+
+
+function normalizeText(text){
+
+  return String(text || "")
+    .replace(/\s/g, "")
+    .replace(/　/g, "")
+    .toLowerCase();
+}
+
+
+function parseCsv(text){
+
+  const rows =
+    [];
+
+  let row =
+    [];
+
+  let cell =
+    "";
+
+  let inQuote =
+    false;
+
+  for(let i = 0; i < text.length; i++){
+
+    const char =
+      text[i];
+
+    const next =
+      text[i + 1];
+
+    if(char === '"' && inQuote && next === '"'){
+      cell += '"';
+      i++;
+      continue;
+    }
+
+    if(char === '"'){
+      inQuote =
+        !inQuote;
+      continue;
+    }
+
+    if(char === "," && !inQuote){
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if((char === "\n" || char === "\r") && !inQuote){
+
+      if(char === "\r" && next === "\n"){
+        i++;
+      }
+
+      row.push(cell);
+
+      if(row.some(function(v){ return String(v).trim() !== ""; })){
+        rows.push(row);
+      }
+
+      row =
+        [];
+
+      cell =
+        "";
+
+      continue;
+    }
+
+    cell +=
+      char;
+  }
+
+  row.push(cell);
+
+  if(row.some(function(v){ return String(v).trim() !== ""; })){
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+loadOrganizations();
+</script>
+
+</body>
+</html>

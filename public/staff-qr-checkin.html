@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>係員用QR受付</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+main{
+  max-width:760px;
+}
+
+#reader{
+  width:100%;
+  max-width:520px;
+  margin:16px auto;
+}
+
+.scan-result{
+  font-size:18px;
+  line-height:1.8;
+}
+
+.scan-result .ok{
+  font-size:24px;
+}
+
+.scan-result .ng{
+  font-size:22px;
+}
+
+.camera-status{
+  margin-top:12px;
+  padding:12px;
+  background:#f7f7f7;
+  border-radius:8px;
+  line-height:1.7;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>係員用QR受付</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="trainingInfo" class="info">
+    研修会情報を読み込み中...
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="startScanner()">カメラ開始</button>
+    <button class="btn sub" onclick="stopScanner()">カメラ停止</button>
+    <a class="btn sub" id="detailLink" href="checkin-select.html">受付メニューへ戻る</a>
+  </div>
+
+  <div id="cameraStatus" class="camera-status">
+    カメラ開始ボタンを押してください。
+  </div>
+
+  <div id="reader"></div>
+
+  <div id="result" class="result scan-result"></div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+const returnTo =
+  params.get("return") || "";
+
+let currentTraining =
+  null;
+
+let scanner =
+  null;
+
+let scanning =
+  false;
+
+let lastCode =
+  "";
+
+let lastReadAt =
+  0;
+
+function setupBackLink(){
+
+  const link =
+    document.getElementById("detailLink");
+
+  if(returnTo === "detail" && eventId){
+    link.href =
+      "training-detail.html?event=" + encodeURIComponent(eventId);
+
+    link.textContent =
+      "研修会詳細へ戻る";
+
+    return;
+  }
+
+  link.href =
+    "checkin-select.html";
+
+  link.textContent =
+    "受付メニューへ戻る";
+}
+
+function loadTraining(){
+
+  if(!eventId){
+    document.getElementById("trainingInfo").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("trainingInfo").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training;
+
+      document.getElementById("trainingInfo").innerHTML =
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining.title || "") +
+        '<br>' +
+        escapeHtml(
+          currentTraining.eventDate
+            ? "開催日：" + currentTraining.eventDate
+            : ""
+        );
+    }
+  );
+}
+
+
+function startScanner(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  if(scanning){
+    return;
+  }
+
+  scanner =
+    new Html5Qrcode("reader");
+
+  document.getElementById("cameraStatus").textContent =
+    "カメラを起動しています...";
+
+  scanner.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+    onScanSuccess,
+    onScanFailure
+  ).then(function(){
+
+    scanning =
+      true;
+
+    document.getElementById("cameraStatus").innerHTML =
+      '<span class="ok">カメラ起動中です。QRコードを枠内に入れてください。</span>';
+
+  }).catch(function(err){
+
+    document.getElementById("cameraStatus").innerHTML =
+      '<span class="ng">カメラを起動できませんでした。</span><br>' +
+      escapeHtml(err && err.message ? err.message : String(err));
+  });
+}
+
+
+function stopScanner(){
+
+  if(!scanner || !scanning){
+    return;
+  }
+
+  scanner.stop().then(function(){
+
+    scanning =
+      false;
+
+    scanner.clear();
+
+    document.getElementById("cameraStatus").textContent =
+      "カメラを停止しました。";
+
+  }).catch(function(err){
+
+    document.getElementById("cameraStatus").innerHTML =
+      '<span class="ng">カメラ停止時にエラーが発生しました。</span><br>' +
+      escapeHtml(err && err.message ? err.message : String(err));
+  });
+}
+
+
+function onScanSuccess(decodedText){
+
+  const code =
+    String(decodedText || "").trim();
+
+  if(!code){
+    return;
+  }
+
+  const now =
+    Date.now();
+
+  if(code === lastCode && now - lastReadAt < 3000){
+    return;
+  }
+
+  lastCode =
+    code;
+
+  lastReadAt =
+    now;
+
+  registerScannedCode(
+    code
+  );
+}
+
+
+function onScanFailure(errorMessage){
+  // 読み取り失敗は連続して発生するため表示しません。
+}
+
+
+function registerScannedCode(code){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "読み取り済みです。受付登録中...";
+
+  if(code.indexOf("MEMBER:") !== 0 && code.indexOf("PLANNED:") !== 0){
+    result.innerHTML =
+      '<div class="ng">これは会社QRではありません。会社QRを読み取ってください。</div>';
+    return;
+  }
+
+  jsonp(
+    "registerCheckinJsonp",
+    {
+      event: eventId,
+      code: code,
+      method: code.indexOf("PLANNED:") === 0 ? "予定者QR" : "会社QR"
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<div class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</div>' +
+          '<div>読取値：' + escapeHtml(code) + '</div>';
+        return;
+      }
+
+      result.innerHTML =
+        '<div class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</div>' +
+        '<div>' +
+        escapeHtml(res.companyName || "") +
+        ' 様</div>' +
+        (
+          res.participantName
+            ? '<div>参加者名：' + escapeHtml(res.participantName) + ' 様</div>'
+            : ''
+        ) +
+        (
+          res.memberNo
+            ? '<div>業者番号：' + escapeHtml(res.memberNo || "") + '</div>'
+            : ''
+        ) +
+        (
+          res.checkedAt
+            ? '<div>受付日時：' + escapeHtml(res.checkedAt) + '</div>'
+            : ''
+        );
+    }
+  );
+}
+
+window.addEventListener("beforeunload", function(){
+  if(scanner && scanning){
+    scanner.stop();
+  }
+});
+
+setupBackLink();
+loadTraining();
+</script>
+
+</body>
+</html>

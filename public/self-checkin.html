@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会受付</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:680px;
+}
+
+.company{
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+  margin:18px 0;
+}
+
+.training-title{
+  font-size:22px;
+  font-weight:bold;
+  text-align:center;
+}
+
+.training-date{
+  font-size:18px;
+  text-align:center;
+  margin-top:8px;
+}
+
+.full-btn{
+  width:100%;
+  padding:15px;
+  font-size:20px;
+  margin-top:14px;
+}
+
+.self-result{
+  line-height:1.9;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会受付</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="status" class="info">
+    情報を確認中...
+  </div>
+
+  <div id="checkinArea" style="display:none;">
+
+    <div class="training-title" id="trainingTitle"></div>
+    <div class="training-date" id="trainingDate"></div>
+
+    <div class="info">
+      <strong>登録されている会社</strong>
+      <div class="company" id="companyName"></div>
+      <div id="memberNoText"></div>
+    </div>
+
+    <div class="notice">
+      会場QRを読み取りました。<br>
+      登録済みの会社情報で受付処理を行います。
+    </div>
+
+  </div>
+
+  <div id="noRegisterArea" style="display:none;">
+    <div class="result self-result" style="display:block;">
+      <span class="ng">このスマートフォンには会社情報が登録されていません。</span><br><br>
+      事前にメールで届いた「スマホ登録用URL」から登録してください。<br><br>
+      操作が難しい場合は、受付担当者へお申し出ください。
+    </div>
+  </div>
+
+  <div id="result" class="result self-result"></div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+let currentTraining =
+  null;
+
+let memberNo =
+  "";
+
+let companyName =
+  "";
+
+function loadPage(){
+
+  if(!eventId){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">研修IDが指定されていません。</span>';
+    return;
+  }
+
+  memberNo =
+    localStorage.getItem("takken_memberNo") || "";
+
+  companyName =
+    localStorage.getItem("takken_companyName") || "";
+
+  if(!memberNo || !companyName){
+
+    document.getElementById("status").style.display =
+      "none";
+
+    document.getElementById("noRegisterArea").style.display =
+      "block";
+
+    return;
+  }
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">研修会情報を取得できませんでした。</span>';
+        return;
+      }
+
+      currentTraining =
+        res.training;
+
+      document.getElementById("status").style.display =
+        "none";
+
+      document.getElementById("checkinArea").style.display =
+        "block";
+
+      document.getElementById("trainingTitle").textContent =
+        currentTraining.title || "";
+
+      document.getElementById("trainingDate").textContent =
+        currentTraining.eventDate
+          ? "開催日：" + currentTraining.eventDate
+          : "";
+
+      document.getElementById("companyName").textContent =
+        companyName;
+
+      document.getElementById("memberNoText").textContent =
+        "業者番号：" + memberNo;
+
+      doSelfCheckin();
+    }
+  );
+}
+
+function doSelfCheckin(){
+
+  if(!eventId){
+    alert("研修IDがありません。");
+    return;
+  }
+
+  if(!memberNo || !companyName){
+    alert("登録情報がありません。");
+    return;
+  }
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.textContent =
+    "読み取り済みです。受付登録中...";
+
+	jsonp(
+	  "registerCheckinJsonp",
+	  {
+	    event: eventId,
+	    code: "MEMBER:" + memberNo,
+	    method: "スマホ事前登録＋会場QR受付"
+	  },
+	  function(res){
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</span><br><br>' +
+
+        '<strong>研修会</strong><br>' +
+        escapeHtml(currentTraining ? currentTraining.title : "") +
+        '<br><br>' +
+
+        '<strong>会社名</strong><br>' +
+        escapeHtml(res.companyName || companyName) +
+        '<br><br>' +
+
+        '<strong>業者番号</strong><br>' +
+        escapeHtml(res.memberNo || memberNo) +
+        '<br><br>' +
+
+        '<strong>受付日時</strong><br>' +
+        escapeHtml(res.checkedAt || formatNow()) +
+        '<br><br>' +
+
+        'この画面を受付担当者にご提示ください。';
+
+      document.getElementById("checkinArea").style.display =
+        "none";
+    }
+    ,
+    60000
+  );
+}
+
+loadPage();
+</script>
+
+</body>
+</html>

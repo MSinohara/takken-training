@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会場マスタ</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1180px;
+}
+
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin:18px 0;
+}
+
+.search-box{
+  flex:1;
+  min-width:260px;
+}
+
+.status-pill{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#edf3fb;
+  color:#12345a;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.status-pill.off{
+  background:#eee;
+  color:#666;
+}
+
+.geo-text{
+  line-height:1.7;
+}
+
+.modal-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0 14px;
+}
+
+.modal-grid .wide{
+  grid-column:1 / -1;
+}
+
+@media(max-width:760px){
+  .modal-grid{
+    grid-template-columns:1fr;
+  }
+
+  .modal-grid .wide{
+    grid-column:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会場マスタ</h1>
+  <p>研修会で使う会場と、位置情報受付のための緯度・経度を管理します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" onclick="loadVenues()">再読み込み</button>
+    <button class="btn" onclick="openVenueModal(null)">新規会場</button>
+    <button class="btn sub" onclick="importFromTrainings()">研修会記録から取り込み</button>
+    <a class="btn sub" href="training-menu.html">研修会管理へ戻る</a>
+  </div>
+
+  <div class="notice">
+    位置情報受付を使う場合は、会場の緯度・経度と受付可能距離を登録します。実地で「現在地を取得して入力」を押すと、会場付近の位置をそのまま登録できます。
+  </div>
+
+  <div class="toolbar">
+    <input id="keyword" class="search-box" placeholder="会場名・住所・担当者で検索" oninput="renderVenues()">
+    <select id="activeFilter" onchange="renderVenues()" style="max-width:180px;">
+      <option value="active">有効のみ</option>
+      <option value="all">すべて</option>
+      <option value="inactive">無効のみ</option>
+    </select>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <table id="venueTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>会場</th>
+        <th>位置情報</th>
+        <th>連絡先</th>
+        <th>状態</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="venueBody"></tbody>
+  </table>
+
+</div>
+</main>
+
+<script>
+let venues =
+  [];
+
+let editingVenueId =
+  "";
+
+let updateGeoCheckedAt =
+  false;
+
+let venueSaving =
+  false;
+
+function loadVenues(){
+
+  document.getElementById("status").textContent =
+    "会場マスタを読み込み中...";
+
+  jsonp(
+    "getVenueMastersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "会場マスタを取得できませんでした。") +
+          '</span>';
+        document.getElementById("venueTable").style.display =
+          "none";
+        return;
+      }
+
+      venues =
+        res.venues || [];
+
+      renderVenues();
+    }
+  );
+}
+
+function renderVenues(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const activeFilter =
+    document.getElementById("activeFilter").value;
+
+  const list =
+    venues.filter(function(venue){
+
+      const active =
+        String(venue.active || "TRUE").toUpperCase() === "FALSE"
+          ? "FALSE"
+          : "TRUE";
+
+      if(activeFilter === "active" && active !== "TRUE"){
+        return false;
+      }
+
+      if(activeFilter === "inactive" && active !== "FALSE"){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          venue.venueName,
+          venue.venueAddress,
+          venue.venueContactName,
+          venue.venueContactPhone,
+          venue.venueContactMail,
+          venue.venueUrl,
+          venue.venueApplicationUrl
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) >= 0;
+    });
+
+  const body =
+    document.getElementById("venueBody");
+
+  body.innerHTML =
+    "";
+
+  if(list.length === 0){
+    document.getElementById("status").textContent =
+      venues.length === 0
+        ? "会場マスタはまだ登録されていません。"
+        : "条件に合う会場はありません。";
+    document.getElementById("venueTable").style.display =
+      "none";
+    return;
+  }
+
+  list.forEach(function(venue){
+
+    const hasGeo =
+      venue.latitude && venue.longitude;
+
+    const active =
+      String(venue.active || "TRUE").toUpperCase() === "FALSE"
+        ? "FALSE"
+        : "TRUE";
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      '<td>' +
+        '<strong>' + escapeHtml(venue.venueName || "") + '</strong><br>' +
+        '<span class="muted">' + escapeHtml(venue.venueId || "") + '</span><br>' +
+        escapeHtml(venue.venueAddress || "") +
+      '</td>' +
+      '<td class="geo-text">' +
+        (hasGeo
+          ? '緯度 ' + escapeHtml(venue.latitude) + '<br>経度 ' + escapeHtml(venue.longitude) + '<br>受付可能距離 ' + escapeHtml(venue.geoRadius || "200") + 'm'
+          : '<span class="muted">未登録</span>') +
+        (venue.geoCheckedAt
+          ? '<br><span class="muted">確認: ' + escapeHtml(venue.geoCheckedAt) + '</span>'
+          : '') +
+      '</td>' +
+      '<td>' +
+        escapeHtml(venue.venueContactName || "") +
+        (venue.venueContactPhone ? '<br>' + escapeHtml(venue.venueContactPhone) : '') +
+        (venue.venueContactMail ? '<br>' + escapeHtml(venue.venueContactMail) : '') +
+        (venue.venueUrl ? '<br><a href="' + escapeHtml(venue.venueUrl) + '" target="_blank" rel="noopener">施設案内URL</a>' : '') +
+        (venue.venueApplicationUrl ? '<br><a href="' + escapeHtml(venue.venueApplicationUrl) + '" target="_blank" rel="noopener">予約・申込URL</a>' : '') +
+      '</td>' +
+      '<td>' +
+        '<span class="status-pill ' + (active === "TRUE" ? '' : 'off') + '">' +
+          (active === "TRUE" ? '有効' : '無効') +
+        '</span>' +
+      '</td>' +
+      '<td>' +
+        '<button class="btn" onclick="openVenueModalById(\'' + escapeJs(venue.venueId || "") + '\')">編集</button> ' +
+        '<button class="btn sub" onclick="checkVenueLocation(\'' + escapeJs(venue.venueId || "") + '\')">位置チェック</button>' +
+      '</td>';
+
+    body.appendChild(tr);
+  });
+
+  document.getElementById("status").textContent =
+    list.length + "件表示しています。";
+
+  document.getElementById("venueTable").style.display =
+    "table";
+}
+
+function openVenueModalById(venueId){
+
+  const venue =
+    venues.find(function(item){
+      return String(item.venueId || "") === String(venueId || "");
+    }) || null;
+
+  openVenueModal(venue);
+}
+
+function openVenueModal(venue){
+
+  editingVenueId =
+    venue && venue.venueId
+      ? venue.venueId
+      : "";
+
+  updateGeoCheckedAt =
+    false;
+
+  venueSaving =
+    false;
+
+  const body =
+    '<div class="modal-grid">' +
+      '<div>' +
+        '<label>会場ID</label>' +
+        '<input id="modalVenueId" value="' + escapeHtml(editingVenueId) + '" readonly placeholder="新規保存時に自動採番">' +
+      '</div>' +
+      '<div>' +
+        '<label>有効</label>' +
+        '<select id="modalActive">' +
+          '<option value="TRUE">有効</option>' +
+          '<option value="FALSE">無効</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="wide">' +
+        '<label>会場名</label>' +
+        '<input id="modalVenueName" value="' + escapeHtml(venue && venue.venueName || "") + '">' +
+      '</div>' +
+      '<div class="wide">' +
+        '<label>会場住所</label>' +
+        '<input id="modalVenueAddress" value="' + escapeHtml(venue && venue.venueAddress || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>会場担当者</label>' +
+        '<input id="modalVenueContactName" value="' + escapeHtml(venue && venue.venueContactName || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>会場連絡先</label>' +
+        '<input id="modalVenueContactPhone" value="' + escapeHtml(venue && venue.venueContactPhone || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>会場メール</label>' +
+        '<input id="modalVenueContactMail" value="' + escapeHtml(venue && venue.venueContactMail || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>施設案内URL</label>' +
+        '<input id="modalVenueUrl" value="' + escapeHtml(venue && venue.venueUrl || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>予約・申込URL</label>' +
+        '<input id="modalVenueApplicationUrl" value="' + escapeHtml(venue && venue.venueApplicationUrl || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>会場定員</label>' +
+        '<input id="modalVenueCapacity" type="number" min="0" step="1" value="' + escapeHtml(venue && venue.venueCapacity || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>受付可能距離m</label>' +
+        '<input id="modalGeoRadius" type="number" min="1" step="1" value="' + escapeHtml(venue && venue.geoRadius || "200") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>緯度</label>' +
+        '<input id="modalLatitude" value="' + escapeHtml(venue && venue.latitude || "") + '">' +
+      '</div>' +
+      '<div>' +
+        '<label>経度</label>' +
+        '<input id="modalLongitude" value="' + escapeHtml(venue && venue.longitude || "") + '">' +
+      '</div>' +
+      '<div class="wide">' +
+        '<label>位置情報確認メモ</label>' +
+        '<textarea id="modalGeoMemo" style="height:80px;">' + escapeHtml(venue && venue.geoMemo || "") + '</textarea>' +
+      '</div>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn sub" onclick="fillCurrentLocation()">現在地を取得して入力</button>' +
+      '<button id="saveVenueButton" class="btn" onclick="saveVenue()">保存する</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>' +
+    '<div id="modalGeoStatus" class="status"></div>';
+
+  openAppModal(
+    editingVenueId ? "会場を編集" : "新規会場",
+    body,
+    { wide: true }
+  );
+
+  document.getElementById("modalActive").value =
+    venue && String(venue.active || "TRUE").toUpperCase() === "FALSE"
+      ? "FALSE"
+      : "TRUE";
+}
+
+function setVenueSaving(isSaving){
+
+  venueSaving =
+    !!isSaving;
+
+  const button =
+    document.getElementById("saveVenueButton");
+
+  if(button){
+    button.disabled =
+      venueSaving;
+    button.textContent =
+      venueSaving ? "保存中..." : "保存する";
+  }
+}
+
+function fillCurrentLocation(){
+
+  const status =
+    document.getElementById("modalGeoStatus");
+
+  if(!navigator.geolocation){
+    status.innerHTML =
+      '<span class="ng">この端末では現在地を取得できません。</span>';
+    return;
+  }
+
+  status.textContent =
+    "現在地を取得中...";
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      document.getElementById("modalLatitude").value =
+        String(pos.coords.latitude);
+      document.getElementById("modalLongitude").value =
+        String(pos.coords.longitude);
+      updateGeoCheckedAt =
+        true;
+      status.innerHTML =
+        '<span class="ok">現在地を入力しました。保存すると最終確認日時も更新されます。</span>';
+    },
+    function(err){
+      status.innerHTML =
+        '<span class="ng">現在地を取得できませんでした。端末の位置情報許可を確認してください。</span>';
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+function saveVenue(){
+
+  if(venueSaving){
+    return;
+  }
+
+  const data = {
+    venueId: editingVenueId,
+    venueName: document.getElementById("modalVenueName").value.trim(),
+    venueAddress: document.getElementById("modalVenueAddress").value.trim(),
+    venueContactName: document.getElementById("modalVenueContactName").value.trim(),
+    venueContactPhone: document.getElementById("modalVenueContactPhone").value.trim(),
+    venueContactMail: document.getElementById("modalVenueContactMail").value.trim(),
+    venueUrl: document.getElementById("modalVenueUrl").value.trim(),
+    venueApplicationUrl: document.getElementById("modalVenueApplicationUrl").value.trim(),
+    venueCapacity: document.getElementById("modalVenueCapacity").value.trim(),
+    latitude: document.getElementById("modalLatitude").value.trim(),
+    longitude: document.getElementById("modalLongitude").value.trim(),
+    geoRadius: document.getElementById("modalGeoRadius").value.trim(),
+    geoMemo: document.getElementById("modalGeoMemo").value,
+    active: document.getElementById("modalActive").value,
+    updateGeoCheckedAt: updateGeoCheckedAt ? "TRUE" : "FALSE"
+  };
+
+  if(!data.venueName){
+    alert("会場名を入力してください。");
+    return;
+  }
+
+  setVenueSaving(true);
+
+  document.getElementById("modalGeoStatus").textContent =
+    "保存中...";
+
+  jsonp(
+    "saveVenueMasterJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        setVenueSaving(false);
+        document.getElementById("modalGeoStatus").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      editingVenueId =
+        res.venueId || editingVenueId;
+
+      closeAppModal();
+      loadVenues();
+    }
+  );
+}
+
+function checkVenueLocation(venueId){
+
+  const venue =
+    venues.find(function(item){
+      return String(item.venueId || "") === String(venueId || "");
+    });
+
+  if(!venue || !venue.latitude || !venue.longitude){
+    openAppModal(
+      "位置チェック",
+      '<p class="ng">この会場には緯度・経度が登録されていません。</p>'
+    );
+    return;
+  }
+
+  if(!navigator.geolocation){
+    openAppModal(
+      "位置チェック",
+      '<p class="ng">この端末では現在地を取得できません。</p>'
+    );
+    return;
+  }
+
+  openAppModal(
+    "位置チェック",
+    '<div id="locationCheckStatus" class="status">現在地を取得中...</div>'
+  );
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+
+      const distance =
+        calcDistanceMeters(
+          Number(pos.coords.latitude),
+          Number(pos.coords.longitude),
+          Number(venue.latitude),
+          Number(venue.longitude)
+        );
+
+      const radius =
+        Number(venue.geoRadius || 200);
+
+      document.getElementById("locationCheckStatus").innerHTML =
+        '<strong>' + escapeHtml(venue.venueName || "") + '</strong><br>' +
+        '会場からの距離: ' + Math.round(distance) + 'm<br>' +
+        '受付可能距離: ' + radius + 'm<br>' +
+        (distance <= radius
+          ? '<span class="ok">受付可能範囲内です。</span>'
+          : '<span class="ng">受付可能範囲外です。</span>');
+    },
+    function(err){
+      document.getElementById("locationCheckStatus").innerHTML =
+        '<span class="ng">現在地を取得できませんでした。端末の位置情報許可を確認してください。</span>';
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+function calcDistanceMeters(lat1, lon1, lat2, lon2){
+
+  const rad =
+    Math.PI / 180;
+
+  const r =
+    6371000;
+
+  const dLat =
+    (lat2 - lat1) * rad;
+
+  const dLon =
+    (lon2 - lon1) * rad;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function importFromTrainings(){
+
+  if(!confirm("研修会に入力済みの会場名・住所から、会場マスタを作成します。既存の同名会場は追加しません。")){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "取り込み中...";
+
+  jsonp(
+    "importVenueMastersFromTrainingsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "取り込みに失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "取り込みました。") +
+        ' 追加: ' + escapeHtml(res.imported || 0) + '件</span>';
+
+      loadVenues();
+    }
+  );
+}
+
+loadVenues();
+</script>
+
+</body>
+</html>

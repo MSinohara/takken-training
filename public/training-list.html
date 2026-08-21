@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会一覧</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+.btn{
+  margin-right:5px;
+}
+
+.muted{
+  margin:0 0 12px;
+}
+
+.filter-box{
+  margin-top:16px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:1fr 150px 180px 160px;
+  gap:12px;
+  align-items:end;
+}
+
+.pager{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+.pager-info{
+  color:#666;
+  font-weight:bold;
+}
+
+th.sortable{
+  cursor:pointer;
+  user-select:none;
+}
+
+.sort-mark{
+  color:#666;
+  font-size:12px;
+  margin-left:4px;
+}
+
+@media screen and (max-width:700px){
+  .filter-grid{
+    display:block;
+  }
+}
+
+@media screen and (max-width:700px){
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会一覧</h1>
+</header>
+
+<main>
+  <div class="card">
+
+    <p class="muted">
+      有効な研修会を表示します。
+    </p>
+
+    <div class="actions">
+      <a class="btn" href="training-form.html">新規作成</a>
+      <a class="btn sub" href="index.html">メニューへ戻る</a>
+    </div>
+
+		<div class="filter-box">
+
+		  <div class="filter-grid">
+		    <div>
+		      <label>検索</label>
+		      <input id="keyword" placeholder="研修ID・研修名・開催日・主催区分で検索" oninput="renderTrainings(true)">
+		    </div>
+
+		    <div>
+		      <label>年度</label>
+		      <select id="yearFilter" onchange="renderTrainings(true)">
+		        <option value="">読み込み中</option>
+		      </select>
+		    </div>
+
+		    <div>
+		      <label>開催状態</label>
+		      <select id="statusFilter" onchange="renderTrainings(true)">
+		        <option value="upcoming">未開催</option>
+		        <option value="today">開催中</option>
+		        <option value="done">完了</option>
+		        <option value="all">すべて</option>
+		      </select>
+		    </div>
+
+		    <div>
+		      <label>修了証</label>
+		      <select id="certificateFilter" onchange="renderTrainings(true)">
+		        <option value="all">すべて</option>
+		        <option value="on">あり</option>
+		        <option value="off">なし</option>
+		      </select>
+		    </div>
+		  </div>
+
+		</div>
+
+    <div id="status" class="status">
+      読み込み中...
+    </div>
+
+    <table id="trainingTable" style="display:none;">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="setSort('eventId')">研修ID<span id="sort-eventId" class="sort-mark"></span></th>
+          <th class="sortable" onclick="setSort('title')">研修名<span id="sort-title" class="sort-mark"></span></th>
+          <th class="sortable" onclick="setSort('eventDate')">開催日<span id="sort-eventDate" class="sort-mark"></span></th>
+          <th class="sortable" onclick="setSort('hostType')">主催区分<span id="sort-hostType" class="sort-mark"></span></th>
+          <th class="sortable" onclick="setSort('receptionType')">受付方式<span id="sort-receptionType" class="sort-mark"></span></th>
+          <th class="sortable" onclick="setSort('attendanceUnit')">受付単位<span id="sort-attendanceUnit" class="sort-mark"></span></th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="trainingBody"></tbody>
+    </table>
+
+		<div id="pager" class="pager" style="display:none;">
+	  <button class="btn sub" onclick="prevPage()">前へ</button>
+	  <span id="pageInfo" class="pager-info">1 / 1ページ</span>
+	  <button class="btn sub" onclick="nextPage()">次へ</button>
+	</div>
+  </div>
+</main>
+
+<script>
+let allTrainings = [];
+
+let currentPage =
+  1;
+
+let sortKey =
+  "eventDate";
+
+let sortDirection =
+  "asc";
+
+const pageSize =
+  10;
+
+
+function loadTrainings(){
+
+  jsonp(
+    "getActiveTrainingsJsonp",
+    {},
+    function(res){
+
+      const status =
+        document.getElementById("status");
+
+      if(!res || !res.ok){
+        status.textContent =
+          res && res.message
+            ? res.message
+            : "研修会一覧を取得できませんでした。";
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      if(allTrainings.length === 0){
+        status.textContent =
+          "有効な研修会がありません。";
+        return;
+      }
+
+      renderYearOptions();
+
+      renderTrainings(
+        true
+      );
+    }
+  );
+}
+
+
+function renderTrainings(resetPage){
+
+  if(resetPage){
+    currentPage =
+      1;
+  }
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("trainingTable");
+
+  const body =
+    document.getElementById("trainingBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  body.innerHTML =
+    "";
+
+  const list =
+    sortTrainings(
+      getFilteredTrainings(
+        keyword
+      )
+    );
+
+  updateSortMarks();
+
+  if(list.length === 0){
+    status.textContent =
+      "条件に一致する研修会はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(list.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageList =
+    list.slice(
+      start,
+      start + pageSize
+    );
+
+  pageList.forEach(function(t){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(t.eventId) + "</td>" +
+      "<td>" + escapeHtml(t.title) + "</td>" +
+      "<td>" + escapeHtml(formatEventDateForList(t.eventDate || "")) + "</td>" +
+      "<td>" + escapeHtml(t.hostType) + "</td>" +
+      "<td>" + escapeHtml(getReceptionTypeLabel(t.receptionType || "")) + "</td>" +
+      "<td>" + escapeHtml(getAttendanceUnitLabel(t.attendanceUnit)) + "</td>" +
+      "<td>" +
+        '<a class="btn" href="training-detail.html?event=' +
+        encodeURIComponent(t.eventId) +
+        '">詳細</a>' +
+      "</td>";
+
+    body.appendChild(tr);
+  });
+
+  status.textContent =
+    list.length + "件中 " +
+    (start + 1) + "〜" +
+    (start + pageList.length) +
+    "件を表示 / 全" +
+    allTrainings.length +
+    "件";
+
+  document.getElementById("pageInfo").textContent =
+    currentPage + " / " + totalPages + "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+
+function getFilteredTrainings(keyword){
+
+  return allTrainings.filter(function(t){
+
+    if(!matchesYearFilter(t)){
+      return false;
+    }
+
+    if(!matchesStatusFilter(t)){
+      return false;
+    }
+
+    if(!matchesCertificateFilter(t)){
+      return false;
+    }
+
+    if(keyword){
+
+      const text =
+        [
+          t.eventId,
+          t.title,
+          t.hostType,
+          getReceptionTypeLabel(t.receptionType || ""),
+          t.eventDate
+        ].join(" ").toLowerCase();
+
+      if(text.indexOf(keyword) === -1){
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+
+function setSort(key){
+
+  if(sortKey === key){
+    sortDirection =
+      sortDirection === "asc"
+        ? "desc"
+        : "asc";
+  } else {
+    sortKey =
+      key;
+
+    sortDirection =
+      "asc";
+  }
+
+  renderTrainings(
+    true
+  );
+}
+
+
+function sortTrainings(list){
+
+  return list.slice().sort(function(a, b){
+
+    const aValue =
+      getSortValue(a, sortKey);
+
+    const bValue =
+      getSortValue(b, sortKey);
+
+    if(aValue < bValue){
+      return sortDirection === "asc" ? -1 : 1;
+    }
+
+    if(aValue > bValue){
+      return sortDirection === "asc" ? 1 : -1;
+    }
+
+    return 0;
+  });
+}
+
+
+function renderYearOptions(){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const years =
+    getTrainingYears();
+
+  select.innerHTML =
+    '<option value="all">すべて</option>';
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  const currentYear =
+    getCurrentFiscalYear();
+
+  select.value =
+    years.indexOf(currentYear) >= 0
+      ? currentYear
+      : "all";
+}
+
+
+function getTrainingYears(){
+
+  const map =
+    {};
+
+  allTrainings.forEach(function(t){
+
+    const year =
+      getTrainingFiscalYear(t);
+
+    if(year){
+      map[year] =
+        true;
+    }
+  });
+
+  return Object.keys(map).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+
+function getTrainingFiscalYear(t){
+
+  const eventId =
+    String(t && t.eventId ? t.eventId : "").trim();
+
+  const match =
+    eventId.match(/^(\d{4})-/);
+
+  if(match){
+    return match[1];
+  }
+
+  const eventDate =
+    normalizeDateText(t && t.eventDate ? t.eventDate : "");
+
+  if(!eventDate){
+    return "";
+  }
+
+  const parts =
+    eventDate.split("-");
+
+  const year =
+    Number(parts[0]);
+
+  const month =
+    Number(parts[1]);
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+
+function getCurrentFiscalYear(){
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth() + 1;
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+
+function matchesYearFilter(t){
+
+  const yearFilter =
+    document.getElementById("yearFilter").value;
+
+  if(!yearFilter || yearFilter === "all"){
+    return true;
+  }
+
+  return getTrainingFiscalYear(t) === yearFilter;
+}
+
+function getAttendanceUnitLabel(value){
+
+  const text =
+    String(value || "").trim();
+
+  return text === "個人" || text === "個人単位"
+    ? "個人単位"
+    : "会社単位";
+}
+
+
+function getSortValue(item, key){
+
+  if(key === "eventDate"){
+    return normalizeDateText(item.eventDate || "");
+  }
+
+  if(key === "receptionType"){
+    return getReceptionTypeLabel(item.receptionType || "");
+  }
+
+  if(key === "attendanceUnit"){
+    return getAttendanceUnitLabel(item.attendanceUnit);
+  }
+
+  return String(item[key] || "").toLowerCase();
+}
+
+
+function updateSortMarks(){
+
+  [
+    "eventId",
+    "title",
+    "eventDate",
+    "hostType",
+    "receptionType",
+    "attendanceUnit"
+  ].forEach(function(key){
+
+    const mark =
+      document.getElementById("sort-" + key);
+
+    if(!mark){
+      return;
+    }
+
+    mark.textContent =
+      key === sortKey
+        ? sortDirection === "asc" ? "▲" : "▼"
+        : "";
+  });
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderTrainings(
+    false
+  );
+}
+
+
+function nextPage(){
+
+  currentPage++;
+
+  renderTrainings(
+    false
+  );
+}
+
+
+function matchesStatusFilter(t){
+
+  const statusFilter =
+    document.getElementById("statusFilter").value;
+
+  if(statusFilter === "all"){
+    return true;
+  }
+
+  const eventDate =
+    normalizeDateText(t.eventDate || "");
+
+  if(!eventDate){
+    return statusFilter === "upcoming";
+  }
+
+  const today =
+    getTodayText();
+
+  if(statusFilter === "upcoming"){
+    return eventDate > today;
+  }
+
+  if(statusFilter === "today"){
+    return eventDate === today;
+  }
+
+  if(statusFilter === "done"){
+    return eventDate < today;
+  }
+
+  return true;
+}
+
+
+function matchesCertificateFilter(t){
+
+  const certificateFilter =
+    document.getElementById("certificateFilter").value;
+
+  if(certificateFilter === "all"){
+    return true;
+  }
+
+  const enabled =
+    String(t.eventType || "研修会").trim() === "研修会" &&
+    (
+      t.certificateEnabled === true ||
+      String(t.certificateEnabled).toUpperCase() === "TRUE"
+    );
+
+  if(certificateFilter === "on"){
+    return enabled;
+  }
+
+  if(certificateFilter === "off"){
+    return !enabled;
+  }
+
+  return true;
+}
+
+
+function normalizeDateText(value){
+
+  const text =
+    String(value || "").trim();
+
+  if(!text){
+    return "";
+  }
+
+  if(text.indexOf("/") !== -1){
+    const parts =
+      text.split("/");
+
+    if(parts.length >= 3){
+      return (
+        parts[0].padStart(4, "0") + "-" +
+        parts[1].padStart(2, "0") + "-" +
+        parts[2].padStart(2, "0")
+      );
+    }
+  }
+
+  if(text.indexOf("-") !== -1){
+    return text.substring(0, 10);
+  }
+
+  return text;
+}
+
+
+function formatEventDateForList(value){
+
+  const text =
+    normalizeDateText(value);
+
+  if(!text){
+    return "";
+  }
+
+  const parts =
+    text.split("-");
+
+  if(parts.length >= 3){
+    return parts[0] + "/" + parts[1] + "/" + parts[2];
+  }
+
+  return String(value || "");
+}
+
+
+function getTodayText(){
+
+  const d =
+    new Date();
+
+  const y =
+    d.getFullYear();
+
+  const m =
+    String(d.getMonth() + 1).padStart(2, "0");
+
+  const day =
+    String(d.getDate()).padStart(2, "0");
+
+  return y + "-" + m + "-" + day;
+}
+
+
+loadTrainings();
+</script>
+
+</body>
+</html>

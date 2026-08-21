@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会参加確認システム</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+.summary{
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  margin-bottom:22px;
+}
+
+.summary h2{
+  margin:0 0 10px;
+  font-size:20px;
+}
+
+.summary p{
+  margin:0;
+  line-height:1.8;
+  color:#555;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px;
+}
+
+.menu-card{
+  display:block;
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  transition:transform 0.15s ease,box-shadow 0.15s ease;
+  min-height:150px;
+}
+
+.menu-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 6px 18px rgba(0,0,0,0.12);
+}
+
+.icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.menu-card h3{
+  margin:0 0 8px;
+  font-size:19px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+
+footer{
+  text-align:center;
+  color:#777;
+  font-size:13px;
+  margin:34px 0 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会参加確認システム</h1>
+  <p>東京都宅地建物取引業協会 研修会運営システム</p>
+</header>
+
+<main>
+
+  <section class="summary">
+    <h2>管理メニュー</h2>
+    <p>
+      研修会の作成、案内メール送信、QR受付、参加履歴管理、修了証発行を行うための画面です。
+      Firebase画面からGAS・スプレッドシートへ接続しています。
+    </p>
+  </section>
+
+  <section class="grid">
+
+    <a class="menu-card" href="training-menu.html" data-auth-roles="admin,staff,reception">
+      <div class="icon">📘</div>
+      <h3>研修会管理</h3>
+      <p>研修会の作成、案内メール、受付、参加履歴、集計、会場履歴をまとめて管理します。</p>
+    </a>
+
+    <a class="menu-card" href="certificate-menu.html" data-auth-roles="admin,staff">
+      <div class="icon">🏅</div>
+      <h3>修了証管理</h3>
+      <p>修了証PDFの発行、発行履歴、ルール・発行者設定をまとめて管理します。</p>
+    </a>
+
+    <a class="menu-card" href="member-org-menu.html" data-auth-roles="admin,staff">
+      <div class="icon">👥</div>
+      <h3>会員・組織管理</h3>
+      <p>会員マスタ、送信対象、支部・地区、青年部や委員会などの組織を管理します。</p>
+    </a>
+
+		<a class="menu-card" href="settings.html" data-auth-roles="admin,staff">
+		  <div class="icon">⚙️</div>
+		  <h3>システム設定</h3>
+		  <p>ログイン権限など、システム全体に関わる設定を行います。</p>
+		</a>
+
+  </section>
+
+</main>
+
+<footer>
+  研修会参加確認システム
+</footer>
+
+</body>
+</html>

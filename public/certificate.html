@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>修了証発行</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1120px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 160px;
+  gap:10px;
+  margin:16px 0;
+}
+
+.rule-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:end;
+  margin:16px 0;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+@media screen and (max-width:900px){
+  .search,
+  .rule-row{
+    display:block;
+  }
+
+  .search input,
+  .search button,
+  .rule-row select,
+  .rule-row a{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>修了証発行</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" onclick="createTargets()">この条件で対象者を作成</button>
+    <button class="btn warn" onclick="createAllPdfs()">未発行分を一括発行</button>
+    <button class="btn sub" onclick="loadTargets()">再読み込み</button>
+    <a class="btn sub" href="certificate-history.html">発行済みを見る</a>
+    <a class="btn sub" href="certificate-rule-setting.html">修了証ルール設定</a>
+    <a class="btn sub" href="certificate-rule-summary.html">発行条件を確認</a>
+    <a class="btn sub" href="certificate-menu.html">修了証管理へ戻る</a>
+  </div>
+
+  <div class="rule-row">
+    <div>
+      <label>抽出ルール</label>
+      <select id="ruleSelect" onchange="loadTargets()">
+        <option value="">従来条件（2回以上）</option>
+      </select>
+      <div class="muted">
+        ルールを選んだだけでは対象者は作成されません。「この条件で対象者を作成」を押すと、参加履歴から対象者リストを作り直します。
+      </div>
+    </div>
+    <a class="btn sub" href="certificate-rule-setting.html">ルールを編集</a>
+  </div>
+
+  <div class="search">
+    <input id="keyword" placeholder="会社名・業者番号・ルール・参加研修IDで検索" oninput="onSearchChanged()">
+    <button class="btn sub" onclick="loadTargets()">一覧を再表示</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <table id="targetTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>業者番号</th>
+        <th>会社名</th>
+        <th>ルール</th>
+        <th>参加回数</th>
+        <th>参加研修ID</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="targetBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allTargets =
+  [];
+
+let currentPage =
+  1;
+
+let certificateRules =
+  [];
+
+const pageSize =
+  10;
+
+function isCertificateIssued(item){
+  return !!(item && item.pdfUrl);
+}
+
+function loadCertificateRules(){
+
+  jsonp(
+    "getCertificateRulesJsonp",
+    {},
+    function(res){
+
+      const select =
+        document.getElementById("ruleSelect");
+
+      select.innerHTML =
+        '<option value="">従来条件（2回以上）</option>';
+
+      if(!res || !res.ok){
+        loadTargets();
+        return;
+      }
+
+      certificateRules =
+        (res.rules || []).filter(function(rule){
+          return rule.active !== "FALSE";
+        });
+
+      certificateRules.forEach(function(rule){
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          rule.ruleId;
+
+        option.textContent =
+          (rule.targetYear ? rule.targetYear + "年度 " : "") +
+          rule.ruleName;
+
+        select.appendChild(option);
+      });
+
+      loadTargets();
+    }
+  );
+}
+
+function getSelectedRuleId(){
+
+  return document.getElementById("ruleSelect").value;
+}
+
+function createTargets(){
+
+  const ruleId =
+    getSelectedRuleId();
+
+  const ruleLabel =
+    document.getElementById("ruleSelect").selectedOptions[0]
+      ? document.getElementById("ruleSelect").selectedOptions[0].textContent
+      : "従来条件（2回以上）";
+
+  if(!confirm("選択中の修了証ルールに合う会社を、参加履歴から探して対象者リストを作成します。\n\n抽出ルール：" + ruleLabel + "\n\n既存の対象者リストは作り直されます。よろしいですか？")){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "抽出中...";
+
+  jsonp(
+    "createCertificateTargetsJsonp",
+    {
+      ruleId: ruleId
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "抽出に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "抽出しました。") +
+        '</span> 対象：' +
+        escapeHtml(res.targetCount || 0) +
+        "件";
+
+      loadTargets();
+    }
+  );
+}
+
+function loadTargets(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("targetTable");
+
+  const tbody =
+    document.getElementById("targetBody");
+
+  status.textContent =
+    "読み込み中...";
+
+  table.style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getCertificateTargetsJsonp",
+    {
+      ruleId: getSelectedRuleId()
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">対象一覧を取得できませんでした。</span>';
+        return;
+      }
+
+      allTargets =
+        (res.targets || []).filter(function(item){
+          return !isCertificateIssued(item);
+        });
+
+      currentPage =
+        1;
+
+      if(allTargets.length === 0){
+        status.textContent =
+          "この条件で作成済みのPDF未作成対象者はありません。対象者を作成する場合は「この条件で対象者を作成」を押してください。";
+        return;
+      }
+
+      renderTargets();
+    }
+  );
+}
+
+
+function renderTargets(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("targetTable");
+
+  const tbody =
+    document.getElementById("targetBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allTargets.filter(function(t){
+
+      if(isCertificateIssued(t)){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          t.memberNo,
+          t.companyName,
+          t.ruleName,
+          t.ruleId,
+          t.count,
+          t.eventIds
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "条件に一致するPDF未作成の修了証対象はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(t){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(t.memberNo) + "</td>" +
+      "<td>" + escapeHtml(t.companyName) + "</td>" +
+      "<td>" + escapeHtml(t.ruleName || t.ruleId || "従来条件") + "</td>" +
+      "<td>" + escapeHtml(t.count) + "</td>" +
+      "<td>" + escapeHtml(t.eventIds) + "</td>" +
+      "<td>" +
+        '<button class="btn warn" onclick="createPdf(' +
+        escapeHtml(t.rowNo) +
+        ')">PDF発行</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+function getFilteredUnissuedTargets(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  return allTargets.filter(function(t){
+
+    if(isCertificateIssued(t)){
+      return false;
+    }
+
+    if(!keyword){
+      return true;
+    }
+
+    const text =
+      [
+        t.memberNo,
+        t.companyName,
+        t.ruleName,
+        t.ruleId,
+        t.count,
+        t.eventIds
+      ].join(" ").toLowerCase();
+
+    return text.indexOf(keyword) !== -1;
+  });
+}
+
+
+function onSearchChanged(){
+
+  currentPage =
+    1;
+
+  renderTargets();
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderTargets();
+}
+
+
+function nextPage(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allTargets.filter(function(t){
+
+      if(isCertificateIssued(t)){
+        return false;
+      }
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+         t.memberNo,
+         t.companyName,
+          t.ruleName,
+          t.ruleId,
+         t.count,
+          t.eventIds
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderTargets();
+}
+
+function createPdf(rowNo){
+
+  if(!confirm("この会社の修了証PDFを発行します。\nよろしいですか？")){
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "PDF発行中...";
+
+  jsonp(
+    "createCertificatePdfJsonp",
+    { rowNo: rowNo },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "PDF発行に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "PDFを発行しました。") +
+        '</span>';
+
+      loadTargets();
+    }
+  );
+}
+
+function createAllPdfs(){
+
+  const targets =
+    getFilteredUnissuedTargets();
+
+  if(targets.length === 0){
+    document.getElementById("status").textContent =
+      "一括発行できるPDF未作成対象者はありません。";
+    return;
+  }
+
+  if(!confirm("現在の一覧に一致するPDF未作成対象者 " + targets.length + "件の修了証PDFを一括発行します。\n\nよろしいですか？")){
+    return;
+  }
+
+  createPdfQueue(
+    targets,
+    0,
+    0,
+    []
+  );
+}
+
+function createPdfQueue(targets, index, successCount, errors){
+
+  const status =
+    document.getElementById("status");
+
+  if(index >= targets.length){
+
+    const message =
+      "一括発行が完了しました。成功：" +
+      successCount +
+      "件 / 失敗：" +
+      errors.length +
+      "件";
+
+    status.innerHTML =
+      '<span class="' + (errors.length ? 'ng' : 'ok') + '">' +
+      escapeHtml(message) +
+      '</span>' +
+      (
+        errors.length
+          ? '<div class="muted">' + escapeHtml(errors.slice(0, 5).join(" / ")) + '</div>'
+          : ''
+      );
+
+    loadTargets();
+    return;
+  }
+
+  const target =
+    targets[index];
+
+  status.textContent =
+    "PDF一括発行中... " +
+    (index + 1) +
+    " / " +
+    targets.length +
+    "件目：" +
+    (target.companyName || "");
+
+  jsonp(
+    "createCertificatePdfJsonp",
+    {
+      rowNo: target.rowNo
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        errors.push(
+          (target.companyName || target.memberNo || "対象者") +
+          "：" +
+          (res && res.message ? res.message : "PDF発行に失敗しました。")
+        );
+      } else {
+        successCount++;
+      }
+
+      createPdfQueue(
+        targets,
+        index + 1,
+        successCount,
+        errors
+      );
+    }
+  );
+}
+
+loadCertificateRules();
+</script>
+
+</body>
+</html>

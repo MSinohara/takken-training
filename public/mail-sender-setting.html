@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>メール送信元設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1120px;
+}
+
+.guide{
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+  padding:16px;
+  line-height:1.8;
+  margin-bottom:18px;
+}
+
+.guide ol{
+  margin:8px 0 0 22px;
+  padding:0;
+}
+
+.table-wrap{
+  overflow-x:auto;
+}
+
+.sender-mail{
+  white-space:nowrap;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.form-grid.three{
+  grid-template-columns:1fr 1fr 1fr;
+}
+
+@media (max-width:760px){
+  .form-grid,
+  .form-grid.three{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>メール送信元設定</h1>
+  <p>支部・ブロックごとの案内メール送信元を登録します。</p>
+</header>
+
+<main>
+  <div class="actions">
+    <a class="btn sub" href="settings.html">設定・管理へ戻る</a>
+    <button class="btn" onclick="openSenderModal('')">新規登録</button>
+    <button class="btn sub" onclick="loadSenders()">再読み込み</button>
+  </div>
+
+  <section class="guide">
+    <strong>送信元メールを使う前に、Google側で送信元アドレスの設定が必要です。</strong>
+    <p>
+      本番環境のメール送信元は、<strong>tokyotakken10@gmail.com</strong> のGoogleアカウントで設定します。
+      先にこのアカウントでGmailの送信元アドレス設定を行い、その後この画面で表示名・送信元メールを登録してください。
+    </p>
+    <ol>
+      <li>Gmailの「名前」設定を開きます。</li>
+      <li>「他のメールアドレスを追加」から、送信元として使うメールアドレスを登録します。</li>
+      <li>Google側の確認が完了したら、この画面で送信元名・メールアドレスを登録します。</li>
+      <li>登録後、「テスト送信」を押して、実際に送信できるか確認します。</li>
+    </ol>
+    <div class="actions">
+      <a id="gmailSettingLink" class="btn" href="https://mail.google.com/mail/u/0/#settings/accounts" target="_blank" rel="noopener">Google側の送信元設定を開く</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>登録済み送信元</h2>
+    <p class="muted">
+      対象区分を設定すると、研修会の主催区分・差出人組織に応じて送信元として利用します。
+    </p>
+    <div id="status" class="status">読み込み中...</div>
+    <div id="senderTable" class="table-wrap"></div>
+  </section>
+</main>
+
+<script>
+let mailSenders =
+  [];
+
+let gmailSettingUrl =
+  "https://mail.google.com/mail/u/0/#settings/accounts";
+
+function loadSenders(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  jsonp(
+    "getMailSendersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "メール送信元を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      mailSenders =
+        res.senders || [];
+
+      gmailSettingUrl =
+        res.gmailSettingUrl || gmailSettingUrl;
+
+      document.getElementById("gmailSettingLink").href =
+        gmailSettingUrl;
+
+      renderSenders();
+    }
+  );
+}
+
+function renderSenders(){
+
+  const status =
+    document.getElementById("status");
+
+  const box =
+    document.getElementById("senderTable");
+
+  if(mailSenders.length === 0){
+    status.textContent =
+      "メール送信元はまだ登録されていません。";
+    box.innerHTML =
+      "";
+    return;
+  }
+
+  status.textContent =
+    mailSenders.length + "件の送信元があります。";
+
+  box.innerHTML =
+    '<table>' +
+      '<thead><tr>' +
+        '<th>表示名</th>' +
+        '<th>送信元メール</th>' +
+        '<th>対象</th>' +
+        '<th>有効</th>' +
+        '<th>更新日時</th>' +
+        '<th>操作</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      mailSenders.map(function(sender){
+        return '<tr>' +
+          '<td>' + escapeHtml(sender.displayName || "") + '</td>' +
+          '<td class="sender-mail">' + escapeHtml(sender.fromMail || "") + '</td>' +
+          '<td>' + escapeHtml(buildTargetText(sender)) + '</td>' +
+          '<td>' + formatFlagLabel(sender.active) + '</td>' +
+          '<td>' + escapeHtml(sender.updatedAt || "") + '</td>' +
+          '<td>' +
+            '<button class="btn sub" onclick="openSenderModal(\'' +
+              escapeJs(sender.senderId || "") +
+            '\')">編集</button> ' +
+            '<button class="btn" onclick="openTestModal(\'' +
+              escapeJs(sender.senderId || "") +
+            '\')">テスト送信</button>' +
+          '</td>' +
+        '</tr>';
+      }).join("") +
+      '</tbody>' +
+    '</table>';
+}
+
+function buildTargetText(sender){
+
+  const type =
+    sender.targetType || "共通";
+
+  if(type === "支部"){
+    return "支部：" + (sender.targetBranch || "未指定");
+  }
+
+  if(type === "組織"){
+    return "組織ID：" + (sender.targetOrgId || "未指定");
+  }
+
+  if(type === "ブロック"){
+    return "第十ブロック";
+  }
+
+  return "共通";
+}
+
+function openSenderModal(senderId){
+
+  const sender =
+    mailSenders.find(function(item){
+      return item.senderId === senderId;
+    }) || {};
+
+  const body =
+    '<input id="modalSenderId" type="hidden" value="' + escapeHtml(sender.senderId || "") + '">' +
+    '<div class="form-grid">' +
+      '<label>表示名<input id="modalDisplayName" value="' + escapeHtml(sender.displayName || "") + '" placeholder="例：宅建 中野支部"></label>' +
+      '<label>送信元メール<input id="modalFromMail" type="email" value="' + escapeHtml(sender.fromMail || "") + '" placeholder="例：info@example.jp"></label>' +
+    '</div>' +
+    '<div class="form-grid three">' +
+      '<label>対象区分' +
+        '<select id="modalTargetType" onchange="syncTargetFields()">' +
+          '<option value="共通">共通</option>' +
+          '<option value="ブロック">第十ブロック</option>' +
+          '<option value="支部">支部</option>' +
+          '<option value="組織">組織</option>' +
+        '</select>' +
+      '</label>' +
+      '<label id="targetBranchLabel">対象支部' +
+        '<select id="modalTargetBranch">' +
+          '<option value="">指定なし</option>' +
+          '<option value="杉並支部">杉並支部</option>' +
+          '<option value="中野支部">中野支部</option>' +
+          '<option value="世田谷支部">世田谷支部</option>' +
+        '</select>' +
+      '</label>' +
+      '<label id="targetOrgLabel">対象組織ID<input id="modalTargetOrgId" value="' + escapeHtml(sender.targetOrgId || "") + '" placeholder="例：ORG-001"></label>' +
+    '</div>' +
+    '<div class="form-grid">' +
+      '<label>有効' +
+        '<select id="modalActive">' +
+          buildFlagOptions(sender.active) +
+        '</select>' +
+      '</label>' +
+      '<label>備考<input id="modalNote" value="' + escapeHtml(sender.note || "") + '" placeholder="任意"></label>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveSender()">保存</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>' +
+    '<div id="modalResult" class="result"></div>';
+
+  openAppModal(
+    senderId ? "メール送信元を編集" : "メール送信元を新規登録",
+    body,
+    { wide: true }
+  );
+
+  document.getElementById("modalTargetType").value =
+    sender.targetType || "共通";
+
+  document.getElementById("modalTargetBranch").value =
+    sender.targetBranch || "";
+
+  syncTargetFields();
+}
+
+function syncTargetFields(){
+
+  const type =
+    document.getElementById("modalTargetType").value;
+
+  document.getElementById("targetBranchLabel").style.display =
+    type === "支部" ? "" : "none";
+
+  document.getElementById("targetOrgLabel").style.display =
+    type === "組織" ? "" : "none";
+}
+
+function saveSender(){
+
+  const data =
+    {
+      senderId: document.getElementById("modalSenderId").value,
+      displayName: document.getElementById("modalDisplayName").value.trim(),
+      fromMail: document.getElementById("modalFromMail").value.trim(),
+      targetType: document.getElementById("modalTargetType").value,
+      targetBranch: document.getElementById("modalTargetBranch").value,
+      targetOrgId: document.getElementById("modalTargetOrgId").value.trim(),
+      active: document.getElementById("modalActive").value,
+      note: document.getElementById("modalNote").value
+    };
+
+  if(!data.displayName || !data.fromMail){
+    showModalResult("表示名と送信元メールを入力してください。", false);
+    return;
+  }
+
+  if(data.fromMail.indexOf("@") === -1){
+    showModalResult("送信元メールの形式を確認してください。", false);
+    return;
+  }
+
+  showModalResult("保存中...", true);
+
+  jsonp(
+    "saveMailSenderJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        showModalResult(
+          res && res.message ? res.message : "保存できませんでした。",
+          false
+        );
+        return;
+      }
+
+      closeAppModal();
+      loadSenders();
+    }
+  );
+}
+
+function openTestModal(senderId){
+
+  const sender =
+    mailSenders.find(function(item){
+      return item.senderId === senderId;
+    }) || {};
+
+  const body =
+    '<p class="muted">' +
+      escapeHtml(sender.displayName || "") +
+      ' からテストメールを送信します。Google側で送信元アドレスが許可されていない場合はエラーになります。' +
+    '</p>' +
+    '<input id="testSenderId" type="hidden" value="' + escapeHtml(sender.senderId || "") + '">' +
+    '<label>テスト送信先メール<input id="testToMail" type="email" placeholder="送信先メールアドレス"></label>' +
+    '<div class="actions">' +
+      '<button class="btn" onclick="sendTestMail()">テスト送信</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>' +
+    '<div id="modalResult" class="result"></div>';
+
+  openAppModal(
+    "テスト送信",
+    body
+  );
+}
+
+function sendTestMail(){
+
+  const senderId =
+    document.getElementById("testSenderId").value;
+
+  const toMail =
+    document.getElementById("testToMail").value.trim();
+
+  if(!toMail || toMail.indexOf("@") === -1){
+    showModalResult("テスト送信先メールを入力してください。", false);
+    return;
+  }
+
+  showModalResult("送信中...", true);
+
+  jsonp(
+    "sendMailSenderTestJsonp",
+    {
+      senderId: senderId,
+      toMail: toMail
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showModalResult(
+          res && res.message ? res.message : "テスト送信できませんでした。",
+          false
+        );
+        return;
+      }
+
+      showModalResult("テスト送信しました。送信先：" + (res.toMail || toMail), true);
+    },
+    60000
+  );
+}
+
+function showModalResult(message, ok){
+
+  const result =
+    document.getElementById("modalResult");
+
+  result.style.display =
+    "block";
+
+  result.className =
+    "result " + (ok ? "ok" : "ng");
+
+  result.textContent =
+    message;
+}
+
+document.addEventListener("DOMContentLoaded", loadSenders);
+</script>
+
+</body>
+</html>

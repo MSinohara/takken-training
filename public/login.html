@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ログイン</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+.login-wrap{
+  max-width:430px;
+}
+
+.login-card{
+  background:#fff;
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+
+.login-card h2{
+  margin:0 0 10px;
+  font-size:22px;
+}
+
+.login-actions{
+  margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>ログイン</h1>
+  <p>研修会参加確認システム</p>
+</header>
+
+<main class="login-wrap">
+
+  <section class="login-card">
+    <h2>ID・パスワード</h2>
+    <p class="muted">
+      事務局・受付担当・業者用のログイン画面です。
+    </p>
+
+    <label for="loginId">ログインID</label>
+    <input id="loginId" type="text" autocomplete="username">
+
+    <label for="password">パスワード</label>
+    <input id="password" type="password" autocomplete="current-password">
+
+    <div class="login-actions">
+      <button class="btn" type="button" onclick="login()">ログイン</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </section>
+
+</main>
+
+<script>
+function getNextUrl_(){
+
+  const params =
+    new URLSearchParams(window.location.search);
+
+  return params.get("next") || "index.html";
+}
+
+function showResult(message, ok){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  result.className =
+    "result " + (ok ? "ok" : "ng");
+
+  result.textContent =
+    message;
+}
+
+function login(){
+
+  const loginId =
+    document.getElementById("loginId").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  if(!loginId || !password){
+    showResult("IDとパスワードを入力してください。", false);
+    return;
+  }
+
+  jsonp(
+    "loginJsonp",
+    {
+      loginId: loginId,
+      password: password
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        showResult(
+          res && res.message
+            ? res.message
+            : "ログインできませんでした。",
+          false
+        );
+        return;
+      }
+
+      setAuthSession(
+        res.sessionToken,
+        res.user
+      );
+
+      window.location.href =
+        getNextUrl_();
+    }
+  );
+}
+
+document.addEventListener("keydown", function(e){
+  if(e.key === "Enter"){
+    login();
+  }
+});
+</script>
+
+</body>
+</html>

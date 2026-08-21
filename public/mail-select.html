@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>メール送信する研修会を選択</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+.training{
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:16px;
+  margin-top:14px;
+  background:#fff;
+}
+
+.training h2{
+  margin:0 0 8px;
+  font-size:20px;
+}
+
+.meta{
+  color:#666;
+  line-height:1.7;
+  margin-bottom:12px;
+}
+
+.filter-box{
+  margin-top:16px;
+  padding:14px;
+  background:#f7f7f7;
+  border-radius:8px;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>メール送信する研修会を選択</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <p class="muted">
+    メール送信対象の研修会を選択してください。
+  </p>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+	<div class="filter-box">
+	  <label>検索</label>
+	  <input id="keyword" placeholder="研修ID・研修名・主催区分で検索" oninput="onSearchChanged()">
+	</div>
+
+  <div id="status" class="status">読み込み中...</div>
+  <div id="trainingList"></div>
+
+	<div id="pager" class="pager" style="display:none;">
+	  <button class="btn sub" onclick="prevPage()">前へ</button>
+	  <span id="pagerInfo" class="pager-info"></span>
+	  <button class="btn sub" onclick="nextPage()">次へ</button>
+	</div>
+
+</div>
+</main>
+
+<script>
+let allTrainings =
+  [];
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+
+function loadTrainings(){
+
+  jsonp(
+    "getActiveTrainingsJsonp",
+    {},
+    function(res){
+
+      const status =
+        document.getElementById("status");
+
+      if(!res || !res.ok){
+        status.textContent =
+          res && res.message
+            ? res.message
+            : "研修会一覧を取得できませんでした。";
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      if(allTrainings.length === 0){
+        status.textContent =
+          "送信対象の研修会がありません。";
+        return;
+      }
+
+      renderTrainings();
+    }
+  );
+}
+
+
+function renderTrainings(){
+
+  const status =
+    document.getElementById("status");
+
+  const list =
+    document.getElementById("trainingList");
+
+  const pager =
+    document.getElementById("pager");
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allTrainings.filter(function(t){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          t.eventId,
+          t.title,
+          t.hostType,
+          getReceptionTypeLabel(t.receptionType || "")
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  list.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "条件に一致する研修会はありません。";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(t){
+
+    const div =
+      document.createElement("div");
+
+    div.className =
+      "training";
+
+    div.innerHTML =
+      "<h2>" + escapeHtml(t.title) + "</h2>" +
+
+      '<div class="meta">' +
+      "研修ID：" + escapeHtml(t.eventId) + "<br>" +
+      "主催：" + escapeHtml(t.hostType) + "<br>" +
+      "受付方式：" + escapeHtml(getReceptionTypeLabel(t.receptionType || "")) +
+      "</div>" +
+
+      '<div class="actions">' +
+
+        '<a class="btn" href="mail-send.html?event=' +
+        encodeURIComponent(t.eventId) +
+        '&return=mail">メール確認・送信</a>' +
+
+        '<a class="btn sub" href="training-detail.html?event=' +
+        encodeURIComponent(t.eventId) +
+        '&return=mail">研修会詳細</a>' +
+
+      '</div>';
+
+    list.appendChild(div);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+
+function onSearchChanged(){
+
+  currentPage =
+    1;
+
+  renderTrainings();
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderTrainings();
+}
+
+
+function nextPage(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allTrainings.filter(function(t){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          t.eventId,
+          t.title,
+          t.hostType,
+          getReceptionTypeLabel(t.receptionType || "")
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderTrainings();
+}
+
+
+loadTrainings();
+</script>
+
+</body>
+</html>

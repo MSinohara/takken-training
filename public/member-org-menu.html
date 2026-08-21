@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会員・組織管理</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:18px;
+}
+
+.menu-card{
+  display:block;
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  min-height:145px;
+}
+
+.icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.menu-card h3{
+  margin:0 0 8px;
+  font-size:19px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会員・組織管理</h1>
+  <p>会員マスタ、送信対象、支部・地区、任意組織を管理します。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <section class="menu-grid">
+
+    <a class="menu-card" href="member-list.html">
+      <div class="icon">👥</div>
+      <h3>会員一覧</h3>
+      <p>会員情報の検索・確認、送信対象設定、所属組織の確認を行います。</p>
+    </a>
+
+    <a class="menu-card" href="personal-member-master.html">
+      <div class="icon">👤</div>
+      <h3>個人会員マスタ</h3>
+      <p>代表者を1番目の個人として確認し、社員・担当者を追加します。</p>
+    </a>
+
+    <a class="menu-card" href="member-import.html" data-auth-roles="admin">
+      <div class="icon">📥</div>
+      <h3>会員マスタCSV取込</h3>
+      <p>CSVファイルから会員情報を更新します。送信対象等の設定は維持されます。</p>
+    </a>
+
+    <a class="menu-card" href="organization-setting.html" data-auth-roles="admin">
+      <div class="icon">🏢</div>
+      <h3>組織設定</h3>
+      <p>青年部・レディス部・役員・委員会など、任意組織を設定します。</p>
+    </a>
+
+    <a class="menu-card" href="related-person-master.html">
+      <div class="icon">👔</div>
+      <h3>役員・関係者登録</h3>
+      <p>役員、講師、来賓など、研修会で使用する関係者を事前に登録します。通常の対象人数・参加率には含めず、参考参加として集計します。</p>
+    </a>
+
+    <a class="menu-card" href="organization-member-import.html" data-auth-roles="admin">
+      <div class="icon">🏷️</div>
+      <h3>組織所属CSV取込</h3>
+      <p>組織ごとの所属会員を、業者番号CSVで入れ替えます。</p>
+    </a>
+
+  </section>
+
+</main>
+
+</body>
+</html>

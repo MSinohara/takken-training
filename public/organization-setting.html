@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>組織設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.form-panel{
+  display:none;
+  margin:16px 0;
+  padding:16px;
+  background:#f7f7f7;
+  border-radius:10px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 120px 140px 1fr 160px auto;
+  gap:10px;
+  align-items:end;
+  margin-bottom:20px;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 160px;
+  gap:10px;
+  margin:16px 0;
+}
+
+.pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.pager-info{
+  color:#666;
+}
+
+.help-details{
+  margin:16px 0;
+  padding:0;
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+}
+
+.help-details summary{
+  padding:14px;
+  cursor:pointer;
+  font-weight:bold;
+  list-style:none;
+}
+
+.help-details summary::-webkit-details-marker{
+  display:none;
+}
+
+.help-details summary::after{
+  content:"開く";
+  float:right;
+  color:#666;
+  font-weight:normal;
+}
+
+.help-details[open] summary::after{
+  content:"閉じる";
+}
+
+.help-details-body{
+  padding:0 14px 14px;
+  line-height:1.8;
+}
+
+@media screen and (max-width:900px){
+  .form-grid{
+    display:block;
+  }
+
+  .search{
+    display:block;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid button,
+  .search input,
+  .search button{
+    margin-top:8px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>組織設定</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <details class="help-details">
+    <summary>組織と会員属性の考え方</summary>
+    <div class="help-details-body">
+      ブロック・支部・地区は会員マスタに登録される基本属性です。<br>
+      研修会の対象指定や集計では、会員マスタのブロック・支部・地区を使用します。<br>
+      組織マスタは、青年部・レディス部・役員・委員会など、会員マスタの属性だけでは管理できない任意グループを登録するために使用します。<br>
+      組織を作成しなくても、ブロック・支部・地区を使った研修会運用は可能です。
+    </div>
+  </details>
+
+  <details class="help-details">
+    <summary>CSV取込方式について</summary>
+    <div class="help-details-body">
+      所属入替：CSV取込時に対象組織の所属データを一度すべて削除し、CSV内の業者番号で再登録します。<br>
+      会員マスタの会社名・メール・ブロック・支部・地区・送信対象設定は変更されません。<br>
+      ※ブロック・支部・地区は会員マスタ取込で管理します。
+    </div>
+  </details>
+
+  <input type="hidden" id="orgId">
+
+  <div class="actions">
+    <button class="btn" onclick="openNewOrganizationForm()">新規登録</button>
+    <a class="btn sub" href="member-org-menu.html">会員・組織管理へ戻る</a>
+  </div>
+
+  <div id="formPanel" class="form-panel">
+    <div id="editStatus" class="info" style="display:none;"></div>
+
+    <div class="form-grid">
+      <div>
+        <label>組織名</label>
+        <input id="orgName" placeholder="例：青年部">
+      </div>
+
+      <div>
+        <label>差出人名</label>
+        <input id="senderName" placeholder="例：宅建 第十ブロック青年部">
+      </div>
+
+      <div>
+        <label>有効</label>
+        <select id="active">
+          <option value="TRUE">有効</option>
+          <option value="FALSE">無効</option>
+        </select>
+      </div>
+
+      <div>
+        <label>主催区分</label>
+        <select id="hostAvailable">
+          <option value="FALSE">使わない</option>
+          <option value="TRUE">使う</option>
+        </select>
+      </div>
+
+      <div>
+        <label>CSV取込名</label>
+        <input id="csvImportName" placeholder="例：青年部">
+      </div>
+
+      <div>
+        <label>CSV取込方式</label>
+        <select id="csvImportMode">
+          <option value="所属入替">所属入替</option>
+        </select>
+      </div>
+
+      <div>
+        <button class="btn" onclick="saveOrganization()">保存</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn sub" onclick="closeOrganizationForm()">入力を閉じる</button>
+    </div>
+  </div>
+
+  <div class="search">
+    <input id="keyword" placeholder="組織ID・組織名・差出人名・CSV取込名で検索" oninput="onSearchChanged()">
+    <button class="btn" onclick="loadOrganizations()">再検索</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <table id="orgTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>組織ID</th>
+        <th>組織名</th>
+        <th>差出人名</th>
+        <th>有効</th>
+        <th>主催区分</th>
+        <th>CSV取込名</th>
+        <th>CSV取込方式</th>
+        <th>更新日時</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="orgBody"></tbody>
+  </table>
+
+  <div id="pager" class="pager" style="display:none;">
+    <button class="btn sub" onclick="prevPage()">前へ</button>
+    <span id="pagerInfo" class="pager-info"></span>
+    <button class="btn sub" onclick="nextPage()">次へ</button>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allOrganizations =
+  [];
+
+let organizationPersonalCandidates =
+  [];
+
+let editingOrganizationForPersonal =
+  null;
+
+let currentPage =
+  1;
+
+const pageSize =
+  10;
+
+
+function loadOrganizations(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("orgTable");
+
+  const tbody =
+    document.getElementById("orgBody");
+
+  status.textContent =
+    "読み込み中...";
+
+  table.style.display =
+    "none";
+
+  document.getElementById("pager").style.display =
+    "none";
+
+  jsonp(
+    "getOrganizationsJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">組織一覧を取得できませんでした。</span>';
+        return;
+      }
+
+      allOrganizations =
+        res.organizations || [];
+
+      currentPage =
+        1;
+
+      if(allOrganizations.length === 0){
+        status.textContent =
+          "組織はまだ登録されていません。";
+        return;
+      }
+
+      renderOrganizations();
+    }
+  );
+}
+
+
+function renderOrganizations(){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("orgTable");
+
+  const tbody =
+    document.getElementById("orgBody");
+
+  const pager =
+    document.getElementById("pager");
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allOrganizations.filter(function(o){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          o.orgId,
+          o.orgName,
+          o.senderName,
+          o.active,
+          o.hostAvailable,
+          o.csvImportName,
+          o.csvImportMode,
+          o.updatedAt
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  tbody.innerHTML =
+    "";
+
+  if(filtered.length === 0){
+    status.textContent =
+      "条件に一致する組織はありません。";
+
+    table.style.display =
+      "none";
+
+    pager.style.display =
+      "none";
+
+    return;
+  }
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage > totalPages){
+    currentPage =
+      totalPages;
+  }
+
+  const start =
+    (currentPage - 1) * pageSize;
+
+  const pageItems =
+    filtered.slice(
+      start,
+      start + pageSize
+    );
+
+  pageItems.forEach(function(o){
+
+    const tr =
+      document.createElement("tr");
+
+    const csvImportMode =
+      o.csvImportMode === "全会員自動"
+        ? "所属入替"
+        : o.csvImportMode || "所属入替";
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(o.orgId) + "</td>" +
+      "<td>" + escapeHtml(o.orgName) + "</td>" +
+      "<td>" + escapeHtml(o.senderName) + "</td>" +
+      "<td>" + escapeHtml(formatFlagLabel(o.active)) + "</td>" +
+      "<td>" + escapeHtml(formatFlagLabel(o.hostAvailable, "使う", "使わない")) + "</td>" +
+      "<td>" + escapeHtml(o.csvImportName || "") + "</td>" +
+      "<td>" + escapeHtml(csvImportMode) + "</td>" +
+      "<td>" + escapeHtml(formatDateTimeDisplay(o.updatedAt)) + "</td>" +
+      "<td>" +
+        '<button class="btn sub" onclick="editOrganization(\'' +
+        escapeJs(o.orgId) +
+        '\',\'' +
+        escapeJs(o.orgName) +
+        '\',\'' +
+        escapeJs(o.senderName) +
+        '\',\'' +
+        escapeJs(o.active) +
+        '\',\'' +
+        escapeJs(o.hostAvailable || "FALSE") +
+        '\',\'' +
+        escapeJs(o.csvImportName || "") +
+        '\',\'' +
+        escapeJs(csvImportMode) +
+        '\')">編集</button>' +
+        ' ' +
+        '<button class="btn sub" onclick="showOrganizationMembers(\'' +
+        escapeJs(o.orgId) +
+        '\',\'' +
+        escapeJs(o.orgName) +
+        '\')">所属会員</button>' +
+        ' ' +
+        '<button class="btn sub" onclick="openOrganizationPersonalEditor(\'' +
+        escapeJs(o.orgId) +
+        '\',\'' +
+        escapeJs(o.orgName) +
+        '\')">所属個人を追加</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  status.textContent =
+    filtered.length +
+    "件中 " +
+    (start + 1) +
+    "〜" +
+    (start + pageItems.length) +
+    "件を表示中";
+
+  document.getElementById("pagerInfo").textContent =
+    currentPage +
+    " / " +
+    totalPages +
+    "ページ";
+
+  table.style.display =
+    "table";
+
+  pager.style.display =
+    totalPages > 1
+      ? "flex"
+      : "none";
+}
+
+
+function onSearchChanged(){
+
+  currentPage =
+    1;
+
+  renderOrganizations();
+}
+
+
+function prevPage(){
+
+  if(currentPage <= 1){
+    return;
+  }
+
+  currentPage--;
+
+  renderOrganizations();
+}
+
+
+function nextPage(){
+
+  const keyword =
+    document.getElementById("keyword").value.trim().toLowerCase();
+
+  const filtered =
+    allOrganizations.filter(function(o){
+
+      if(!keyword){
+        return true;
+      }
+
+      const text =
+        [
+          o.orgId,
+          o.orgName,
+          o.senderName,
+          o.active,
+          o.hostAvailable,
+          o.csvImportName,
+          o.csvImportMode,
+          o.updatedAt
+        ].join(" ").toLowerCase();
+
+      return text.indexOf(keyword) !== -1;
+    });
+
+  const totalPages =
+    Math.ceil(filtered.length / pageSize);
+
+  if(currentPage >= totalPages){
+    return;
+  }
+
+  currentPage++;
+
+  renderOrganizations();
+}
+
+function showOrganizationMembers(orgId, orgName){
+
+  openAppModal(
+    "所属会員確認",
+    '<div class="status">読み込み中...</div>'
+  );
+
+  jsonp(
+    "getOrganizationMembersJsonp",
+    { orgId: orgId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("appModalBody").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "所属会員を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      const members =
+        res.members || [];
+
+      if(members.length === 0){
+        document.getElementById("appModalBody").innerHTML =
+          '<div class="muted">' +
+          escapeHtml(orgName || orgId) +
+          ' に登録されている所属会員はありません。</div>';
+        return;
+      }
+
+      let html =
+        '<div class="muted">' +
+        escapeHtml(orgName || orgId) +
+        ' / ' +
+        escapeHtml(members.length) +
+        '件</div>' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>業者番号</th>' +
+            '<th>会社名</th>' +
+            '<th>個人ID</th>' +
+            '<th>個人名</th>' +
+            '<th>区分</th>' +
+            '<th>支部</th>' +
+            '<th>地区</th>' +
+            '<th>メール</th>' +
+          '</tr></thead><tbody>';
+
+      members.forEach(function(member){
+
+        html +=
+          '<tr>' +
+            '<td>' + escapeHtml(member.memberNo || "") + '</td>' +
+            '<td>' + escapeHtml(member.companyName || "") + '</td>' +
+            '<td>' + escapeHtml(member.personalId || "") + '</td>' +
+            '<td>' + escapeHtml(member.personName || "") + '</td>' +
+            '<td>' + escapeHtml(member.personType || "") + '</td>' +
+            '<td>' + escapeHtml(member.branch || "") + '</td>' +
+            '<td>' + escapeHtml(member.district || "") + '</td>' +
+            '<td>' + escapeHtml(member.mail || "") + '</td>' +
+          '</tr>';
+      });
+
+      html +=
+        '</tbody></table>';
+
+      openAppModal(
+        "所属会員確認",
+        html,
+        { wide:true }
+      );
+    }
+  );
+}
+
+function openOrganizationPersonalEditor(orgId, orgName){
+
+  editingOrganizationForPersonal =
+    {
+      orgId: orgId,
+      orgName: orgName
+    };
+
+  organizationPersonalCandidates =
+    [];
+
+  const body =
+    '<div class="notice">' +
+      escapeHtml(orgName || orgId) +
+      ' に所属させる個人を、個人会員マスタから検索して追加します。代表者001を追加した場合は、会社の所属組織として登録されます。' +
+    '</div>' +
+    '<div class="search">' +
+      '<input id="orgPersonalKeyword" placeholder="会社名・氏名・業者番号・個人IDで検索">' +
+      '<button class="btn" onclick="searchOrganizationPersonalCandidates()">検索</button>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="btn sub" onclick="checkOrganizationPersonalCandidates(true)">表示中を全選択</button>' +
+      '<button class="btn sub" onclick="checkOrganizationPersonalCandidates(false)">選択を外す</button>' +
+      '<button class="btn" onclick="addSelectedPersonalToOrganization()">チェックした個人を追加</button>' +
+      '<button class="btn sub" onclick="showOrganizationMembers(\'' +
+        escapeJs(orgId) +
+        '\',\'' +
+        escapeJs(orgName) +
+      '\')">現在の所属を見る</button>' +
+    '</div>' +
+    '<div id="orgPersonalStatus" class="status">検索条件を入れて「検索」を押してください。</div>' +
+    '<table id="orgPersonalTable" style="display:none;">' +
+      '<thead><tr>' +
+        '<th>選択</th>' +
+        '<th>個人ID</th>' +
+        '<th>業者番号</th>' +
+        '<th>会社名</th>' +
+        '<th>氏名</th>' +
+        '<th>区分</th>' +
+        '<th>支部</th>' +
+        '<th>地区</th>' +
+        '<th>メール</th>' +
+      '</tr></thead>' +
+      '<tbody id="orgPersonalBody"></tbody>' +
+    '</table>';
+
+  openAppModal(
+    "所属個人を追加",
+    body,
+    { wide: true }
+  );
+}
+
+function searchOrganizationPersonalCandidates(){
+
+  const keyword =
+    document.getElementById("orgPersonalKeyword").value.trim();
+
+  const status =
+    document.getElementById("orgPersonalStatus");
+
+  if(!keyword){
+    status.innerHTML =
+      '<span class="ng">検索文字を入力してください。</span>';
+    return;
+  }
+
+  status.textContent =
+    "検索中...";
+
+  jsonp(
+    "getPersonalMembersJsonp",
+    {
+      keyword: keyword
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "個人会員を検索できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      organizationPersonalCandidates =
+        (res.members || []).slice(0, 100);
+
+      renderOrganizationPersonalCandidates(
+        res.count || organizationPersonalCandidates.length
+      );
+    },
+    120000
+  );
+}
+
+function renderOrganizationPersonalCandidates(totalCount){
+
+  const table =
+    document.getElementById("orgPersonalTable");
+
+  const tbody =
+    document.getElementById("orgPersonalBody");
+
+  const status =
+    document.getElementById("orgPersonalStatus");
+
+  tbody.innerHTML =
+    "";
+
+  if(organizationPersonalCandidates.length === 0){
+    table.style.display =
+      "none";
+    status.textContent =
+      "条件に一致する個人会員はありません。";
+    return;
+  }
+
+  organizationPersonalCandidates.forEach(function(person, index){
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      '<td><input type="checkbox" class="org-personal-check" value="' +
+        escapeHtml(person.personalId || "") +
+      '"></td>' +
+      '<td>' + escapeHtml(person.personalId || "") + '</td>' +
+      '<td>' + escapeHtml(person.memberNo || "") + '</td>' +
+      '<td>' + escapeHtml(person.companyName || "") + '</td>' +
+      '<td>' + escapeHtml(person.personName || "") + '</td>' +
+      '<td>' + escapeHtml(person.personType || "") + '</td>' +
+      '<td>' + escapeHtml(person.branch || "") + '</td>' +
+      '<td>' + escapeHtml(person.district || "") + '</td>' +
+      '<td>' + escapeHtml(person.mail || "") + '</td>';
+
+    tbody.appendChild(tr);
+  });
+
+  table.style.display =
+    "table";
+
+  status.textContent =
+    String(totalCount || organizationPersonalCandidates.length) +
+    "件中 " +
+    organizationPersonalCandidates.length +
+    "件を表示中。追加する個人にチェックしてください。";
+}
+
+function checkOrganizationPersonalCandidates(checked){
+
+  document
+    .querySelectorAll(".org-personal-check")
+    .forEach(function(input){
+      input.checked =
+        checked;
+    });
+}
+
+function addSelectedPersonalToOrganization(){
+
+  if(!editingOrganizationForPersonal || !editingOrganizationForPersonal.orgId){
+    alert("対象組織が分かりません。");
+    return;
+  }
+
+  const personalIds =
+    Array.prototype.slice
+      .call(document.querySelectorAll(".org-personal-check:checked"))
+      .map(function(input){
+        return input.value;
+      })
+      .filter(function(value){
+        return value;
+      });
+
+  if(personalIds.length === 0){
+    alert("追加する個人をチェックしてください。");
+    return;
+  }
+
+  const status =
+    document.getElementById("orgPersonalStatus");
+
+  status.textContent =
+    "所属個人を追加中...";
+
+  jsonp(
+    "addPersonalMembersToOrganizationJsonp",
+    {
+      orgId: editingOrganizationForPersonal.orgId,
+      personalIds: personalIds.join(",")
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "所属個人を追加できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "所属個人を追加しました。") +
+        '</span>';
+
+      checkOrganizationPersonalCandidates(false);
+    },
+    120000
+  );
+}
+
+
+function saveOrganization(){
+
+  const orgId =
+    document.getElementById("orgId").value.trim();
+
+  const orgName =
+    document.getElementById("orgName").value.trim();
+
+  const senderName =
+    document.getElementById("senderName").value.trim();
+
+  const active =
+    document.getElementById("active").value;
+
+  const hostAvailable =
+    document.getElementById("hostAvailable").value;
+
+  const csvImportName =
+    document.getElementById("csvImportName").value.trim();
+
+  const csvImportMode =
+    document.getElementById("csvImportMode").value;
+
+  if(!orgName || !senderName){
+    alert("組織名と差出人名は必須です。");
+    return;
+  }
+
+  if(csvImportMode === "所属入替" && !csvImportName){
+    alert("CSV取込方式が所属入替の場合は、CSV取込名を入力してください。");
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "保存中...";
+
+  jsonp(
+    "saveOrganizationJsonp",
+    {
+      orgId: orgId,
+      orgName: orgName,
+      senderName: senderName,
+      active: active,
+      hostAvailable: hostAvailable,
+      csvImportName: csvImportName,
+      csvImportMode: csvImportMode
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>';
+
+      closeOrganizationForm();
+      loadOrganizations();
+    }
+  );
+}
+
+function openNewOrganizationForm(){
+
+  clearForm();
+  openOrganizationForm();
+
+  const editStatus =
+    document.getElementById("editStatus");
+
+  editStatus.style.display =
+    "block";
+
+  editStatus.innerHTML =
+    '<strong>新規登録</strong><br>' +
+    '内容を入力して「保存」を押してください。';
+}
+
+function openOrganizationForm(){
+
+  document.getElementById("formPanel").style.display =
+    "block";
+}
+
+function closeOrganizationForm(){
+
+  clearForm();
+
+  document.getElementById("formPanel").style.display =
+    "none";
+}
+
+
+function editOrganization(
+  orgId,
+  orgName,
+  senderName,
+  active,
+  hostAvailable,
+  csvImportName,
+  csvImportMode
+){
+
+  openOrganizationForm();
+
+  document.getElementById("orgId").value =
+    orgId;
+
+  document.getElementById("orgName").value =
+    orgName;
+
+  document.getElementById("senderName").value =
+    senderName;
+
+  document.getElementById("active").value =
+    active === "FALSE" ? "FALSE" : "TRUE";
+
+  document.getElementById("hostAvailable").value =
+    hostAvailable === "TRUE" ? "TRUE" : "FALSE";
+
+  document.getElementById("csvImportName").value =
+    csvImportName || "";
+
+  document.getElementById("csvImportMode").value =
+    csvImportMode || "所属入替";
+
+  const editStatus =
+    document.getElementById("editStatus");
+
+  editStatus.style.display =
+    "block";
+
+  editStatus.innerHTML =
+    '<strong>編集中</strong><br>' +
+    '組織ID：' +
+    escapeHtml(orgId) +
+    '<br>' +
+    '内容を変更して「保存」を押してください。';
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+function clearForm(){
+
+  document.getElementById("orgId").value =
+    "";
+
+  document.getElementById("orgName").value =
+    "";
+
+  document.getElementById("senderName").value =
+    "";
+
+  document.getElementById("active").value =
+    "TRUE";
+
+  document.getElementById("hostAvailable").value =
+    "FALSE";
+
+  document.getElementById("csvImportName").value =
+    "";
+
+  document.getElementById("csvImportMode").value =
+    "所属入替";
+
+  document.getElementById("editStatus").style.display =
+    "none";
+}
+
+loadOrganizations();
+</script>
+
+</body>
+</html>

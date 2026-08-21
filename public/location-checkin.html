@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>位置情報受付</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+body{
+  -webkit-text-size-adjust:100%;
+}
+
+.global-nav{
+  display:none;
+}
+
+main{
+  max-width:640px;
+  margin:18px auto;
+  padding:0 14px;
+}
+
+.checkin-card{
+  text-align:left;
+  border-radius:8px;
+  padding:18px;
+}
+
+.main-button{
+  width:100%;
+  font-size:17px;
+  padding:14px 12px;
+  margin-top:12px;
+}
+
+.company{
+  font-size:22px;
+  font-weight:bold;
+  line-height:1.4;
+  margin:14px 0 10px;
+}
+
+.training-title{
+  font-size:20px;
+  font-weight:bold;
+  line-height:1.45;
+}
+
+.compact-info{
+  background:#f7f9fc;
+  border:1px solid #e1e6ee;
+  border-radius:8px;
+  padding:12px;
+  line-height:1.7;
+  margin:10px 0;
+}
+
+.compact-notice{
+  background:#fff8e8;
+  border:1px solid #e0c98b;
+  border-radius:8px;
+  padding:12px;
+  line-height:1.7;
+  margin:12px 0;
+}
+
+@media (max-width:640px){
+  header{
+    padding:12px 18px;
+  }
+
+  header h1{
+    font-size:20px;
+  }
+
+  .global-nav{
+    padding:8px 18px;
+  }
+
+  main{
+    margin:16px auto;
+    padding:0 12px;
+  }
+
+  .checkin-card{
+    padding:16px;
+    box-shadow:0 1px 6px rgba(0,0,0,0.08);
+  }
+
+  .training-title{
+    font-size:19px;
+  }
+
+  .company{
+    font-size:21px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>位置情報受付</h1>
+</header>
+
+<main>
+  <div class="card checkin-card">
+    <div id="status" class="status">受付情報を確認中...</div>
+
+    <div id="checkinArea" style="display:none;">
+      <div class="training-title" id="trainingTitle"></div>
+      <div class="muted" id="trainingInfo"></div>
+
+      <div class="company" id="companyName"></div>
+      <div class="compact-info" id="venueInfo"></div>
+      <div class="compact-info" id="timeInfo"></div>
+
+      <div class="compact-notice">
+        会場に到着後、下のボタンを押してください。端末の位置情報取得を許可すると、会場付近にいるか確認して受付します。
+      </div>
+
+      <button id="checkinButton" class="btn main-button" onclick="startLocationCheckin()">
+        位置情報を取得して受付する
+      </button>
+
+      <div id="result" class="result"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const token =
+  params.get("token") || "";
+
+let tokenInfo =
+  null;
+
+function loadTokenInfo(){
+
+  if(!token){
+    document.getElementById("status").innerHTML =
+      '<span class="ng">受付URLが正しくありません。</span>';
+    return;
+  }
+
+  jsonp(
+    "getLocationCheckinTokenJsonp",
+    { token: token },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付情報を確認できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      tokenInfo =
+        res;
+
+      renderInfo();
+    }
+  );
+}
+
+function renderInfo(){
+
+  document.getElementById("status").style.display =
+    "none";
+
+  document.getElementById("checkinArea").style.display =
+    "block";
+
+  document.getElementById("trainingTitle").textContent =
+    tokenInfo.training.title || "";
+
+  document.getElementById("trainingInfo").textContent =
+    [
+      tokenInfo.training.eventId,
+      tokenInfo.training.eventDate,
+      tokenInfo.training.hostType
+    ].filter(Boolean).join(" / ");
+
+  document.getElementById("companyName").textContent =
+    getDisplayName() + " 様";
+
+  document.getElementById("venueInfo").innerHTML =
+    '<strong>会場</strong><br>' +
+    escapeHtml(tokenInfo.venue.venueName || "") +
+    (tokenInfo.venue.venueAddress
+      ? '<br>' + escapeHtml(tokenInfo.venue.venueAddress)
+      : '') +
+    '<br>受付可能距離: ' +
+    escapeHtml(tokenInfo.venue.geoRadius || "200") +
+    'm';
+
+  document.getElementById("timeInfo").innerHTML =
+    '<strong>受付可能時間</strong><br>' +
+    escapeHtml(tokenInfo.training.locationCheckinStart || "") +
+    ' から<br>' +
+    escapeHtml(tokenInfo.training.locationCheckinEnd || "");
+
+  if(tokenInfo.usedAt){
+    document.getElementById("result").style.display =
+      "block";
+    document.getElementById("result").innerHTML =
+      '<span class="ok">このURLは受付済みです。</span><br>' +
+      '受付日時: ' +
+      escapeHtml(tokenInfo.usedAt);
+  }
+}
+
+function startLocationCheckin(){
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display =
+    "block";
+
+  if(!navigator.geolocation){
+    result.innerHTML =
+      '<span class="ng">この端末では位置情報を取得できません。</span>';
+    return;
+  }
+
+  document.getElementById("checkinButton").disabled =
+    true;
+
+  result.textContent =
+    "位置情報を取得中...";
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      registerLocation(
+        pos.coords.latitude,
+        pos.coords.longitude
+      );
+    },
+    function(err){
+      document.getElementById("checkinButton").disabled =
+        false;
+      result.innerHTML =
+        '<span class="ng">位置情報を取得できませんでした。</span><br>' +
+        '端末の位置情報許可を確認して、もう一度お試しください。';
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+function registerLocation(latitude, longitude){
+
+  const result =
+    document.getElementById("result");
+
+  result.textContent =
+    "受付処理中...";
+
+  jsonp(
+    "registerLocationCheckinJsonp",
+    {
+      token: token,
+      latitude: latitude,
+      longitude: longitude
+    },
+    function(res){
+
+      document.getElementById("checkinButton").disabled =
+        false;
+
+      if(!res || !res.ok){
+        result.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "受付できませんでした。") +
+          '</span>' +
+          makeTimeWindowText(res) +
+          makeDistanceText(res);
+        return;
+      }
+
+      result.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "受付完了") +
+        '</span><br>' +
+        escapeHtml(makeResultDisplayName(res)) +
+        ' 様' +
+        makeDistanceText(res);
+    },
+    30000
+  );
+}
+
+function makeResultDisplayName(res){
+
+  const companyName =
+    res && res.companyName
+      ? res.companyName
+      : tokenInfo.member.companyName || "";
+
+  const participantName =
+    res && res.participantName
+      ? res.participantName
+      : tokenInfo.member.participantName || "";
+
+  if(companyName && participantName){
+    return companyName + " / " + participantName;
+  }
+
+  return companyName || participantName || "";
+}
+
+function getDisplayName(){
+
+  const companyName =
+    tokenInfo && tokenInfo.member
+      ? tokenInfo.member.companyName || ""
+      : "";
+
+  const participantName =
+    tokenInfo && tokenInfo.member
+      ? tokenInfo.member.participantName || ""
+      : "";
+
+  if(companyName && participantName){
+    return companyName + " / " + participantName;
+  }
+
+  return companyName || participantName || "";
+}
+
+function makeDistanceText(res){
+
+  if(!res || res.distance === undefined){
+    return "";
+  }
+
+  return (
+    '<br><span class="muted">会場からの距離: ' +
+    escapeHtml(res.distance) +
+    'm / 受付可能距離: ' +
+    escapeHtml(res.radius || "") +
+    'm</span>'
+  );
+}
+
+function makeTimeWindowText(res){
+
+  if(!res || !res.startsAt){
+    return "";
+  }
+
+  return (
+    '<br><span class="muted">受付可能時間: ' +
+    escapeHtml(res.startsAt) +
+    ' から ' +
+    escapeHtml(res.endsAt || "") +
+    '</span>'
+  );
+}
+
+loadTokenInfo();
+</script>
+
+</body>
+</html>

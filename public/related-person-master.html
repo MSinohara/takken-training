@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>関係者を登録・管理</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1100px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.full{
+  grid-column:1 / -1;
+}
+
+@media screen and (max-width:800px){
+  .form-grid{
+    display:block;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea{
+    margin-bottom:10px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td{
+    display:block;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tr{
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:12px;
+    padding:10px;
+    background:#fff;
+  }
+
+  td{
+    border-bottom:none;
+    padding:7px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>関係者を登録・管理</h1>
+  <p>役員、来賓、講師、一般参加者など、イベントで使用する関係者を登録します。ここに登録した方は通常の対象人数・参加率には含めず、参考参加として集計します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <button class="btn" onclick="openRegisterModal()">新規登録</button>
+    <button class="btn" onclick="loadRelatedPersons()">再読み込み</button>
+    <a class="btn sub" href="member-org-menu.html">会員・組織管理へ戻る</a>
+  </div>
+
+  <div id="status" class="result"></div>
+
+  <h2>登録済み一覧</h2>
+
+  <table id="personTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>区分</th>
+        <th>役職</th>
+        <th>会社・団体名</th>
+        <th>氏名</th>
+        <th>所属</th>
+        <th>備考</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="personBody"></tbody>
+  </table>
+
+</div>
+</main>
+
+<script>
+let submitting =
+  false;
+
+let relatedPersons =
+  [];
+
+const blockBranchMap = {
+  "第一ブロック": ["千代田中央"],
+  "第二ブロック": ["江東区", "江戸川区", "葛飾区"],
+  "第三ブロック": ["台東区", "墨田区", "足立区"],
+  "第四ブロック": ["文京区", "荒川区", "豊島区"],
+  "第五ブロック": ["品川区", "大田区", "目黒区"],
+  "第六ブロック": ["港区"],
+  "第七ブロック": ["新宿区"],
+  "第八ブロック": ["渋谷区"],
+  "第九ブロック": ["北区", "板橋区", "練馬区"],
+  "第十ブロック": ["杉並支部", "中野支部", "世田谷支部"],
+  "第十一ブロック": ["武蔵野中央", "北多摩", "国分寺国立", "調布狛江", "府中稲城"],
+  "第十二ブロック": ["立川", "西多摩", "南多摩", "八王子", "町田"]
+};
+
+function getBlockOptionsHtml(){
+
+  return (
+    '<option value="">指定なし</option>' +
+    Object.keys(blockBranchMap).map(function(block){
+      return '<option value="' + escapeHtml(block) + '">' + escapeHtml(block) + '</option>';
+    }).join("")
+  );
+}
+
+function openRegisterModal(personId){
+
+  const editingPerson =
+    personId
+      ? relatedPersons.filter(function(person){
+          return person.personId === personId;
+        })[0]
+      : null;
+
+  const body =
+    '<div class="notice">' +
+      'ここは参加率に含めない関係者用です。支部所属者でも、通常の会員として集計したい場合は個人会員マスタ側で登録してください。' +
+    '</div>' +
+    '<div class="form-grid">' +
+      '<input type="hidden" id="modalPersonId">' +
+      '<div>' +
+        '<label>区分</label>' +
+        '<select id="modalCategory">' +
+          '<option value="役員・来賓">役員・来賓</option>' +
+          '<option value="協会関係者">協会関係者</option>' +
+          '<option value="他ブロック会員">他ブロック会員</option>' +
+          '<option value="一般参加">一般参加</option>' +
+        '</select>' +
+      '</div>' +
+
+      '<div>' +
+        '<label>役職（任意）</label>' +
+        '<input id="modalRole" placeholder="例：支部長、副支部長">' +
+      '</div>' +
+
+      '<div>' +
+        '<label>所属ブロック（表示用・任意）</label>' +
+        '<select id="modalBlock" onchange="renderModalBranches()">' +
+          getBlockOptionsHtml() +
+        '</select>' +
+      '</div>' +
+
+      '<div>' +
+        '<label>所属支部（表示用・任意）</label>' +
+        '<select id="modalBranch"></select>' +
+      '</div>' +
+
+      '<div>' +
+        '<label>会社・団体名（任意）</label>' +
+        '<input id="modalCompanyName" placeholder="例：株式会社サンプル">' +
+      '</div>' +
+
+      '<div>' +
+        '<label>氏名</label>' +
+        '<input id="modalPersonName" placeholder="例：山田 太郎">' +
+      '</div>' +
+
+      '<div>' +
+        '<label>メール（任意）</label>' +
+        '<input id="modalMail" placeholder="例：sample@example.com">' +
+      '</div>' +
+
+      '<div>' +
+        '<label>電話（任意）</label>' +
+        '<input id="modalPhone" placeholder="例：03-0000-0000">' +
+      '</div>' +
+
+      '<div class="full">' +
+        '<label>備考（任意）</label>' +
+        '<textarea id="modalNote" rows="3"></textarea>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveRelatedPerson()">関係者として登録</button>' +
+      '<button class="btn sub" onclick="closeAppModal()">閉じる</button>' +
+    '</div>';
+
+  openAppModal(
+    editingPerson ? "関係者編集" : "関係者を登録",
+    body,
+    { wide: true }
+  );
+
+  renderModalBranches();
+
+  if(editingPerson){
+    document.getElementById("modalPersonId").value =
+      editingPerson.personId || "";
+    document.getElementById("modalCategory").value =
+      editingPerson.category || "役員・来賓";
+    document.getElementById("modalRole").value =
+      editingPerson.role || "";
+    document.getElementById("modalBlock").value =
+      editingPerson.block || "";
+    renderModalBranches();
+    document.getElementById("modalBranch").value =
+      editingPerson.branch || "";
+    document.getElementById("modalCompanyName").value =
+      editingPerson.companyName || "";
+    document.getElementById("modalPersonName").value =
+      editingPerson.personName || "";
+    document.getElementById("modalMail").value =
+      editingPerson.mail || "";
+    document.getElementById("modalPhone").value =
+      editingPerson.phone || "";
+    document.getElementById("modalNote").value =
+      editingPerson.note || "";
+  }
+}
+
+function renderModalBranches(){
+
+  const block =
+    document.getElementById("modalBlock").value;
+
+  const branches =
+    block ? blockBranchMap[block] || [] : [];
+
+  document.getElementById("modalBranch").innerHTML =
+    '<option value="">指定なし</option>' +
+    branches.map(function(branch){
+      return '<option value="' + escapeHtml(branch) + '">' + escapeHtml(branch) + '</option>';
+    }).join("");
+}
+
+function saveRelatedPerson(){
+
+  if(submitting){
+    return;
+  }
+
+  const data = {
+    personId: document.getElementById("modalPersonId").value.trim(),
+    category: document.getElementById("modalCategory").value,
+    role: document.getElementById("modalRole").value.trim(),
+    block: document.getElementById("modalBlock").value,
+    branch: document.getElementById("modalBranch").value,
+    companyName: document.getElementById("modalCompanyName").value.trim(),
+    personName: document.getElementById("modalPersonName").value.trim(),
+    mail: document.getElementById("modalMail").value.trim(),
+    phone: document.getElementById("modalPhone").value.trim(),
+    note: document.getElementById("modalNote").value.trim()
+  };
+
+  if(!data.personName){
+    alert("氏名を入力してください。");
+    return;
+  }
+
+  submitting =
+    true;
+
+  document.getElementById("status").textContent =
+    "登録中...";
+
+  jsonp(
+    "saveRelatedPersonMasterJsonp",
+    data,
+    function(res){
+
+      submitting =
+        false;
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "登録に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "登録しました。") +
+        '</span>';
+
+      closeAppModal();
+
+      loadRelatedPersons();
+    },
+    60000
+  );
+}
+
+function loadRelatedPersons(){
+
+  jsonp(
+    "getRelatedPersonMastersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">役員・関係者一覧を取得できませんでした。</span>';
+        return;
+      }
+
+      renderPersons(res.persons || []);
+    }
+  );
+}
+
+function renderPersons(persons){
+
+  relatedPersons =
+    persons || [];
+
+  const table =
+    document.getElementById("personTable");
+
+  const tbody =
+    document.getElementById("personBody");
+
+  tbody.innerHTML =
+    "";
+
+  if(persons.length === 0){
+    table.style.display =
+      "none";
+    return;
+  }
+
+  relatedPersons.forEach(function(person){
+
+    const tr =
+      document.createElement("tr");
+
+    const area =
+      [person.block || "", person.branch || ""].filter(function(v){ return v; }).join(" / ");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(person.category || "") + "</td>" +
+      "<td>" + escapeHtml(person.role || "") + "</td>" +
+      "<td>" + escapeHtml(person.companyName || "") + "</td>" +
+      "<td>" + escapeHtml(person.personName || "") + "</td>" +
+      "<td>" + escapeHtml(area) + "</td>" +
+      "<td>" + escapeHtml(person.note || "") + "</td>" +
+      "<td>" +
+        '<button class="btn sub" onclick="openRegisterModal(\'' +
+        escapeJs(person.personId || "") +
+        '\')">編集</button>' +
+      "</td>";
+
+    tbody.appendChild(tr);
+  });
+
+  table.style.display =
+    "table";
+}
+
+loadRelatedPersons();
+</script>
+
+</body>
+</html>

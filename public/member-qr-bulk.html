@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>会社QR一括印刷</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+body{
+  background:#eef2f6;
+}
+
+main{
+  max-width:1100px;
+}
+
+.print-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.sheet{
+  display:block;
+  padding:24px;
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+
+.qr-card{
+  width:194mm;
+  min-height:277mm;
+  box-sizing:border-box;
+  border:1px solid #ccd3dc;
+  border-radius:8px;
+  padding:12mm;
+  display:flex;
+  flex-direction:column;
+  gap:8mm;
+  background:#fff;
+  color:#111;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  margin:0 auto 8mm;
+}
+
+.demo-title{
+  border-bottom:2px solid #12345a;
+  padding-bottom:6mm;
+}
+
+.demo-title h2{
+  margin:0;
+  font-size:22px;
+  line-height:1.4;
+}
+
+.demo-title .subtitle{
+  margin-top:4px;
+  color:#555;
+  font-size:13px;
+}
+
+.qr-image{
+  width:58mm;
+  height:58mm;
+}
+
+.qr-row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:4mm;
+}
+
+.qr-block{
+  border:1px solid #d7dce3;
+  border-radius:8px;
+  padding:4mm;
+  display:grid;
+  grid-template-columns:64mm 1fr;
+  gap:6mm;
+  align-items:center;
+  font-size:13px;
+  font-weight:bold;
+  line-height:1.35;
+  color:#333;
+}
+
+.qr-text{
+  text-align:left;
+}
+
+.qr-block small{
+  display:block;
+  margin-top:4px;
+  color:#666;
+  font-size:11px;
+  font-weight:normal;
+}
+
+.qr-title{
+  font-size:15px;
+  font-weight:bold;
+  color:#333;
+  margin-bottom:6px;
+}
+
+.company-name{
+  font-size:22px;
+  font-weight:bold;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+.representative-name{
+  margin-top:3px;
+  font-size:17px;
+  font-weight:bold;
+  line-height:1.35;
+  color:#333;
+}
+
+.meta{
+  margin-top:8px;
+  font-size:15px;
+  line-height:1.5;
+  color:#333;
+}
+
+.steps{
+  background:#f7f9fc;
+  border-radius:8px;
+  padding:7mm;
+  line-height:1.8;
+  font-size:14px;
+}
+
+.steps h3{
+  margin:0 0 5px;
+  font-size:16px;
+}
+
+.steps ol{
+  margin:0;
+  padding-left:1.4em;
+}
+
+.note{
+  font-size:12px;
+  line-height:1.45;
+  color:#555;
+}
+
+@media print{
+  @page{
+    size:A4;
+    margin:8mm;
+  }
+
+  body{
+    background:#fff;
+  }
+
+  header,
+  .global-nav,
+  .print-actions,
+  .muted{
+    display:none;
+  }
+
+  main{
+    max-width:none;
+    margin:0;
+  }
+
+  .sheet{
+    display:block;
+    padding:0;
+    box-shadow:none;
+    border-radius:0;
+  }
+
+  .qr-card{
+    margin:0;
+    border-color:#ccd3dc;
+    page-break-after:always;
+  }
+
+  .qr-card:last-child{
+    page-break-after:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>会社QR一括印刷</h1>
+</header>
+
+<main>
+  <div class="print-actions">
+    <button class="btn" onclick="window.print()">印刷する / PDF保存</button>
+    <a class="btn sub" href="member-list.html">会員一覧へ戻る</a>
+  </div>
+
+  <p id="summary" class="muted"></p>
+
+  <div id="sheet" class="sheet"></div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+let members =
+  [];
+
+try{
+  members =
+    JSON.parse(params.get("members") || "[]");
+} catch(err){
+  members =
+    [];
+}
+
+document.getElementById("summary").textContent =
+  members.length + "件のQRシートを印刷します。";
+
+const sheet =
+  document.getElementById("sheet");
+
+if(members.length === 0){
+  sheet.innerHTML =
+    '<div class="status">印刷対象がありません。</div>';
+} else {
+  members.forEach(function(member){
+    sheet.appendChild(createQrCard(member));
+  });
+}
+
+function createQrCard(member){
+
+  const card =
+    document.createElement("div");
+
+  const memberNo =
+    member.memberNo || "";
+
+  const qrUrl =
+    "https://quickchart.io/qr?size=360&text=" +
+    encodeURIComponent("MEMBER:" + memberNo);
+
+  card.className =
+    "qr-card";
+
+  card.innerHTML =
+    '<div class="demo-title">' +
+      '<h2>研修会受付QRシート</h2>' +
+      '<div class="subtitle">会社別QR受付で使う会社ごとのQRです。受付担当者には、このQRだけを読み取ってもらってください。</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="qr-title">参加者情報</div>' +
+      '<div class="company-name">' +
+      escapeHtml(member.companyName || "会社名未指定") +
+      '</div>' +
+      '<div class="representative-name">' +
+      (
+        member.representativeName
+          ? '代表者名：' + escapeHtml(member.representativeName)
+          : ''
+      ) +
+      '</div>' +
+      '<div class="meta">' +
+        '業者番号：' + escapeHtml(memberNo || "未指定") + '<br>' +
+        '支部：' + escapeHtml(member.branch || "未指定") +
+      '</div>' +
+    '</div>' +
+    '<div class="qr-row">' +
+      '<div class="qr-block">' +
+        '<img class="qr-image" alt="会社QR" src="' +
+        qrUrl +
+        '">' +
+        '<div class="qr-text">会社QR' +
+        '<small>会社別QR受付で読み取る会社ごとのQRです。受付担当者には、このQRだけを読み取ってもらってください。</small></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="steps">' +
+      '<h3>確認の流れ</h3>' +
+      '<ol>' +
+        '<li>受付担当者側で会社QR受付画面を開きます。</li>' +
+        '<li>スマホカメラ受付から、この会社QRを読み込みます。</li>' +
+        '<li>受付モニターに会社名が表示されたことを確認します。</li>' +
+      '</ol>' +
+    '</div>' +
+    '<div class="note">会場QR受付、スマホ登録、位置情報受付は別紙またはメール画面で確認してください。</div>';
+
+  return card;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>研修会 登録解除用QRコード</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+  background:#eee;
+  color:#222;
+}
+
+.page{
+  width:210mm;
+  min-height:297mm;
+  margin:0 auto;
+  background:#fff;
+  padding:18mm;
+  box-sizing:border-box;
+  text-align:center;
+}
+
+h1{
+  font-size:28px;
+  margin:0 0 12px;
+}
+
+.sub{
+  font-size:18px;
+  margin-bottom:18px;
+}
+
+.training{
+  border-top:3px solid #12345a;
+  border-bottom:3px solid #12345a;
+  padding:18px 0;
+  margin:20px 0;
+}
+
+.training-title{
+  font-size:30px;
+  font-weight:bold;
+}
+
+.training-date{
+  font-size:22px;
+  margin-top:10px;
+}
+
+.qr-title{
+  font-size:34px;
+  font-weight:bold;
+  margin:28px 0 14px;
+}
+
+.qr img{
+  width:260px;
+  height:260px;
+}
+
+.notice{
+  margin-top:26px;
+  padding:18px;
+  border:2px solid #ddd;
+  border-radius:10px;
+  font-size:20px;
+  line-height:1.8;
+  text-align:left;
+}
+
+.notice strong{
+  font-size:22px;
+}
+
+.url{
+  margin-top:20px;
+  font-size:12px;
+  word-break:break-all;
+  color:#666;
+}
+
+.actions{
+  margin:20px auto;
+  text-align:center;
+}
+
+button{
+  padding:12px 18px;
+  font-size:16px;
+  border:none;
+  border-radius:8px;
+  background:#12345a;
+  color:#fff;
+  cursor:pointer;
+}
+
+@media print{
+  body{
+    background:#fff;
+  }
+
+  .actions{
+    display:none;
+  }
+
+  .page{
+    margin:0;
+    box-shadow:none;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="actions">
+  <button onclick="window.print()">印刷する / PDF保存</button>
+</div>
+
+<div class="page">
+
+  <h1>東京都宅地建物取引業協会</h1>
+  <div class="sub">研修会 登録解除用QRコード</div>
+
+  <div class="training">
+    <div class="training-title" id="trainingTitle">読み込み中...</div>
+    <div class="training-date" id="trainingDate"></div>
+  </div>
+
+  <div class="qr-title">受付はこちら</div>
+
+  <div class="qr">
+    <img id="qrImage" src="">
+  </div>
+
+  <div class="notice">
+    <strong>受付方法</strong><br>
+このQRはスマートフォンに保存されている
+会社情報を削除するためのものです。
+
+受付担当者の指示があった場合のみ
+ご利用ください。
+  </div>
+
+  <div class="url" id="urlText"></div>
+
+</div>
+
+<script>
+const GAS_WEB_APP_URL =
+  location.hostname === "tokyo-takken-10block.web.app" ||
+  location.hostname === "tokyo-takken-10block.firebaseapp.com"
+    ? "https://script.google.com/macros/s/AKfycbytZZvMaBdbLd4XxSY4Im0Qc86UCSNbcKbyF4qAm5Vl0tb1_12gBnwoe7qLrLADHbRwLQ/exec"
+    : "https://script.google.com/macros/s/AKfycbz89atrbyCIjnYNBMR8hhACapdhBbhuqNphHX6dlmmCsjrKg0YcZjdvRUghkH6cFIZx/exec";
+
+const params =
+  new URLSearchParams(location.search);
+
+const eventId =
+  params.get("event") || "";
+
+function jsonp(action, params, callback){
+
+  const callbackName =
+    "jsonp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+
+  window[callbackName] = function(res){
+    callback(res);
+    delete window[callbackName];
+  };
+
+  let url =
+    GAS_WEB_APP_URL +
+    "?action=" + encodeURIComponent(action) +
+    "&callback=" + callbackName;
+
+  Object.keys(params || {}).forEach(function(key){
+    url +=
+      "&" +
+      encodeURIComponent(key) +
+      "=" +
+      encodeURIComponent(params[key]);
+  });
+
+  const script =
+    document.createElement("script");
+
+  script.src =
+    url;
+
+  document.body.appendChild(script);
+}
+
+function loadPoster(){
+
+  if(!eventId){
+    document.getElementById("trainingTitle").textContent =
+      "研修IDが指定されていません。";
+    return;
+  }
+
+	const checkinUrl =
+	  location.origin + "/guest-checkin.html?event=" +
+	  encodeURIComponent(eventId) +
+	  "&reset=1";
+
+  document.getElementById("urlText").textContent =
+    checkinUrl;
+
+  document.getElementById("qrImage").src =
+    "https://quickchart.io/qr?size=360&text=" +
+    encodeURIComponent(checkinUrl);
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("trainingTitle").textContent =
+          "研修会情報を取得できませんでした。";
+        return;
+      }
+
+      const t =
+        res.training;
+
+      document.getElementById("trainingTitle").textContent =
+        t.title || "";
+
+      document.getElementById("trainingDate").textContent =
+        t.eventDate
+          ? "開催日：" + t.eventDate
+          : "";
+    }
+  );
+}
+
+loadPoster();
+</script>
+
+</body>
+</html>

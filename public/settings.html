@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>システム設定</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:980px;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+
+.menu-card{
+  display:block;
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  min-height:145px;
+}
+
+.menu-card.disabled{
+  cursor:default;
+  opacity:0.72;
+}
+
+.icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.menu-card h3{
+  margin:0 0 8px;
+  font-size:19px;
+}
+
+.menu-card p{
+  margin:0;
+  color:#666;
+  line-height:1.7;
+  font-size:14px;
+}
+
+.badge{
+  display:inline-block;
+  margin-top:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eee;
+  color:#666;
+  font-size:12px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>システム設定</h1>
+  <p>ログイン権限など、システム全体に関わる設定を行います。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="index.html">メニューへ戻る</a>
+  </div>
+
+  <section class="menu-grid">
+
+    <a class="menu-card" href="auth-user-setting.html" data-auth-roles="admin">
+      <div class="icon">🔐</div>
+      <h3>ログイン権限管理</h3>
+      <p>事務局・受付担当・業者のログインIDを管理します。</p>
+    </a>
+
+    <a class="menu-card" href="mail-signature-setting.html" data-auth-roles="admin,staff">
+      <div class="icon">📧</div>
+      <h3>メール署名設定</h3>
+      <p>案内メールの末尾に付ける署名を登録します。</p>
+    </a>
+
+    <a class="menu-card" href="mail-sender-setting.html" data-auth-roles="admin,staff">
+      <div class="icon">✉️</div>
+      <h3>メール送信元設定</h3>
+      <p>Google側の送信元設定を確認し、支部・ブロックごとの差出人名と送信元メールを登録します。</p>
+    </a>
+
+    <a class="menu-card" href="system-check.html" data-auth-roles="admin">
+      <div class="icon">✅</div>
+      <h3>本番接続確認</h3>
+      <p>スプレッドシート、Driveフォルダ、修了証テンプレートなど、運用前に必要な接続状態を確認します。</p>
+    </a>
+
+    <a class="menu-card" href="event-type-setting.html" data-auth-roles="admin,staff">
+      <div class="icon">📌</div>
+      <h3>イベント種別設定</h3>
+      <p>イベント作成時に選ぶイベント種別を管理します。</p>
+    </a>
+
+  </section>
+
+</main>
+
+</body>
+</html>

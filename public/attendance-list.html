@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出欠確認一覧</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1200px;
+}
+
+.filter-grid{
+  display:grid;
+  grid-template-columns:180px 1fr 140px;
+  gap:10px;
+  align-items:end;
+}
+
+.summary-line{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+
+.summary-pill{
+  display:inline-flex;
+  gap:4px;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef3f8;
+  font-size:13px;
+}
+
+.count-strong{
+  font-weight:bold;
+  font-size:18px;
+}
+
+@media (max-width:800px){
+  .filter-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>出欠確認一覧</h1>
+  <p>出欠回答を使うイベントの回答状況を確認します。</p>
+</header>
+
+<main>
+<div class="card">
+
+  <div class="actions">
+    <a class="btn sub" href="training-menu.html">研修会管理へ戻る</a>
+  </div>
+
+  <div class="filter-grid">
+    <label>年度
+      <select id="yearFilter" onchange="loadAttendanceList()">
+        <option value="">すべて</option>
+      </select>
+    </label>
+    <label>検索
+      <input id="keyword" placeholder="イベント名・ID・主催区分で検索" onkeydown="if(event.key==='Enter'){loadAttendanceList();}">
+    </label>
+    <button class="btn" onclick="loadAttendanceList()">再検索</button>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div class="table-wrap">
+    <table id="attendanceTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>イベント</th>
+          <th>対象</th>
+          <th>回答済み</th>
+          <th>未回答</th>
+          <th>出欠状況</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="attendanceBody"></tbody>
+    </table>
+  </div>
+
+</div>
+</main>
+
+<script>
+let allAttendances =
+  [];
+
+let yearInitialized =
+  false;
+
+function loadAttendanceList(){
+
+  document.getElementById("status").textContent =
+    "読み込み中...";
+
+  jsonp(
+    "getAttendanceListJsonp",
+    {
+      year: document.getElementById("yearFilter").value,
+      keyword: document.getElementById("keyword").value.trim()
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "出欠確認一覧を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      allAttendances =
+        res.attendances || [];
+
+      if(!yearInitialized){
+        renderYearOptions(allAttendances);
+        yearInitialized =
+          true;
+      }
+
+      renderAttendanceList(allAttendances);
+    }
+  );
+}
+
+function renderYearOptions(list){
+
+  const select =
+    document.getElementById("yearFilter");
+
+  const current =
+    select.value;
+
+  select.innerHTML =
+    '<option value="">すべて</option>';
+
+  const years = {};
+
+  list.forEach(function(item){
+    if(item.year){
+      years[item.year] =
+        true;
+    }
+  });
+
+  Object.keys(years)
+    .sort()
+    .reverse()
+    .forEach(function(year){
+      const option =
+        document.createElement("option");
+
+      option.value =
+        year;
+
+      option.textContent =
+        year + "年度";
+
+      select.appendChild(option);
+    });
+
+  if(current && years[current]){
+    select.value =
+      current;
+  }
+}
+
+function renderAttendanceList(list){
+
+  const status =
+    document.getElementById("status");
+
+  const table =
+    document.getElementById("attendanceTable");
+
+  const body =
+    document.getElementById("attendanceBody");
+
+  body.innerHTML =
+    "";
+
+  if(list.length === 0){
+    status.textContent =
+      "出欠確認を使うイベントはありません。";
+
+    table.style.display =
+      "none";
+    return;
+  }
+
+  status.textContent =
+    list.length + "件を表示中";
+
+  table.style.display =
+    "table";
+
+  list.forEach(function(item){
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML =
+      '<td>' + escapeHtml(item.eventDate || "") + '</td>' +
+      '<td>' +
+        '<strong>' + escapeHtml(item.title || "") + '</strong><br>' +
+        '<span class="muted">' + escapeHtml(item.eventId || "") + ' / ' +
+        escapeHtml(item.hostType || "") + ' / ' +
+        escapeHtml(item.eventType || "") + '</span>' +
+      '</td>' +
+      '<td><span class="count-strong">' + escapeHtml(item.targetCount || 0) + '</span>件</td>' +
+      '<td><span class="count-strong">' + escapeHtml(item.answeredCount || 0) + '</span>件</td>' +
+      '<td><span class="count-strong">' + escapeHtml(item.unansweredCount || 0) + '</span>件</td>' +
+      '<td>' + buildSummaryHtml(item) + '</td>' +
+      '<td>' +
+        '<a class="btn" href="attendance-responses.html?event=' + encodeURIComponent(item.eventId || "") + '">回答一覧</a> ' +
+        '<a class="btn sub" href="attendance-print.html?event=' + encodeURIComponent(item.eventId || "") + '">印刷</a> ' +
+        '<a class="btn sub" href="attendance-setting.html?event=' + encodeURIComponent(item.eventId || "") + '">設定</a> ' +
+        '<a class="btn sub" href="training-detail.html?event=' + encodeURIComponent(item.eventId || "") + '">詳細</a>' +
+      '</td>';
+
+    body.appendChild(tr);
+  });
+}
+
+function buildSummaryHtml(item){
+
+  if(!item.ok){
+    return '<span class="ng">' + escapeHtml(item.message || "取得できませんでした。") + '</span>';
+  }
+
+  const summaries =
+    item.summaries || [];
+
+  if(summaries.length === 0){
+    return '<span class="muted">項目未設定</span>';
+  }
+
+  return summaries.map(function(summary){
+    const counts =
+      summary.counts || {};
+
+    const pills =
+      Object.keys(counts).map(function(option){
+        return '<span class="summary-pill">' +
+          escapeHtml(option) +
+          '<strong>' + escapeHtml(counts[option]) + '</strong>' +
+          '</span>';
+      }).join("");
+
+    return '<div>' +
+      '<strong>' + escapeHtml(summary.itemName || "") + '</strong>' +
+      '<div class="summary-line">' + pills + '</div>' +
+      '</div>';
+  }).join("");
+}
+
+loadAttendanceList();
+</script>
+
+</body>
+</html>

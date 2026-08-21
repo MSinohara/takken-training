@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>受付負荷試験</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+
+<style>
+main{
+  max-width:1180px;
+}
+
+.danger{
+  border:2px solid #b00020;
+  background:#fff5f7;
+  color:#8a0018;
+  padding:14px;
+  border-radius:8px;
+  font-weight:bold;
+  line-height:1.7;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:12px;
+}
+
+.field label{
+  display:block;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+.field select,
+.field input{
+  width:100%;
+}
+
+.chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.chip{
+  background:#f0f2f5;
+  border-radius:8px;
+  padding:6px 8px;
+  font-size:13px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:10px;
+  margin-top:16px;
+}
+
+.metric{
+  background:#f7f7f7;
+  border-radius:8px;
+  padding:12px;
+}
+
+.metric .label{
+  color:#555;
+  font-size:13px;
+}
+
+.metric .value{
+  font-weight:bold;
+  font-size:24px;
+  margin-top:4px;
+}
+
+.judge{
+  display:inline-block;
+  border-radius:999px;
+  padding:8px 14px;
+  font-weight:bold;
+}
+
+.judge.pass{
+  background:#e9f7ee;
+  color:#0a7a2f;
+}
+
+.judge.warning{
+  background:#fff4d6;
+  color:#9a5b00;
+}
+
+.judge.fail{
+  background:#fdecef;
+  color:#b00020;
+}
+
+.table-wrap{
+  overflow:auto;
+  margin-top:14px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  border-bottom:1px solid #ddd;
+  padding:9px;
+  text-align:left;
+  vertical-align:top;
+}
+
+th{
+  background:#eef0f3;
+  white-space:nowrap;
+}
+
+.muted-small{
+  color:#666;
+  font-size:13px;
+}
+
+.ok-text{
+  color:#007a2f;
+  font-weight:bold;
+}
+
+.ng-text{
+  color:#b00020;
+  font-weight:bold;
+}
+
+@media(max-width:900px){
+  .grid,
+  .summary-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>受付負荷試験 ― 開発環境専用</h1>
+  <p>複数端末から受付が集中した状況を、既存の受付処理で確認します。</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <a class="btn sub" href="training-detail.html?event=2026-020">研修会詳細へ戻る</a>
+    <a class="btn sub" href="index.html">トップ</a>
+  </div>
+
+  <section class="card">
+    <div class="danger">
+      この画面は開発環境専用です。本番環境では使用しません。<br>
+      受付本体は通常の registerCheckin 経路を使用し、テスト用の簡易受付処理は使いません。
+    </div>
+    <p class="muted-small">画面版：2026/08/04 受付読み取り抑制版</p>
+
+    <h2>対象研修</h2>
+    <div class="chips">
+      <span class="chip">2026-020</span>
+      <span class="chip">第十ブロック</span>
+      <span class="chip">2026/08/07</span>
+      <span class="chip">会社別QR受付</span>
+      <span class="chip">受付単位：個人単位</span>
+      <span class="chip">受付対象：対象設定</span>
+      <span class="chip">位置情報なし</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>試験条件</h2>
+
+    <div class="grid">
+      <div class="field">
+        <label for="mode">試験モード</label>
+        <select id="mode" onchange="updateModeHint()">
+          <option value="different">A：異なる参加者の同時受付</option>
+          <option value="same">B：同一参加者の同時受付</option>
+          <option value="burst">C：連続集中受付</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="count">同時受付数</label>
+        <select id="count">
+          <option value="1">1人</option>
+          <option value="2">2人</option>
+          <option value="5" selected>5人</option>
+          <option value="10">10人</option>
+          <option value="20">20人</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="repeat">連続回数</label>
+        <select id="repeat">
+          <option value="1">1回</option>
+          <option value="3">3回</option>
+          <option value="5" selected>5回</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sameCount">同一参加者の同時数</label>
+        <select id="sameCount">
+          <option value="2">2件</option>
+          <option value="5" selected>5件</option>
+          <option value="10">10件</option>
+        </select>
+      </div>
+    </div>
+
+    <p id="modeHint" class="muted"></p>
+    <p class="muted-small">
+      <label>
+        <input type="checkbox" id="runConsistencyCheck">
+        試験後に整合性確認を実行する
+      </label>
+      <br>
+      通常はオフのままで構いません。Firestoreの読み取りを増やすため、必要な時だけ実行します。
+    </p>
+
+    <div class="actions">
+      <button class="btn sub" type="button" onclick="loadTargets()">候補を取得</button>
+      <button class="btn sub" type="button" onclick="checkLockStatus()">ロック状態を確認</button>
+      <button class="btn" type="button" onclick="runLoadTest()">負荷試験を実行</button>
+      <button class="btn danger" type="button" onclick="resetLoadTest()">受付結果をリセット</button>
+    </div>
+
+    <div id="status" class="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>候補者</h2>
+    <p class="muted-small">2026-020の受付対象から、未受付者を少数だけ取得します。1,523名全体を画面には読み込みません。</p>
+    <div id="targetList"></div>
+  </section>
+
+  <section class="card">
+    <h2>試験結果</h2>
+    <div id="judge"></div>
+    <div id="summary" class="summary-grid"></div>
+    <div id="details"></div>
+    <div id="consistency"></div>
+  </section>
+
+</main>
+
+<script>
+const EVENT_ID = "2026-020";
+let loadedTargets = [];
+
+window.addEventListener("load", function(){
+  updateModeHint();
+  loadTargets();
+});
+
+function jsonpPromise(action, params, timeoutMs){
+  return new Promise(function(resolve){
+    jsonp(action, params, function(res){
+      resolve(res || {ok:false, message:"応答が空です。"});
+    }, timeoutMs || 60000);
+  });
+}
+
+function updateModeHint(){
+  const mode = document.getElementById("mode").value;
+  const repeatField = document.getElementById("repeat").closest(".field");
+  const sameField = document.getElementById("sameCount").closest(".field");
+
+  repeatField.style.display = mode === "burst" ? "" : "none";
+  sameField.style.display = mode === "same" ? "" : "none";
+
+  const hints = {
+    different: "異なる参加者をほぼ同時に受付し、通常の複数窓口受付を確認します。",
+    same: "同じ参加者を複数リクエストで同時受付し、二重受付防止を確認します。",
+    burst: "同時受付を複数回連続で実行し、受付開始直後の集中を確認します。"
+  };
+
+  document.getElementById("modeHint").textContent = hints[mode] || "";
+}
+
+function setStatus(message, ok){
+  const status = document.getElementById("status");
+  status.textContent = message || "";
+  status.className = ok === false ? "status error" : "status";
+}
+
+function loadTargets(){
+  setStatus("候補者を取得しています...", true);
+
+  const count = Math.max(
+    Number(document.getElementById("count").value || 5),
+    Number(document.getElementById("sameCount").value || 5),
+    20
+  );
+
+  return jsonpPromise(
+    "getCheckinLoadTestTargetsJsonp",
+    {
+      event: EVENT_ID,
+      limit: count
+    },
+    60000
+  ).then(function(res){
+    if(!res || !res.ok){
+      loadedTargets = [];
+      renderTargets();
+      setStatus(res && res.message ? res.message : "候補者を取得できませんでした。", false);
+      return;
+    }
+
+    loadedTargets = res.targets || [];
+    renderTargets();
+    setStatus(res.message || "候補者を取得しました。", true);
+    return loadedTargets;
+  }).catch(function(err){
+    loadedTargets = [];
+    renderTargets();
+    setStatus(err && err.message ? err.message : "候補者を取得できませんでした。", false);
+    return [];
+  });
+}
+
+async function resetLoadTest(){
+  const ok = window.confirm(
+    "開発環境の2026-020について、受付完了分を未受付へ戻します。研修会や会員マスタは削除しません。実行しますか？"
+  );
+
+  if(!ok){
+    return;
+  }
+
+  setStatus("受付結果をリセットしています...", true);
+
+  const res = await jsonpPromise(
+    "resetCheckinLoadTestJsonp",
+    {
+      event: EVENT_ID,
+      confirm: "RESET"
+    },
+    90000
+  );
+
+  if(!res || !res.ok){
+    setStatus(res && res.message ? res.message : "受付結果をリセットできませんでした。", false);
+    return;
+  }
+
+  document.getElementById("judge").innerHTML = "";
+  document.getElementById("summary").innerHTML = "";
+  document.getElementById("details").innerHTML = "";
+  document.getElementById("consistency").innerHTML = "";
+
+  setStatus(res.message || "受付結果をリセットしました。", true);
+  await loadTargets();
+}
+
+async function checkLockStatus(){
+  setStatus("受付ロックを確認しています...", true);
+
+  const res = await jsonpPromise(
+    "checkCheckinLoadTestLockJsonp",
+    {
+      event: EVENT_ID
+    },
+    15000
+  );
+
+  if(!res || !res.ok){
+    setStatus(res && res.message ? res.message : "受付ロックを確認できませんでした。", false);
+    return;
+  }
+
+  const elapsed = Number(res.elapsedMs || 0);
+  setStatus(
+    (res.message || "受付ロックを確認しました。") + "（確認時間：" + elapsed + "ms）",
+    !res.locked
+  );
+}
+
+function renderTargets(){
+  const area = document.getElementById("targetList");
+
+  if(!loadedTargets.length){
+    area.innerHTML = "<p class=\"muted\">候補者はまだありません。</p>";
+    return;
+  }
+
+  area.innerHTML =
+    "<div class=\"table-wrap\"><table>" +
+    "<thead><tr><th>No</th><th>会社名</th><th>参加者</th><th>個人ID</th><th>支部・地区</th><th>状態</th></tr></thead>" +
+    "<tbody>" +
+    loadedTargets.map(function(item, index){
+      return "<tr>" +
+        "<td>" + (index + 1) + "</td>" +
+        "<td>" + escapeHtml(item.companyName) + "</td>" +
+        "<td>" + escapeHtml(item.participantName) + "</td>" +
+        "<td>" + escapeHtml(item.personalId || item.plannedId || item.memberNo) + "</td>" +
+        "<td>" + escapeHtml([item.branch, item.district].filter(Boolean).join(" / ")) + "</td>" +
+        "<td>" + escapeHtml(item.status || "未受付") + "</td>" +
+      "</tr>";
+    }).join("") +
+    "</tbody></table></div>";
+}
+
+async function runLoadTest(){
+  document.getElementById("judge").innerHTML = "";
+  document.getElementById("summary").innerHTML = "";
+  document.getElementById("details").innerHTML = "";
+  document.getElementById("consistency").innerHTML = "";
+
+  const mode = document.getElementById("mode").value;
+  const count = Number(document.getElementById("count").value || 5);
+  const sameCount = Number(document.getElementById("sameCount").value || 5);
+  const repeat = Number(document.getElementById("repeat").value || 1);
+
+  if(loadedTargets.length < Math.max(count, 1)){
+    await loadTargets();
+  }
+
+  if(!loadedTargets.length){
+    setStatus("負荷試験に使える候補者がありません。", false);
+    return;
+  }
+
+  setStatus("負荷試験を実行しています...", true);
+
+  let allResults = [];
+
+  if(mode === "same"){
+    const target = loadedTargets[0];
+    allResults = await runParallelRequests(
+      Array.from({length:sameCount}, function(){ return target; }),
+      "同一参加者同時受付"
+    );
+  }else if(mode === "burst"){
+    for(let i = 0; i < repeat; i++){
+      const targets = loadedTargets.slice(i * count, i * count + count);
+      const usable = targets.length ? targets : loadedTargets.slice(0, count);
+      const results = await runParallelRequests(usable, "連続集中受付 " + (i + 1));
+      allResults = allResults.concat(results);
+      await wait(400);
+    }
+  }else{
+    allResults = await runParallelRequests(
+      loadedTargets.slice(0, count),
+      "異なる参加者同時受付"
+    );
+  }
+
+  renderResults(allResults);
+
+  if(document.getElementById("runConsistencyCheck").checked){
+    await checkConsistency(allResults);
+  }else{
+    document.getElementById("consistency").innerHTML =
+      "<p class=\"muted-small\">整合性確認は省略しました。必要な場合だけチェックを入れて実行してください。</p>";
+  }
+
+  setStatus("負荷試験が完了しました。", true);
+}
+
+function runParallelRequests(targets, label){
+  const requests = targets.map(function(target, index){
+    const startedAt = Date.now();
+    const startText = formatTime(new Date(startedAt));
+
+    return jsonpPromise(
+      "registerCheckinJsonp",
+      {
+        event: EVENT_ID,
+        code: target.readValue,
+        method: "負荷試験",
+        receptionCategory: "第十ブロック会員",
+        verificationStatus: label,
+        loadTestDebug: "TRUE"
+      },
+      70000
+    ).then(function(res){
+      const endedAt = Date.now();
+
+      return {
+        no: index + 1,
+        label: label,
+        target: target,
+        startedAt: startText,
+        respondedAt: formatTime(new Date(endedAt)),
+        duration: endedAt - startedAt,
+        ok: !!(res && res.ok),
+        message: res && res.message ? res.message : "",
+        category: classifyResult(res),
+        raw: res || {}
+      };
+    });
+  });
+
+  return Promise.all(requests);
+}
+
+function classifyResult(res){
+  const message = String(res && res.message ? res.message : "");
+
+  if(res && res.ok && message.indexOf("受付完了") !== -1){
+    return "受付完了";
+  }
+
+  if(res && res.ok && message.indexOf("既に受付") !== -1){
+    return "既に受付済み";
+  }
+
+  if(message.indexOf("混み") !== -1 || message.indexOf("数秒後") !== -1){
+    return "受付混雑";
+  }
+
+  if(!res || !res.ok){
+    return "その他エラー";
+  }
+
+  return "その他";
+}
+
+function renderResults(results){
+  const summary = summarizeResults(results);
+  const judge = judgeResults(summary);
+
+  document.getElementById("judge").innerHTML =
+    "<span class=\"judge " + judge.className + "\">" + judge.label + "</span> " +
+    "<span class=\"muted-small\">" + escapeHtml(judge.note) + "</span>";
+
+  document.getElementById("summary").innerHTML =
+    metric("総リクエスト", summary.total + "件") +
+    metric("受付完了", summary.completed + "件") +
+    metric("既受付", summary.already + "件") +
+    metric("混雑", summary.busy + "件") +
+    metric("その他失敗", summary.failed + "件") +
+    metric("平均応答", summary.avg + "ms") +
+    metric("最短応答", summary.min + "ms") +
+    metric("最大応答", summary.max + "ms");
+
+  document.getElementById("details").innerHTML =
+    "<h3>個別結果</h3>" +
+    "<div class=\"table-wrap\"><table>" +
+    "<thead><tr><th>No</th><th>参加者</th><th>個人ID</th><th>開始</th><th>応答</th><th>処理時間</th><th>結果</th><th>メッセージ</th><th>内訳</th></tr></thead>" +
+    "<tbody>" +
+    results.map(function(item, index){
+      return "<tr>" +
+        "<td>" + (index + 1) + "</td>" +
+        "<td>" + escapeHtml((item.target.companyName || "") + " " + (item.target.participantName || "")) + "</td>" +
+        "<td>" + escapeHtml(item.target.personalId || item.target.plannedId || item.target.memberNo) + "</td>" +
+        "<td>" + escapeHtml(item.startedAt) + "</td>" +
+        "<td>" + escapeHtml(item.respondedAt) + "</td>" +
+        "<td>" + item.duration + "ms</td>" +
+        "<td>" + escapeHtml(item.category) + "</td>" +
+        "<td>" + escapeHtml(item.message) + "</td>" +
+        "<td>" + escapeHtml(formatDebugTrace(item.raw && item.raw.debugTrace)) + "</td>" +
+      "</tr>";
+    }).join("") +
+    "</tbody></table></div>";
+}
+
+function formatDebugTrace(trace){
+  if(!Array.isArray(trace) || !trace.length){
+    return "";
+  }
+
+  return trace.map(function(mark){
+    return (mark.label || "") + ":" + (mark.elapsedMs || 0) + "ms";
+  }).join(" / ");
+}
+
+function summarizeResults(results){
+  const durations = results.map(function(item){ return item.duration; });
+  const total = results.length;
+
+  return {
+    total: total,
+    completed: results.filter(function(item){ return item.category === "受付完了"; }).length,
+    already: results.filter(function(item){ return item.category === "既に受付済み"; }).length,
+    busy: results.filter(function(item){ return item.category === "受付混雑"; }).length,
+    failed: results.filter(function(item){
+      return item.category === "その他エラー";
+    }).length,
+    min: durations.length ? Math.min.apply(null, durations) : 0,
+    max: durations.length ? Math.max.apply(null, durations) : 0,
+    avg: durations.length
+      ? Math.round(durations.reduce(function(sum, value){ return sum + value; }, 0) / durations.length)
+      : 0
+  };
+}
+
+function judgeResults(summary){
+  if(summary.failed > 0){
+    return {
+      label: "FAIL",
+      className: "fail",
+      note: "受付失敗があります。個別結果を確認してください。"
+    };
+  }
+
+  if(summary.busy > 0 || summary.max > 8000){
+    return {
+      label: "WARNING",
+      className: "warning",
+      note: "処理は返りましたが、混雑または長い応答時間があります。"
+    };
+  }
+
+  return {
+    label: "PASS",
+    className: "pass",
+    note: "大きな失敗はありません。"
+  };
+}
+
+function checkConsistency(results){
+  const personalIds = Array.from(new Set(
+    results
+      .map(function(item){ return item.target.personalId || ""; })
+      .filter(Boolean)
+  ));
+
+  if(!personalIds.length){
+    return Promise.resolve();
+  }
+
+  document.getElementById("consistency").innerHTML =
+    "<p class=\"muted\">整合性を確認しています...</p>";
+
+  return jsonpPromise(
+    "checkCheckinLoadTestConsistencyJsonp",
+    {
+      event: EVENT_ID,
+      personalIds: personalIds.join(",")
+    },
+    70000
+  ).then(function(res){
+    if(!res || !res.ok){
+      document.getElementById("consistency").innerHTML =
+        "<h3>整合性確認</h3><p class=\"ng-text\">" +
+        escapeHtml(res && res.message ? res.message : "整合性確認に失敗しました。") +
+        "</p>";
+      return;
+    }
+
+    document.getElementById("consistency").innerHTML =
+      "<h3>整合性確認</h3>" +
+      "<p class=\"" + (res.pass ? "ok-text" : "ng-text") + "\">" +
+      escapeHtml(res.message) +
+      "</p>" +
+      "<p>Firestore受付確定: " + Number(res.firestoreCheckedCount || 0) +
+      "件 / シート反映済: " + Number(res.syncedSheetSyncCount || 0) +
+      "件 / シート反映待ち: " + Number(res.pendingSheetSyncCount || 0) +
+      "件 / シート受付履歴: " + Number(res.checkedCount || 0) +
+      "件 / 二重受付検出: " + Number(res.duplicateCount || 0) + "件</p>" +
+      (res.firestoreCheckError
+        ? "<p class=\"ng-text\">Firestore受付状態の一部確認に失敗しました: " +
+          escapeHtml(res.firestoreCheckError) + "</p>"
+        : "") +
+      renderDuplicateTable(res.duplicates || []);
+  });
+}
+
+function renderDuplicateTable(duplicates){
+  if(!duplicates.length){
+    return "";
+  }
+
+  return "<div class=\"table-wrap\"><table>" +
+    "<thead><tr><th>個人ID</th><th>受付完了件数</th><th>履歴行</th></tr></thead><tbody>" +
+    duplicates.map(function(item){
+      return "<tr><td>" + escapeHtml(item.personalId) + "</td><td>" +
+        Number(item.count || 0) + "</td><td>" +
+        escapeHtml((item.rows || []).join(", ")) + "</td></tr>";
+    }).join("") +
+    "</tbody></table></div>";
+}
+
+function metric(label, value){
+  return "<div class=\"metric\"><div class=\"label\">" +
+    escapeHtml(label) +
+    "</div><div class=\"value\">" +
+    escapeHtml(value) +
+    "</div></div>";
+}
+
+function formatTime(date){
+  return [
+    String(date.getHours()).padStart(2, "0"),
+    String(date.getMinutes()).padStart(2, "0"),
+    String(date.getSeconds()).padStart(2, "0")
+  ].join(":") + "." + String(date.getMilliseconds()).padStart(3, "0");
+}
+
+function wait(ms){
+  return new Promise(function(resolve){
+    setTimeout(resolve, ms);
+  });
+}
+</script>
+
+</body>
+</html>

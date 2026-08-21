@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>研修会記録入力</title>
+
+<link rel="stylesheet" href="css/common.css">
+<script src="js/common.js"></script>
+</head>
+
+<body>
+
+<header>
+  <h1>研修会記録入力</h1>
+</header>
+
+<main>
+<div class="card">
+
+  <div id="trainingSelector">
+    <label>年度</label>
+    <select id="trainingYear" onchange="changeTrainingYear()">
+      <option value="">年度を読み込み中...</option>
+    </select>
+
+    <label>研修会</label>
+    <select id="eventId" onchange="loadTraining()">
+      <option value="">研修会一覧を読み込み中...</option>
+    </select>
+  </div>
+
+  <div id="status" class="status">読み込み中...</div>
+
+  <div id="editArea" style="display:none;">
+
+    <div class="notice">
+      会場・講師・費用・実施メモは、研修会実施後に必要に応じて補足する管理用記録です。
+    </div>
+
+    <label>会場選択</label>
+    <select id="venuePreset" onchange="applyVenuePreset()">
+      <option value="">会場マスタを読み込み中...</option>
+    </select>
+    <div class="muted">
+      会場マスタから選ぶと、会場名・住所・連絡先などを自動入力します。
+    </div>
+
+    <label>会場名</label>
+    <input id="venueName" placeholder="例：杉並区立産業商工会館">
+
+    <label>会場住所</label>
+    <input id="venueAddress" placeholder="例：東京都杉並区阿佐谷南3-2-19">
+
+    <label>会場担当者</label>
+    <input id="venueContactName" placeholder="例：施設予約担当 佐藤様">
+
+    <label>会場連絡先</label>
+    <input id="venueContactPhone" placeholder="例：03-0000-0000">
+
+    <label>会場メール</label>
+    <input id="venueContactMail" placeholder="例：sample@example.com">
+
+    <label>会場URL</label>
+    <input id="venueUrl" placeholder="例：https://example.com">
+
+    <label>会場定員</label>
+    <input id="venueCapacity" type="number" min="0" step="1" placeholder="例：120">
+
+    <label>開始時刻</label>
+    <input id="startTime" type="time">
+
+    <label>終了時刻</label>
+    <input id="endTime" type="time">
+
+    <label>講師名</label>
+    <input id="lecturerName" placeholder="例：山田 太郎">
+
+    <label>講師所属</label>
+    <input id="lecturerOrg" placeholder="例：〇〇法律事務所">
+
+    <label>講師連絡先</label>
+    <input id="lecturerContact" placeholder="例：sample@example.com / 03-0000-0000">
+
+    <label>会場費</label>
+    <input id="venueCost" type="number" min="0" step="1" placeholder="例：30000">
+
+    <label>会場費メモ</label>
+    <textarea id="venueFeeMemo" style="height:80px;" placeholder="例：午前・午後区分、備品代、キャンセル料など"></textarea>
+
+    <label>講師費</label>
+    <input id="lecturerCost" type="number" min="0" step="1" placeholder="例：50000">
+
+    <label>資料印刷費</label>
+    <input id="printCost" type="number" min="0" step="1" placeholder="例：8000">
+
+    <label>飲み物代</label>
+    <input id="drinkCost" type="number" min="0" step="1" placeholder="例：4500">
+
+    <label>その他費用</label>
+    <input id="otherCost" type="number" min="0" step="1" placeholder="例：2000">
+
+    <label>費用備考</label>
+    <textarea id="costNote" style="height:100px;" placeholder="例：講師交通費、資料追加印刷など"></textarea>
+
+    <label>実施メモ</label>
+    <textarea id="eventMemo" style="height:120px;" placeholder="例：受付が混雑したため、次回は受付担当を増やす。"></textarea>
+
+    <div class="actions">
+      <button class="btn" onclick="saveRecord()">記録を保存する</button>
+      <a class="btn sub" href="training-record.html">一覧へ戻る</a>
+      <a class="btn sub" href="venue-master.html">会場マスタへ</a>
+      <a class="btn sub" href="venue-history.html">会場履歴へ</a>
+      <a class="btn sub" href="index.html">メニューへ戻る</a>
+    </div>
+
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const initialEventId =
+  params.get("event") || "";
+
+let currentTraining =
+  null;
+
+let venuePresets =
+  [];
+
+let allTrainingRecords =
+  [];
+
+let allTrainings =
+  [];
+
+function loadVenuePresets(callback){
+
+  jsonp(
+    "getVenueMastersJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        renderVenuePresetOptions();
+        if(callback){
+          callback();
+        }
+        return;
+      }
+
+      venuePresets =
+        (res.venues || [])
+          .filter(function(venue){
+            return String(venue.active || "TRUE").toUpperCase() !== "FALSE";
+          })
+          .sort(function(a, b){
+            return a.venueName.localeCompare(b.venueName, "ja");
+          });
+
+      renderVenuePresetOptions();
+
+      if(callback){
+        callback();
+      }
+    }
+  );
+}
+
+function renderVenuePresetOptions(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(!select){
+    return;
+  }
+
+  select.innerHTML =
+    '<option value="">会場マスタから選択</option>';
+
+  venuePresets.forEach(function(venue, index){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      String(index);
+
+    option.textContent =
+      venue.venueAddress
+        ? venue.venueName + " / " + venue.venueAddress
+        : venue.venueName;
+
+    select.appendChild(option);
+  });
+}
+
+function applyVenuePreset(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  const index =
+    select.value;
+
+  if(index === ""){
+    return;
+  }
+
+  const venue =
+    venuePresets[Number(index)];
+
+  if(!venue){
+    return;
+  }
+
+  document.getElementById("venueName").value =
+    venue.venueName || "";
+
+  document.getElementById("venueAddress").value =
+    venue.venueAddress || "";
+
+  document.getElementById("venueContactName").value =
+    venue.venueContactName || "";
+
+  document.getElementById("venueContactPhone").value =
+    venue.venueContactPhone || "";
+
+  document.getElementById("venueContactMail").value =
+    venue.venueContactMail || "";
+
+  document.getElementById("venueUrl").value =
+    venue.venueUrl || "";
+
+  document.getElementById("venueCapacity").value =
+    venue.venueCapacity || "";
+
+  if(venue.venueCost){
+    document.getElementById("venueCost").value =
+      venue.venueCost || "";
+  }
+
+  document.getElementById("venueFeeMemo").value =
+    venue.venueFeeMemo || "";
+
+  currentTraining.venueId =
+    venue.venueId || "";
+}
+
+function findTrainingRecord(eventId){
+
+  return allTrainingRecords.find(function(record){
+    return String(record.eventId || "") === String(eventId || "");
+  }) || null;
+}
+
+function getMergedTraining(training){
+
+  const record =
+    findTrainingRecord(training && training.eventId);
+
+  if(!record){
+    return training;
+  }
+
+  return Object.assign(
+    {},
+    training,
+    {
+      venueName: record.venueName || training.venueName || "",
+      venueId: record.venueId || training.venueId || "",
+      venueAddress: record.venueAddress || training.venueAddress || "",
+      venueContactName: record.venueContactName || training.venueContactName || "",
+      venueContactPhone: record.venueContactPhone || training.venueContactPhone || "",
+      venueContactMail: record.venueContactMail || training.venueContactMail || "",
+      venueUrl: record.venueUrl || training.venueUrl || "",
+      venueCapacity: record.venueCapacity || training.venueCapacity || "",
+      startTime: record.startTime || training.startTime || "",
+      endTime: record.endTime || training.endTime || "",
+      lecturerName: record.lecturerName || training.lecturerName || "",
+      lecturerOrg: record.lecturerOrg || training.lecturerOrg || "",
+      lecturerContact: record.lecturerContact || training.lecturerContact || "",
+      venueCost: record.venueCost || training.venueCost || "",
+      venueFeeMemo: record.venueFeeMemo || training.venueFeeMemo || "",
+      lecturerCost: record.lecturerCost || training.lecturerCost || "",
+      printCost: record.printCost || training.printCost || "",
+      drinkCost: record.drinkCost || training.drinkCost || "",
+      otherCost: record.otherCost || training.otherCost || "",
+      costNote: record.costNote || training.costNote || "",
+      eventMemo: record.eventMemo || training.eventMemo || ""
+    }
+  );
+}
+
+function getTrainingFiscalYear(training){
+
+  const eventId =
+    String(training && training.eventId ? training.eventId : "").trim();
+
+  const match =
+    eventId.match(/^(\d{4})-/);
+
+  if(match){
+    return match[1];
+  }
+
+  const eventDate =
+    String(training && training.eventDate ? training.eventDate : "").trim();
+
+  const dateMatch =
+    eventDate.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+
+  if(!dateMatch){
+    return "";
+  }
+
+  const year =
+    Number(dateMatch[1]);
+
+  const month =
+    Number(dateMatch[2]);
+
+  if(!year || !month){
+    return "";
+  }
+
+  return String(month <= 3 ? year - 1 : year);
+}
+
+function getTrainingYearList(){
+
+  const yearMap =
+    {};
+
+  allTrainings.forEach(function(training){
+
+    const year =
+      getTrainingFiscalYear(training);
+
+    if(year){
+      yearMap[year] =
+        true;
+    }
+  });
+
+  return Object.keys(yearMap).sort(function(a, b){
+    return Number(b) - Number(a);
+  });
+}
+
+function renderTrainingYearOptions(){
+
+  const select =
+    document.getElementById("trainingYear");
+
+  const years =
+    getTrainingYearList();
+
+  select.innerHTML =
+    "";
+
+  if(years.length === 0){
+    select.innerHTML =
+      '<option value="">年度がありません</option>';
+    return "";
+  }
+
+  const initialYear =
+    initialEventId
+      ? getTrainingFiscalYear({ eventId: initialEventId })
+      : "";
+
+  const selectedYear =
+    initialYear && years.indexOf(initialYear) >= 0
+      ? initialYear
+      : years[0];
+
+  years.forEach(function(year){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      year;
+
+    option.textContent =
+      year + "年度";
+
+    select.appendChild(option);
+  });
+
+  select.value =
+    selectedYear;
+
+  return selectedYear;
+}
+
+function renderTrainingOptions(selectedEventId){
+
+  const select =
+    document.getElementById("eventId");
+
+  const year =
+    document.getElementById("trainingYear").value;
+
+  const trainings =
+    allTrainings.filter(function(training){
+      return getTrainingFiscalYear(training) === year;
+    });
+
+  select.innerHTML =
+    '<option value="">研修会を選択してください</option>';
+
+  trainings.forEach(function(t){
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      t.eventId;
+
+    option.textContent =
+      t.eventId +
+      " / " +
+      (t.eventDate ? t.eventDate + " / " : "") +
+      t.title +
+      " / " +
+      t.hostType;
+
+    select.appendChild(option);
+  });
+
+  if(selectedEventId){
+    select.value =
+      selectedEventId;
+  }
+
+  if(!select.value){
+    currentTraining =
+      null;
+
+    document.getElementById("editArea").style.display =
+      "none";
+
+    document.getElementById("status").textContent =
+      trainings.length > 0
+        ? "研修会を選択してください。"
+        : "この年度の研修会はありません。";
+  }
+}
+
+function changeTrainingYear(){
+
+  renderTrainingOptions("");
+}
+
+function loadTrainings(){
+
+  jsonp(
+    "getActiveTrainingsJsonp",
+    {},
+    function(res){
+
+      const select =
+        document.getElementById("eventId");
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">研修会一覧を取得できませんでした。</span>';
+        return;
+      }
+
+      allTrainings =
+        res.trainings || [];
+
+      if(initialEventId){
+        document.getElementById("trainingSelector").style.display =
+          "none";
+      }
+
+      renderTrainingYearOptions();
+
+      renderTrainingOptions(initialEventId);
+
+      if(initialEventId){
+        select.value =
+          initialEventId;
+
+        loadTraining();
+        return;
+      }
+
+      document.getElementById("status").textContent =
+        "研修会を選択してください。";
+    }
+  );
+}
+
+function openInitialTrainingDirectly(){
+
+  document.getElementById("trainingSelector").style.display =
+    "none";
+
+  const select =
+    document.getElementById("eventId");
+
+  select.innerHTML =
+    "";
+
+  const option =
+    document.createElement("option");
+
+  option.value =
+    initialEventId;
+
+  option.textContent =
+    initialEventId;
+
+  select.appendChild(option);
+
+  select.value =
+    initialEventId;
+
+  loadVenuePresets(loadTraining);
+}
+
+
+function loadTraining(){
+
+  const eventId =
+    document.getElementById("eventId").value;
+
+  if(!eventId){
+    currentTraining =
+      null;
+
+    document.getElementById("editArea").style.display =
+      "none";
+
+    document.getElementById("status").textContent =
+      "研修会を選択してください。";
+
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "研修会情報を読み込み中...";
+
+  jsonp(
+    "getTrainingDetailJsonp",
+    { event: eventId },
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("status").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "研修会情報を取得できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      currentTraining =
+        getMergedTraining(res.training);
+
+      document.getElementById("status").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(currentTraining.title || "") +
+        '</span>';
+
+      document.getElementById("editArea").style.display =
+        "block";
+
+      document.getElementById("venueName").value =
+        currentTraining.venueName || "";
+
+      setSelectedVenuePreset(
+        currentTraining.venueId || "",
+        currentTraining.venueName || "",
+        currentTraining.venueAddress || ""
+      );
+
+      document.getElementById("venueAddress").value =
+        currentTraining.venueAddress || "";
+
+      document.getElementById("venueContactName").value =
+        currentTraining.venueContactName || "";
+
+      document.getElementById("venueContactPhone").value =
+        currentTraining.venueContactPhone || "";
+
+      document.getElementById("venueContactMail").value =
+        currentTraining.venueContactMail || "";
+
+      document.getElementById("venueUrl").value =
+        currentTraining.venueUrl || "";
+
+      document.getElementById("venueCapacity").value =
+        currentTraining.venueCapacity || "";
+
+      document.getElementById("startTime").value =
+        currentTraining.startTime || "";
+
+      document.getElementById("endTime").value =
+        currentTraining.endTime || "";
+
+      document.getElementById("lecturerName").value =
+        currentTraining.lecturerName || "";
+
+      document.getElementById("lecturerOrg").value =
+        currentTraining.lecturerOrg || "";
+
+      document.getElementById("lecturerContact").value =
+        currentTraining.lecturerContact || "";
+
+      document.getElementById("venueCost").value =
+        currentTraining.venueCost || "";
+
+      document.getElementById("venueFeeMemo").value =
+        currentTraining.venueFeeMemo || "";
+
+      document.getElementById("lecturerCost").value =
+        currentTraining.lecturerCost || "";
+
+      document.getElementById("printCost").value =
+        currentTraining.printCost || "";
+
+      document.getElementById("drinkCost").value =
+        currentTraining.drinkCost || "";
+
+      document.getElementById("otherCost").value =
+        currentTraining.otherCost || "";
+
+      document.getElementById("costNote").value =
+        currentTraining.costNote || "";
+
+      document.getElementById("eventMemo").value =
+        currentTraining.eventMemo || "";
+    }
+  );
+}
+
+
+function saveRecord(){
+
+  if(!currentTraining){
+    alert("研修会を選択してください。");
+    return;
+  }
+
+  const data = {
+    eventId: currentTraining.eventId,
+    title: currentTraining.title,
+    hostType: currentTraining.hostType,
+    receptionType: currentTraining.receptionType,
+    attendanceUnit: currentTraining.attendanceUnit || "会社",
+    eventDate: currentTraining.eventDate,
+    subject: currentTraining.subject || "",
+    body: currentTraining.body || "",
+    pdfFileId: currentTraining.pdfFileId || "",
+    active:
+      currentTraining.active === false ||
+      String(currentTraining.active).toUpperCase() === "FALSE"
+        ? "FALSE"
+        : "TRUE",
+
+    targetOrgIds: currentTraining.targetOrgIds || "",
+    senderOrgId: currentTraining.senderOrgId || "",
+    mailSignatureId: currentTraining.mailSignatureId || "",
+    certificateEnabled:
+      currentTraining.certificateEnabled === false ||
+      String(currentTraining.certificateEnabled).toUpperCase() === "FALSE"
+        ? "FALSE"
+        : "TRUE",
+
+    venueName: document.getElementById("venueName").value.trim(),
+    venueId: getSelectedVenueId(),
+    venueAddress: document.getElementById("venueAddress").value.trim(),
+    venueContactName: document.getElementById("venueContactName").value.trim(),
+    venueContactPhone: document.getElementById("venueContactPhone").value.trim(),
+    venueContactMail: document.getElementById("venueContactMail").value.trim(),
+    venueUrl: document.getElementById("venueUrl").value.trim(),
+    venueCapacity: document.getElementById("venueCapacity").value.trim(),
+    startTime: document.getElementById("startTime").value,
+    endTime: document.getElementById("endTime").value,
+    lecturerName: document.getElementById("lecturerName").value.trim(),
+    lecturerOrg: document.getElementById("lecturerOrg").value.trim(),
+    lecturerContact: document.getElementById("lecturerContact").value.trim(),
+    venueCost: document.getElementById("venueCost").value.trim(),
+    venueFeeMemo: document.getElementById("venueFeeMemo").value,
+    lecturerCost: document.getElementById("lecturerCost").value.trim(),
+    printCost: document.getElementById("printCost").value.trim(),
+    drinkCost: document.getElementById("drinkCost").value.trim(),
+    otherCost: document.getElementById("otherCost").value.trim(),
+    costNote: document.getElementById("costNote").value,
+    eventMemo: document.getElementById("eventMemo").value
+  };
+
+  document.getElementById("result").style.display =
+    "block";
+
+  document.getElementById("result").textContent =
+    "保存中...";
+
+  jsonp(
+    "saveTrainingJsonp",
+    data,
+    function(res){
+
+      if(!res || !res.ok){
+        document.getElementById("result").innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
+          '</span>';
+        return;
+      }
+
+      document.getElementById("result").innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "保存しました。") +
+        '</span>';
+
+      loadTraining();
+    }
+  );
+}
+
+if(initialEventId){
+  openInitialTrainingDirectly();
+} else {
+  loadVenuePresets(loadTrainings);
+}
+
+function getSelectedVenueId(){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(!select || select.value === ""){
+    return currentTraining && currentTraining.venueId
+      ? currentTraining.venueId
+      : "";
+  }
+
+  const venue =
+    venuePresets[Number(select.value)];
+
+  return venue && venue.venueId
+    ? venue.venueId
+    : "";
+}
+
+function setSelectedVenuePreset(venueId, venueName, venueAddress){
+
+  const select =
+    document.getElementById("venuePreset");
+
+  if(!select){
+    return;
+  }
+
+  select.value =
+    "";
+
+  for(let i = 0; i < venuePresets.length; i++){
+
+    const venue =
+      venuePresets[i];
+
+    if(
+      venueId &&
+      String(venue.venueId || "") === String(venueId)
+    ){
+      select.value =
+        String(i);
+      return;
+    }
+
+    if(
+      !venueId &&
+      String(venue.venueName || "") === String(venueName || "") &&
+      String(venue.venueAddress || "") === String(venueAddress || "")
+    ){
+      select.value =
+        String(i);
+      return;
+    }
+  }
+}
+</script>
+
+</body>
+</html>
