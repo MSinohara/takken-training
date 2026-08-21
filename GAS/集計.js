@@ -285,9 +285,6 @@ function getTrainingStatsSummary_(
     };
   }
 
-  const isPlannedOnly =
-    String(training.checkinTargetMode || "").trim() === "事前申込者のみ";
-
   const jobSummary =
     getTrainingStatsSummaryFromCheckinIndexJob_(
       training
@@ -298,29 +295,9 @@ function getTrainingStatsSummary_(
   }
 
   const indexSummary =
-    isPlannedOnly
-      ? (
-          getTrainingStatsSummaryFromCheckinIndex_(
-            training
-          ) ||
-          getTrainingStatsSummaryFromFirestoreTargetsOnly_(
-            training
-          ) ||
-          getTrainingStatsSummaryFromFirestore_(
-            training
-          )
-        )
-      : (
-          getTrainingStatsSummaryFromFirestoreTargetsOnly_(
-            training
-          ) ||
-          getTrainingStatsSummaryFromFirestore_(
-            training
-          ) ||
-          getTrainingStatsSummaryFromCheckinIndex_(
-            training
-          )
-        );
+    getTrainingStatsSummaryFromCheckinIndex_(
+      training
+    );
 
   if (indexSummary) {
     return indexSummary;

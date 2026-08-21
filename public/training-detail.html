@@ -317,9 +317,10 @@ function loadStats(){
           "block";
 
         statsBox.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
-          '</span>';
+          '<h2>参加状況集計</h2>' +
+          '<div class="muted">' +
+          '参加状況集計は現在読み込めません。受付・編集・メール送信などの操作はそのまま利用できます。必要な場合は「受付索引を更新」後に再読み込みしてください。' +
+          '</div>';
 
         return;
       }
