@@ -190,7 +190,10 @@ const pageSize =
   10;
 
 
-function loadTrainings(){
+function loadTrainings(attempt){
+
+  attempt =
+    Number(attempt || 0);
 
   jsonp(
     "getActiveTrainingsJsonp",
@@ -201,10 +204,35 @@ function loadTrainings(){
         document.getElementById("status");
 
       if(!res || !res.ok){
+
+        if(attempt < 2){
+          status.textContent =
+            "研修会一覧の読み込みに時間がかかっています。もう一度読み込みます...";
+
+          setTimeout(function(){
+            loadTrainings(
+              attempt + 1
+            );
+          }, 1500);
+
+          return;
+        }
+
         status.textContent =
-          res && res.message
-            ? res.message
-            : "研修会一覧を取得できませんでした。";
+          "";
+
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(
+            res && res.message
+              ? res.message
+              : "研修会一覧を取得できませんでした。"
+          ) +
+          '</span>' +
+          '<div style="margin-top:10px;">' +
+          '<button class="btn sub" type="button" onclick="loadTrainings(0)">再読み込み</button>' +
+          '</div>';
+
         return;
       }
 
@@ -223,6 +251,8 @@ function loadTrainings(){
         true
       );
     }
+  ,
+  90000
   );
 }
 

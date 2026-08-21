@@ -833,14 +833,29 @@ function getActiveTrainingsJsonp_(e) {
   const callback =
     e.parameter.callback || "callback";
 
-  const list =
-    getActiveTrainings();
+  let result;
 
-  const text =
-    callback + "(" + JSON.stringify({
+  try {
+
+    const list =
+      getActiveTrainings();
+
+    result = {
       ok: true,
       trainings: list
-    }) + ")";
+    };
+
+  } catch (err) {
+
+    result = {
+      ok: false,
+      message: "研修会一覧を取得できませんでした。少し待ってから再読み込みしてください。",
+      debugMessage: err && err.message ? String(err.message) : String(err || "")
+    };
+  }
+
+  const text =
+    callback + "(" + JSON.stringify(result) + ")";
 
   return ContentService
     .createTextOutput(text)
