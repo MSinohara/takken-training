@@ -3,8 +3,21 @@ function getOrganizationsJsonp_(e) {
   const callback =
     e.parameter.callback || "callback";
 
-  const result =
-    getOrganizations_();
+  let result;
+
+  try {
+
+    result =
+      getOrganizations_();
+
+  } catch (err) {
+
+    result = {
+      ok: false,
+      message: "組織一覧を取得できませんでした。少し待ってから再読み込みしてください。",
+      debugMessage: err && err.message ? String(err.message) : String(err || "")
+    };
+  }
 
   return ContentService
     .createTextOutput(
@@ -29,10 +42,23 @@ function saveOrganizationJsonp_(e) {
     csvImportMode: String(e.parameter.csvImportMode || "所属入替").trim()
   };
 
-  const result =
-    saveOrganization_(
-      data
-    );
+  let result;
+
+  try {
+
+    result =
+      saveOrganization_(
+        data
+      );
+
+  } catch (err) {
+
+    result = {
+      ok: false,
+      message: "組織を保存できませんでした。少し待ってから再度お試しください。",
+      debugMessage: err && err.message ? String(err.message) : String(err || "")
+    };
+  }
 
   return ContentService
     .createTextOutput(
@@ -206,6 +232,31 @@ function saveOrganization_(
     }
   }
 
+  const existingRow =
+    findOrganizationRowByName_(
+      values,
+      headerMap,
+      data.orgName
+    );
+
+  if (existingRow > 0) {
+
+    sheet.getRange(existingRow, col["組織名"]).setValue(data.orgName);
+    sheet.getRange(existingRow, col["差出人名"]).setValue(data.senderName);
+    sheet.getRange(existingRow, col["有効"]).setValue(data.active === "FALSE" ? "FALSE" : "TRUE");
+    sheet.getRange(existingRow, col["主催区分"]).setValue(data.hostAvailable === "TRUE" ? "TRUE" : "FALSE");
+    sheet.getRange(existingRow, col["CSV取込名"]).setValue(data.csvImportName || "");
+    sheet.getRange(existingRow, col["CSV取込方式"]).setValue(data.csvImportMode || "所属入替");
+    sheet.getRange(existingRow, col["更新日時"]).setValue(now);
+
+    return {
+      ok: true,
+      message: "同じ組織名の登録があるため、既存組織を更新しました。",
+      orgId: String(getCellByHeader_(values[existingRow - 1], headerMap, "組織ID") || "").trim(),
+      matchedExistingOrganization: true
+    };
+  }
+
   const newOrgId =
     getNextOrganizationId_(
       sheet
@@ -231,6 +282,49 @@ function saveOrganization_(
     message: "組織を追加しました。",
     orgId: newOrgId
   };
+}
+
+function findOrganizationRowByName_(
+  values,
+  headerMap,
+  orgName
+) {
+
+  const targetName =
+    normalizeOrganizationNameKey_(
+      orgName
+    );
+
+  if (!targetName) {
+    return -1;
+  }
+
+  for (let i = 1; i < values.length; i++) {
+
+    const rowName =
+      normalizeOrganizationNameKey_(
+        getCellByHeader_(
+          values[i],
+          headerMap,
+          "組織名"
+        )
+      );
+
+    if (rowName && rowName === targetName) {
+      return i + 1;
+    }
+  }
+
+  return -1;
+}
+
+function normalizeOrganizationNameKey_(
+  value
+) {
+
+  return String(value || "")
+    .replace(/[ 　]+/g, "")
+    .trim();
 }
 
 

@@ -208,7 +208,7 @@ main{
       </div>
 
       <div>
-        <button class="btn" onclick="saveOrganization()">保存</button>
+        <button id="saveOrganizationButton" class="btn" onclick="saveOrganization()">保存</button>
       </div>
     </div>
 
@@ -266,8 +266,13 @@ let currentPage =
 const pageSize =
   10;
 
+let organizationSaving =
+  false;
 
-function loadOrganizations(){
+function loadOrganizations(attempt){
+
+  attempt =
+    Number(attempt || 0);
 
   const status =
     document.getElementById("status");
@@ -293,8 +298,31 @@ function loadOrganizations(){
     function(res){
 
       if(!res || !res.ok){
+
+        if(attempt < 2){
+          status.textContent =
+            "組織一覧の読み込みに時間がかかっています。もう一度読み込みます...";
+
+          setTimeout(function(){
+            loadOrganizations(
+              attempt + 1
+            );
+          }, 1500);
+
+          return;
+        }
+
         status.innerHTML =
-          '<span class="ng">組織一覧を取得できませんでした。</span>';
+          '<span class="ng">' +
+          escapeHtml(
+            res && res.message
+              ? res.message
+              : "組織一覧を取得できませんでした。"
+          ) +
+          '</span>' +
+          '<div style="margin-top:10px;">' +
+          '<button class="btn sub" type="button" onclick="loadOrganizations(0)">再読み込み</button>' +
+          '</div>';
         return;
       }
 
@@ -312,6 +340,8 @@ function loadOrganizations(){
 
       renderOrganizations();
     }
+  ,
+  90000
   );
 }
 
@@ -817,6 +847,10 @@ function addSelectedPersonalToOrganization(){
 
 function saveOrganization(){
 
+  if(organizationSaving){
+    return;
+  }
+
   const orgId =
     document.getElementById("orgId").value.trim();
 
@@ -851,6 +885,10 @@ function saveOrganization(){
   document.getElementById("status").textContent =
     "保存中...";
 
+  setOrganizationSaving(
+    true
+  );
+
   jsonp(
     "saveOrganizationJsonp",
     {
@@ -869,8 +907,16 @@ function saveOrganization(){
           '<span class="ng">' +
           escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
           '</span>';
+
+        setOrganizationSaving(
+          false
+        );
+
         return;
       }
+
+      document.getElementById("orgId").value =
+        res.orgId || orgId || "";
 
       document.getElementById("status").innerHTML =
         '<span class="ok">' +
@@ -879,8 +925,28 @@ function saveOrganization(){
 
       closeOrganizationForm();
       loadOrganizations();
-    }
+    },
+    120000
   );
+}
+
+function setOrganizationSaving(saving){
+
+  organizationSaving =
+    saving;
+
+  const button =
+    document.getElementById("saveOrganizationButton");
+
+  if(!button){
+    return;
+  }
+
+  button.disabled =
+    saving;
+
+  button.textContent =
+    saving ? "保存中..." : "保存";
 }
 
 function openNewOrganizationForm(){
@@ -908,6 +974,10 @@ function openOrganizationForm(){
 function closeOrganizationForm(){
 
   clearForm();
+
+  setOrganizationSaving(
+    false
+  );
 
   document.getElementById("formPanel").style.display =
     "none";
