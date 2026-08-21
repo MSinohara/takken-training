@@ -1726,12 +1726,26 @@ function getMemberDetailJsonp_(e) {
     e.parameter.callback || "callback";
 
   const memberNo =
-    String(e.parameter.member || "").replace(".0", "").trim();
-
-  const result =
-    getMemberDetail_(
-      memberNo
+    normalizeMemberNo_(
+      e.parameter.member || ""
     );
+
+  let result;
+
+  try {
+
+    result =
+      getMemberDetail_(
+        memberNo
+      );
+
+  } catch (err) {
+
+    result = {
+      ok: false,
+      message: err.message
+    };
+  }
 
   return ContentService
     .createTextOutput(
@@ -1743,33 +1757,83 @@ function getMemberDetailJsonp_(e) {
 
 function getMemberDetail_(memberNo) {
 
-  const members =
-    getMembers_(
-      memberNo,
-      "",
-      ""
+  const targetMemberNo =
+    normalizeMemberNo_(
+      memberNo
     );
 
-  if (!members.ok || !members.members || members.members.length === 0) {
+  if (!targetMemberNo) {
+    return {
+      ok: false,
+      message: "業者番号が指定されていません。"
+    };
+  }
+
+  const member =
+    findMemberByExactMemberNo_(
+      targetMemberNo
+    );
+
+  if (!member) {
     return {
       ok: false,
       message: "会員情報が見つかりません。"
     };
   }
 
-  const member =
-    members.members[0];
+  const settingMap =
+    getMemberSettingMap_();
+
+  const setting =
+    settingMap[targetMemberNo] || {
+      target: "TRUE",
+      note: ""
+    };
 
   const orgs =
     getMemberOrganizations_(
-      memberNo
+      targetMemberNo
     );
 
   return {
     ok: true,
-    member: member,
+    member: Object.assign(
+      {},
+      member,
+      {
+        target: setting.target,
+        note: setting.note
+      }
+    ),
     organizations: orgs.ok ? orgs.organizations : []
   };
+}
+
+function findMemberByExactMemberNo_(
+  memberNo
+) {
+
+  const targetMemberNo =
+    normalizeMemberNo_(
+      memberNo
+    );
+
+  if (!targetMemberNo) {
+    return null;
+  }
+
+  const members =
+    getMemberRowsFromMaster_();
+
+  for (let i = 0; i < members.length; i++) {
+    if (
+      normalizeMemberNo_(members[i].memberNo) === targetMemberNo
+    ) {
+      return members[i];
+    }
+  }
+
+  return null;
 }
 
 function getMemberRowsFromMaster_() {
