@@ -1079,9 +1079,36 @@ function applyMemberImportDuplicateChoices_(
   const candidateMap =
     makeMemberImportDuplicateCandidateMap_();
 
+  const sheet =
+    getPersonalMemberSheet_();
+
+  const headerMap =
+    getHeaderMap_(
+      sheet
+    );
+
+  const values =
+    sheet.getDataRange().getValues();
+
+  const rowByPersonalId = {};
+
+  for (let i = 1; i < values.length; i++) {
+
+    const personalId =
+      String(getCellByHeader_(values[i], headerMap, "個人ID") || "").trim();
+
+    if (personalId) {
+      rowByPersonalId[personalId] =
+        i + 1;
+    }
+  }
+
   const suffixMap = {};
+  const rowsToWrite = [];
   let saved = 0;
   let skipped = 0;
+  const now =
+    new Date();
 
   choices.forEach(function(choice) {
 
@@ -1128,20 +1155,55 @@ function applyMemberImportDuplicateChoices_(
     suffixMap[memberNo][suffix] =
       true;
 
-    savePersonalMember_({
-      personalId: memberNo + "-" + suffix,
-      memberNo: memberNo,
-      companyName: candidate.companyName,
-      personName: candidate.representativeName,
-      personType: suffix === "001" ? "代表者" : "社員",
-      mail: candidate.mail,
-      active: "TRUE",
-      source: "会員CSV重複候補",
-      note:
-        "会員マスタCSV取込時の同一業者番号候補から登録"
+    const personalId =
+      memberNo + "-" + suffix;
+
+    const existingRowNo =
+      rowByPersonalId[personalId] || 0;
+
+    const existingRow =
+      existingRowNo
+        ? values[existingRowNo - 1]
+        : [];
+
+    rowsToWrite.push({
+      rowNo: existingRowNo,
+      row: [
+        personalId,
+        memberNo,
+        candidate.companyName,
+        candidate.representativeName,
+        normalizePersonalMemberType_(suffix === "001" ? "代表者" : "社員"),
+        candidate.mail,
+        "承認済み",
+        "TRUE",
+        "会員CSV重複候補",
+        "会員マスタCSV取込時の同一業者番号候補から登録",
+        existingRowNo
+          ? getCellByHeader_(existingRow, headerMap, "作成日時") || now
+          : now,
+        now
+      ]
     });
 
     saved++;
+  });
+
+  rowsToWrite.forEach(function(item) {
+
+    const rowNo =
+      item.rowNo || sheet.getLastRow() + 1;
+
+    sheet
+      .getRange(
+        rowNo,
+        1,
+        1,
+        PERSONAL_MEMBER_HEADERS_.length
+      )
+      .setValues([
+        item.row
+      ]);
   });
 
   return {
