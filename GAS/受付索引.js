@@ -1165,6 +1165,12 @@ function buildCheckinIndexForEvent_(eventId) {
       masterMembers
     );
 
+  const targetModeSummary =
+    makeCheckinIndexTargetModeSummary_(
+      training,
+      targetMembers
+    );
+
   const linkedTargetCount =
     targetMembers.filter(function(member) {
       return !!(
@@ -1490,6 +1496,7 @@ function buildCheckinIndexForEvent_(eventId) {
       "件、更新 " +
       updated +
       "件。" +
+      targetModeSummary +
       " 条件: ブロック=" +
       (targetCondition.targetBlock || "指定なし") +
       " / 支部=" +
@@ -1559,6 +1566,12 @@ function buildCheckinIndexForEventChunk_(
     getCheckinIndexTargetMembers_(
       training,
       masterMembers
+    );
+
+  const targetModeSummary =
+    makeCheckinIndexTargetModeSummary_(
+      training,
+      targetMembers
     );
 
   const sheet =
@@ -1775,7 +1788,9 @@ function buildCheckinIndexForEventChunk_(
       done
         ? "受付索引を更新しました。対象者 " +
           targetMembers.length +
-          "件。条件: ブロック=" +
+          "件。" +
+          targetModeSummary +
+          " 条件: ブロック=" +
           (targetCondition.targetBlock || "指定なし") +
           " / 支部=" +
           (targetCondition.targetBranch || "指定なし") +
@@ -1875,13 +1890,63 @@ function getCheckinIndexTargetMembers_(
 ) {
 
   if (
-    String(training && training.checkinTargetMode || "").trim() ===
-    "事前申込者のみ"
+    shouldUsePlannedAttendeesAsOnlyCheckinIndexTargets_(
+      training
+    )
   ) {
     return getPlannedAttendeesAsCheckinIndexTargets_(
       training
     );
   }
+
+  const normalTargets =
+    getNormalCheckinIndexTargetMembers_(
+      training,
+      masterMembers
+    );
+
+  return mergePlannedAttendeesIntoCheckinIndexTargets_(
+    normalTargets,
+    getPlannedAttendeesAsCheckinIndexTargets_(
+      training
+    )
+  );
+}
+
+function shouldUsePlannedAttendeesAsOnlyCheckinIndexTargets_(
+  training
+) {
+
+  return normalizeCheckinIndexTargetMode_(
+    training && training.checkinTargetMode
+  ) === "事前申込者のみ";
+}
+
+function normalizeCheckinIndexTargetMode_(
+  value
+) {
+
+  const text =
+    String(value || "").trim();
+
+  if (
+    text === "事前申込者のみ" ||
+    text === "事前申込" ||
+    text === "事前申込者" ||
+    text === "事前受付" ||
+    text === "planned" ||
+    text === "plannedOnly"
+  ) {
+    return "事前申込者のみ";
+  }
+
+  return "通常対象";
+}
+
+function getNormalCheckinIndexTargetMembers_(
+  training,
+  masterMembers
+) {
 
   if (
     String(training && training.attendanceUnit || "会社").trim() === "個人" &&
@@ -1960,6 +2025,113 @@ function getCheckinIndexTargetMembers_(
   });
 
   return list;
+}
+
+function mergePlannedAttendeesIntoCheckinIndexTargets_(
+  normalTargets,
+  plannedTargets
+) {
+
+  const list =
+    (normalTargets || []).slice();
+
+  const existingMap = {};
+
+  list.forEach(function(member) {
+    const key =
+      makeCheckinIndexPersonOrMemberKey_(
+        member
+      );
+
+    if (key) {
+      existingMap[key] =
+        true;
+    }
+  });
+
+  (plannedTargets || []).forEach(function(member) {
+
+    if (
+      String(member.receptionCategory || "").trim() !== "事前申込者"
+    ) {
+      return;
+    }
+
+    const key =
+      makeCheckinIndexPersonOrMemberKey_(
+        member
+      );
+
+    if (!key || existingMap[key]) {
+      return;
+    }
+
+    existingMap[key] =
+      true;
+
+    const added =
+      Object.assign(
+        {},
+        member
+      );
+
+    // 通常対象に足す場合は、予定者IDではなく個人ID・業者番号で扱う。
+    added.plannedId =
+      "";
+
+    added.targetType =
+      "個別追加";
+
+    list.push(
+      added
+    );
+  });
+
+  return list;
+}
+
+function makeCheckinIndexPersonOrMemberKey_(
+  member
+) {
+
+  const personalId =
+    String(member && member.personalId || "").trim();
+
+  if (personalId) {
+    return "P:" + personalId;
+  }
+
+  const memberNo =
+    normalizeMemberNo_(
+      member && member.memberNo
+    );
+
+  return memberNo
+    ? "M:" + memberNo
+    : "";
+}
+
+function makeCheckinIndexTargetModeSummary_(
+  training,
+  targetMembers
+) {
+
+  if (
+    shouldUsePlannedAttendeesAsOnlyCheckinIndexTargets_(
+      training
+    )
+  ) {
+    return " 受付対象=事前申込者のみ。";
+  }
+
+  const additionalCount =
+    (targetMembers || []).filter(function(member) {
+      return String(member.targetType || "").trim() === "個別追加";
+    }).length;
+
+  return additionalCount > 0
+    ? " 受付対象=対象設定＋個別追加" + additionalCount + "件。"
+    : " 受付対象=対象設定。";
 }
 
 function getPlannedAttendeesAsCheckinIndexTargets_(
