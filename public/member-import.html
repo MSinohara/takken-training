@@ -794,10 +794,11 @@ function saveDuplicateChoices(){
   status.textContent =
     "反映中...";
 
-  jsonp(
+  jsonpWithLongBody(
     "applyMemberImportDuplicateChoicesJsonp",
     {
-      choices: JSON.stringify(choices)
+      choices: "",
+      body: JSON.stringify(choices)
     },
     function(res){
 

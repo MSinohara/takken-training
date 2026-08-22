@@ -577,9 +577,14 @@ function applyMemberImportDuplicateChoicesJsonp_(e) {
   let result;
 
   try {
+    const choicesText =
+      e.parameter.bodyToken
+        ? getLongTextByToken_(e.parameter.bodyToken)
+        : e.parameter.choices || "[]";
+
     result =
       applyMemberImportDuplicateChoices_(
-        JSON.parse(e.parameter.choices || "[]")
+        JSON.parse(choicesText || "[]")
       );
   } catch (err) {
     result = {
