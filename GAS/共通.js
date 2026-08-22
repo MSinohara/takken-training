@@ -457,6 +457,14 @@ function doGetCore_(e) {
     return finishMemberImportJsonp_(e);
   }
 
+  if (e.parameter.action === "getMemberImportDuplicateCandidatesJsonp") {
+    return getMemberImportDuplicateCandidatesJsonp_(e);
+  }
+
+  if (e.parameter.action === "applyMemberImportDuplicateChoicesJsonp") {
+    return applyMemberImportDuplicateChoicesJsonp_(e);
+  }
+
   if (e.parameter.action === "getMembersJsonp") {
     return getMembersJsonp_(e);
   }

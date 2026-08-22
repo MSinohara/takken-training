@@ -44,6 +44,22 @@ main{
   font-size:14px;
 }
 
+.duplicate-box{
+  margin-top:18px;
+  padding:14px;
+  border:1px solid #d6dde8;
+  border-radius:8px;
+  background:#f8fbff;
+}
+
+.duplicate-group{
+  margin-top:14px;
+}
+
+.duplicate-group h3{
+  margin:0 0 8px;
+}
+
 @media screen and (max-width:800px){
   .mapping{
     display:block;
@@ -136,6 +152,8 @@ main{
 
   <div id="previewArea" class="preview"></div>
 
+  <div id="duplicateArea" class="duplicate-box" style="display:none;"></div>
+
 </div>
 </main>
 
@@ -144,6 +162,9 @@ let csvRows =
   [];
 
 let mappedRows =
+  [];
+
+let duplicateGroups =
   [];
 
 function readCsv(){
@@ -552,8 +573,185 @@ function finishImport(){
         escapeHtml(res.addedSettings) +
         '件';
 
+      if(Number(res.duplicateCandidateGroups || 0) > 0){
+        document.getElementById("status").innerHTML +=
+          '<br><span class="ng">同じ業者番号の候補があります。下の候補確認で001・002などを選んでください。</span>';
+
+        loadDuplicateCandidates();
+      }else{
+        document.getElementById("duplicateArea").style.display =
+          "none";
+      }
+
       document.getElementById("importButton").disabled =
         true;
+    }
+  );
+}
+
+function loadDuplicateCandidates(){
+
+  const area =
+    document.getElementById("duplicateArea");
+
+  area.style.display =
+    "block";
+
+  area.innerHTML =
+    "同一業者番号の候補を読み込み中です...";
+
+  jsonp(
+    "getMemberImportDuplicateCandidatesJsonp",
+    {},
+    function(res){
+
+      if(!res || !res.ok){
+        area.innerHTML =
+          '<span class="ng">重複候補を取得できませんでした。</span>';
+        return;
+      }
+
+      duplicateGroups =
+        res.groups || [];
+
+      renderDuplicateCandidates();
+    }
+  );
+}
+
+function renderDuplicateCandidates(){
+
+  const area =
+    document.getElementById("duplicateArea");
+
+  if(!duplicateGroups.length){
+    area.style.display =
+      "none";
+    return;
+  }
+
+  let html =
+    '<h2>同一業者番号の個人候補</h2>' +
+    '<div class="help">' +
+      '同じ業者番号で複数行あったものです。個人会員マスタへ登録する人だけ、001・002・003などを選んで保存してください。' +
+      '「取込しない」は個人会員として登録しません。' +
+    '</div>';
+
+  duplicateGroups.forEach(function(group, groupIndex){
+
+    html +=
+      '<div class="duplicate-group">' +
+      '<h3>業者番号：' + escapeHtml(group.memberNo || "") + '</h3>' +
+      '<table>' +
+      '<thead>' +
+      '<tr>' +
+      '<th>個人番号</th>' +
+      '<th>会社名</th>' +
+      '<th>氏名</th>' +
+      '<th>所属</th>' +
+      '<th>メール</th>' +
+      '</tr>' +
+      '</thead><tbody>';
+
+    (group.candidates || []).forEach(function(item, index){
+
+      html +=
+        '<tr>' +
+        '<td>' +
+          '<select class="duplicate-choice" ' +
+            'data-member="' + escapeHtml(group.memberNo || "") + '" ' +
+            'data-candidate="' + escapeHtml(item.candidateNo || "") + '">' +
+            makeDuplicateSuffixOptions(index) +
+          '</select>' +
+        '</td>' +
+        '<td>' + escapeHtml(item.companyName || "") + '</td>' +
+        '<td>' + escapeHtml(item.representativeName || "") + '</td>' +
+        '<td>' + escapeHtml([item.block, item.branch, item.district].filter(Boolean).join(" / ")) + '</td>' +
+        '<td>' + escapeHtml(item.mail || "") + '</td>' +
+        '</tr>';
+    });
+
+    html +=
+      '</tbody></table>' +
+      '</div>';
+  });
+
+  html +=
+    '<div class="actions">' +
+      '<button class="btn" onclick="saveDuplicateChoices()">選択内容を個人会員マスタへ反映</button>' +
+    '</div>' +
+    '<div id="duplicateStatus" class="status"></div>';
+
+  area.innerHTML =
+    html;
+}
+
+function makeDuplicateSuffixOptions(index){
+
+  const defaultSuffix =
+    String(index + 1).padStart(3, "0");
+
+  let html =
+    '<option value="skip">取込しない</option>';
+
+  for(let i = 1; i <= 10; i++){
+    const suffix =
+      String(i).padStart(3, "0");
+
+    html +=
+      '<option value="' + suffix + '"' +
+      (suffix === defaultSuffix ? ' selected' : '') +
+      '>' + suffix + '</option>';
+  }
+
+  return html;
+}
+
+function saveDuplicateChoices(){
+
+  const selects =
+    Array.prototype.slice.call(
+      document.querySelectorAll(".duplicate-choice")
+    );
+
+  const choices =
+    selects.map(function(select){
+      return {
+        memberNo: select.getAttribute("data-member") || "",
+        candidateNo: select.getAttribute("data-candidate") || "",
+        suffix: select.value || ""
+      };
+    });
+
+  if(!confirm("選択した内容で個人会員マスタへ反映します。\n既存の同じ個人IDがある場合は内容を更新します。\n\n実行しますか？")){
+    return;
+  }
+
+  const status =
+    document.getElementById("duplicateStatus");
+
+  status.textContent =
+    "反映中...";
+
+  jsonp(
+    "applyMemberImportDuplicateChoicesJsonp",
+    {
+      choices: JSON.stringify(choices)
+    },
+    function(res){
+
+      if(!res || !res.ok){
+        status.innerHTML =
+          '<span class="ng">' +
+          escapeHtml(res && res.message ? res.message : "反映できませんでした。") +
+          '</span>';
+        return;
+      }
+
+      status.innerHTML =
+        '<span class="ok">' +
+        escapeHtml(res.message || "反映しました。") +
+        '</span>';
     }
   );
 }

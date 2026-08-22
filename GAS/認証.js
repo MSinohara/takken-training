@@ -73,6 +73,8 @@ const AUTH_ACTION_ROLES =
     startMemberImportJsonp: ["admin"],
     appendMemberImportChunkJsonp: ["admin"],
     finishMemberImportJsonp: ["admin"],
+    getMemberImportDuplicateCandidatesJsonp: ["admin"],
+    applyMemberImportDuplicateChoicesJsonp: ["admin"],
     syncCurrentMemberMasterToFirestoreJsonp: ["admin"],
     queueMemberMasterFirestoreSyncJsonp: ["admin"],
     getMemberMasterFirestoreSyncStatusJsonp: ["admin"],

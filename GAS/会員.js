@@ -545,6 +545,56 @@ function finishMemberImportJsonp_(e) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
+function getMemberImportDuplicateCandidatesJsonp_(e) {
+
+  const callback =
+    e.parameter.callback || "callback";
+
+  let result;
+
+  try {
+    result =
+      getMemberImportDuplicateCandidates_();
+  } catch (err) {
+    result = {
+      ok: false,
+      message: err.message
+    };
+  }
+
+  return ContentService
+    .createTextOutput(
+      callback + "(" + JSON.stringify(result) + ")"
+    )
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function applyMemberImportDuplicateChoicesJsonp_(e) {
+
+  const callback =
+    e.parameter.callback || "callback";
+
+  let result;
+
+  try {
+    result =
+      applyMemberImportDuplicateChoices_(
+        JSON.parse(e.parameter.choices || "[]")
+      );
+  } catch (err) {
+    result = {
+      ok: false,
+      message: err.message
+    };
+  }
+
+  return ContentService
+    .createTextOutput(
+      callback + "(" + JSON.stringify(result) + ")"
+    )
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
 
 function startMemberImport_() {
 
@@ -666,6 +716,8 @@ function finishMemberImport_() {
 
   const map = {};
 
+  const duplicateGroupMap = {};
+
   let skipped =
     0;
 
@@ -708,6 +760,21 @@ function finishMemberImport_() {
       continue;
     }
 
+    if (!duplicateGroupMap[memberNo]) {
+      duplicateGroupMap[memberNo] =
+        [];
+    }
+
+    duplicateGroupMap[memberNo].push({
+      memberNo: memberNo,
+      companyName: companyName,
+      representativeName: representativeName,
+      block: block,
+      branch: branch,
+      district: district,
+      mail: mail
+    });
+
     map[memberNo] = [
       memberNo,
       companyName,
@@ -718,6 +785,11 @@ function finishMemberImport_() {
       mail
     ];
   }
+
+  const duplicateCandidateCount =
+    saveMemberImportDuplicateCandidates_(
+      duplicateGroupMap
+    );
 
   const output =
     [
@@ -809,11 +881,329 @@ function finishMemberImport_() {
     message: "会員マスタを取り込みました。",
     imported: output.length - 1,
     skipped: skipped,
+    duplicateCandidateGroups: duplicateCandidateCount.groups,
+    duplicateCandidateRows: duplicateCandidateCount.rows,
     addedSettings: settingResult.added,
     firestoreSynced: firestoreSynced,
     firestoreSyncQueued: firestoreSyncQueued,
     firestoreSyncMessage: firestoreSyncMessage
   };
+}
+
+function getMemberImportDuplicateCandidateSheet_() {
+
+  const ss =
+    getSpreadsheet_();
+
+  let sheet =
+    ss.getSheetByName(
+      "会員マスタ重複候補"
+    );
+
+  if (!sheet) {
+    sheet =
+      ss.insertSheet(
+        "会員マスタ重複候補"
+      );
+  }
+
+  ensureHeaders_(
+    sheet,
+    [
+      "作成日時",
+      "業者番号",
+      "候補番号",
+      "会社名",
+      "氏名",
+      "ブロック",
+      "支部",
+      "地区",
+      "メール"
+    ]
+  );
+
+  return sheet;
+}
+
+function saveMemberImportDuplicateCandidates_(
+  duplicateGroupMap
+) {
+
+  const sheet =
+    getMemberImportDuplicateCandidateSheet_();
+
+  sheet.clear();
+
+  sheet.appendRow([
+    "作成日時",
+    "業者番号",
+    "候補番号",
+    "会社名",
+    "氏名",
+    "ブロック",
+    "支部",
+    "地区",
+    "メール"
+  ]);
+
+  const now =
+    new Date();
+
+  const rows = [];
+  let groups = 0;
+
+  Object.keys(duplicateGroupMap || {})
+    .sort()
+    .forEach(function(memberNo) {
+
+      const candidates =
+        duplicateGroupMap[memberNo] || [];
+
+      if (candidates.length < 2) {
+        return;
+      }
+
+      groups++;
+
+      candidates.forEach(function(item, index) {
+        rows.push([
+          now,
+          item.memberNo,
+          index + 1,
+          item.companyName,
+          item.representativeName,
+          item.block,
+          item.branch,
+          item.district,
+          item.mail
+        ]);
+      });
+    });
+
+  if (rows.length) {
+    sheet
+      .getRange(
+        2,
+        1,
+        rows.length,
+        rows[0].length
+      )
+      .setValues(rows);
+  }
+
+  return {
+    groups: groups,
+    rows: rows.length
+  };
+}
+
+function getMemberImportDuplicateCandidates_() {
+
+  const sheet =
+    getMemberImportDuplicateCandidateSheet_();
+
+  if (sheet.getLastRow() < 2) {
+    return {
+      ok: true,
+      groups: [],
+      count: 0
+    };
+  }
+
+  const values =
+    sheet.getDataRange().getValues();
+
+  const headerMap =
+    getHeaderMap_(
+      sheet
+    );
+
+  const groupMap = {};
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row =
+      values[i];
+
+    const memberNo =
+      normalizeMemberNo_(
+        getCellByHeader_(row, headerMap, "業者番号")
+      );
+
+    if (!memberNo) {
+      continue;
+    }
+
+    if (!groupMap[memberNo]) {
+      groupMap[memberNo] =
+        {
+          memberNo: memberNo,
+          candidates: []
+        };
+    }
+
+    groupMap[memberNo].candidates.push({
+      candidateNo: Number(getCellByHeader_(row, headerMap, "候補番号") || 0),
+      memberNo: memberNo,
+      companyName: String(getCellByHeader_(row, headerMap, "会社名") || "").trim(),
+      representativeName: String(getCellByHeader_(row, headerMap, "氏名") || "").trim(),
+      block: String(getCellByHeader_(row, headerMap, "ブロック") || "").trim(),
+      branch: String(getCellByHeader_(row, headerMap, "支部") || "").trim(),
+      district: String(getCellByHeader_(row, headerMap, "地区") || "").trim(),
+      mail: String(getCellByHeader_(row, headerMap, "メール") || "").trim()
+    });
+  }
+
+  const groups =
+    Object.keys(groupMap)
+      .sort()
+      .map(function(memberNo) {
+        return groupMap[memberNo];
+      });
+
+  return {
+    ok: true,
+    groups: groups,
+    count: groups.length
+  };
+}
+
+function applyMemberImportDuplicateChoices_(
+  choices
+) {
+
+  if (!Array.isArray(choices)) {
+    throw new Error("候補の指定が正しくありません。");
+  }
+
+  const candidateMap =
+    makeMemberImportDuplicateCandidateMap_();
+
+  const suffixMap = {};
+  let saved = 0;
+  let skipped = 0;
+
+  choices.forEach(function(choice) {
+
+    const memberNo =
+      normalizeMemberNo_(
+        choice && choice.memberNo
+      );
+
+    const candidateNo =
+      Number(choice && choice.candidateNo || 0);
+
+    const suffix =
+      normalizeMemberImportPersonalSuffix_(
+        choice && choice.suffix
+      );
+
+    if (!memberNo || !candidateNo || !suffix) {
+      skipped++;
+      return;
+    }
+
+    const candidate =
+      candidateMap[memberNo + "\t" + candidateNo];
+
+    if (!candidate || !candidate.representativeName) {
+      skipped++;
+      return;
+    }
+
+    if (!suffixMap[memberNo]) {
+      suffixMap[memberNo] =
+        {};
+    }
+
+    if (suffixMap[memberNo][suffix]) {
+      throw new Error(
+        memberNo +
+        " で同じ個人番号 " +
+        suffix +
+        " が複数選択されています。"
+      );
+    }
+
+    suffixMap[memberNo][suffix] =
+      true;
+
+    savePersonalMember_({
+      personalId: memberNo + "-" + suffix,
+      memberNo: memberNo,
+      companyName: candidate.companyName,
+      personName: candidate.representativeName,
+      personType: suffix === "001" ? "代表者" : "社員",
+      mail: candidate.mail,
+      active: "TRUE",
+      source: "会員CSV重複候補",
+      note:
+        "会員マスタCSV取込時の同一業者番号候補から登録"
+    });
+
+    saved++;
+  });
+
+  return {
+    ok: true,
+    message:
+      "重複候補を個人会員マスタへ反映しました。登録 " +
+      saved +
+      "件、取込しない " +
+      skipped +
+      "件。",
+    saved: saved,
+    skipped: skipped
+  };
+}
+
+function makeMemberImportDuplicateCandidateMap_() {
+
+  const result =
+    getMemberImportDuplicateCandidates_();
+
+  const map = {};
+
+  (result.groups || []).forEach(function(group) {
+    (group.candidates || []).forEach(function(candidate) {
+      map[
+        normalizeMemberNo_(candidate.memberNo) +
+        "\t" +
+        Number(candidate.candidateNo || 0)
+      ] =
+        candidate;
+    });
+  });
+
+  return map;
+}
+
+function normalizeMemberImportPersonalSuffix_(
+  value
+) {
+
+  const text =
+    String(value || "").trim();
+
+  if (!text || text === "skip") {
+    return "";
+  }
+
+  const match =
+    text.match(/^0*([0-9]{1,3})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  const num =
+    Number(match[1]);
+
+  if (num < 1 || num > 999) {
+    return "";
+  }
+
+  return String(num).padStart(3, "0");
 }
 
 function syncCurrentMemberMasterToFirestore() {
