@@ -64,6 +64,21 @@ main{
   min-width:110px;
 }
 
+.duplicate-name-warning{
+  color:#b00020;
+  font-weight:700;
+}
+
+.duplicate-name-warning .badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#fde7ec;
+  color:#b00020;
+  font-size:12px;
+}
+
 @media screen and (max-width:800px){
   .mapping{
     display:block;
@@ -643,6 +658,9 @@ function renderDuplicateCandidates(){
 
   duplicateGroups.forEach(function(group, groupIndex){
 
+    const nameCounts =
+      makeDuplicateNameCounts(group.candidates || []);
+
     html +=
       '<div class="duplicate-group">' +
       '<h3>業者番号：' + escapeHtml(group.memberNo || "") + '</h3>' +
@@ -659,6 +677,12 @@ function renderDuplicateCandidates(){
 
     (group.candidates || []).forEach(function(item, index){
 
+      const nameKey =
+        normalizeDuplicateCandidateName(item.representativeName || "");
+
+      const hasSameName =
+        nameKey && nameCounts[nameKey] > 1;
+
       html +=
         '<tr>' +
         '<td>' +
@@ -669,7 +693,10 @@ function renderDuplicateCandidates(){
           '</select>' +
         '</td>' +
         '<td>' + escapeHtml(item.companyName || "") + '</td>' +
-        '<td>' + escapeHtml(item.representativeName || "") + '</td>' +
+        '<td' + (hasSameName ? ' class="duplicate-name-warning"' : '') + '>' +
+          escapeHtml(item.representativeName || "") +
+          (hasSameName ? '<span class="badge">同名注意</span>' : '') +
+        '</td>' +
         '<td>' + escapeHtml([item.block, item.branch, item.district].filter(Boolean).join(" / ")) + '</td>' +
         '<td>' + escapeHtml(item.mail || "") + '</td>' +
         '</tr>';
@@ -688,6 +715,36 @@ function renderDuplicateCandidates(){
 
   area.innerHTML =
     html;
+}
+
+function makeDuplicateNameCounts(candidates){
+
+  const counts =
+    {};
+
+  (candidates || []).forEach(function(item){
+    const key =
+      normalizeDuplicateCandidateName(item.representativeName || "");
+
+    if(!key){
+      return;
+    }
+
+    counts[key] =
+      (counts[key] || 0) + 1;
+  });
+
+  return counts;
+}
+
+function normalizeDuplicateCandidateName(name){
+
+  return String(name || "")
+    .replace(/[ 　]/g, "")
+    .replace(/[髙﨑]/g, function(ch){
+      return ch === "髙" ? "高" : "崎";
+    })
+    .trim();
 }
 
 function makeDuplicateSuffixOptions(index){
