@@ -1,12 +1,36 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, recentCheckins } from "./generated.js?v=6";
-import { firebaseConfig, trainings } from "./config.js?v=6";
+import { connectorConfig, listTrainings, recentCheckins } from "./generated.js?v=8";
+import { firebaseConfig } from "./config.js?v=8";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
 let timer = null;
-trainings.forEach(({ id, label }) => $("training").add(new Option(`${label} (${id})`, id)));
+const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
+
+async function loadTrainings() {
+  $("training").replaceChildren(new Option("研修会を読み込み中...", ""));
+  $("training").disabled = true;
+  try {
+    const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
+    const rows = response.data.trainings || [];
+    $("training").replaceChildren();
+    rows.forEach((training) => {
+      $("training").add(new Option(`${training.title} (${training.trainingId})`, training.trainingId));
+    });
+    if (requestedTrainingId && rows.some((row) => row.trainingId === requestedTrainingId)) {
+      $("training").value = requestedTrainingId;
+    }
+    if (rows.length) await refresh();
+    else $("status").textContent = "SQLに研修会が登録されていません。";
+  } catch (error) {
+    $("training").replaceChildren(new Option("研修会を取得できませんでした", ""));
+    $("status").textContent = `研修会の取得に失敗しました: ${error.message || error}`;
+    $("status").className = "status error";
+  } finally {
+    $("training").disabled = false;
+  }
+}
 
 function formatTimestamp(value) {
   if (!value) return "-";
@@ -55,4 +79,4 @@ $("auto").addEventListener("click", () => {
     timer = setInterval(refresh, 10000); $("auto").textContent = "自動更新停止"; refresh();
   }
 });
-refresh();
+loadTrainings();

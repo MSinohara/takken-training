@@ -1,6 +1,15 @@
 # SQL受付検証専用の操作。現在は認証UIを作らないためPUBLICにしている。
 # 実運用へ移す際は管理者・受付担当者の認証条件へ変更する。
 
+query ListTrainings($limit: Int = 200)
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の研修選択に限定して使用するため。") {
+  trainings(orderBy: [{ eventDate: DESC }, { trainingId: DESC }], limit: $limit) {
+    trainingId
+    title
+    eventDate
+  }
+}
+
 query SearchMemberCompanies(
   $memberNo: String
   $companyName: String

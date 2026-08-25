@@ -49,6 +49,18 @@ export interface GetPersonForCheckinVariables {
   personalId: string;
 }
 
+export interface ListTrainingsData {
+  trainings: ({
+    trainingId: string;
+    title: string;
+    eventDate: DateString;
+  } & Training_Key)[];
+}
+
+export interface ListTrainingsVariables {
+  limit?: number | null;
+}
+
 export interface MemberCompany_Key {
   memberNo: string;
   __typename?: 'MemberCompany_Key';
@@ -165,6 +177,18 @@ export interface Training_Key {
   trainingId: string;
   __typename?: 'Training_Key';
 }
+
+interface ListTrainingsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListTrainingsVariables): QueryRef<ListTrainingsData, ListTrainingsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListTrainingsVariables): QueryRef<ListTrainingsData, ListTrainingsVariables>;
+  operationName: string;
+}
+export const listTrainingsRef: ListTrainingsRef;
+
+export function listTrainings(vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
+export function listTrainings(dc: DataConnect, vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
 
 interface SearchMemberCompaniesRef {
   /* Allow users to create refs without passing in DataConnect */

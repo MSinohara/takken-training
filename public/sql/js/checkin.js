@@ -1,13 +1,34 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, searchMemberCompanies, registerPersonalCheckin } from "./generated.js?v=6";
-import { firebaseConfig, trainings } from "./config.js?v=6";
+import { connectorConfig, listTrainings, searchMemberCompanies, registerPersonalCheckin } from "./generated.js?v=8";
+import { firebaseConfig } from "./config.js?v=8";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
+const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
 
-trainings.forEach(({ id, label }) => $("training").add(new Option(`${label} (${id})`, id)));
+async function loadTrainings() {
+  $("training").replaceChildren(new Option("研修会を読み込み中...", ""));
+  $("training").disabled = true;
+  try {
+    const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
+    const rows = response.data.trainings || [];
+    $("training").replaceChildren();
+    rows.forEach((training) => {
+      $("training").add(new Option(`${training.title} (${training.trainingId})`, training.trainingId));
+    });
+    if (requestedTrainingId && rows.some((row) => row.trainingId === requestedTrainingId)) {
+      $("training").value = requestedTrainingId;
+    }
+    if (!rows.length) setStatus("SQLに研修会が登録されていません。", "error");
+  } catch (error) {
+    $("training").replaceChildren(new Option("研修会を取得できませんでした", ""));
+    setStatus(`研修会の取得に失敗しました: ${error.message || error}`, "error");
+  } finally {
+    $("training").disabled = false;
+  }
+}
 
 function setStatus(message, type = "") {
   $("searchStatus").textContent = message;
@@ -126,3 +147,4 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+loadTrainings();

@@ -8,6 +8,7 @@ This README will guide you through the process of using the generated JavaScript
 - [**Accessing the connector**](#accessing-the-connector)
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
+  - [*ListTrainings*](#listtrainings)
   - [*SearchMemberCompanies*](#searchmembercompanies)
   - [*GetPersonForCheckin*](#getpersonforcheckin)
   - [*RecentCheckins*](#recentcheckins)
@@ -61,6 +62,123 @@ The following is true for both the action shortcut function and the `QueryRef` f
 - Both functions can be called with or without passing in a `DataConnect` instance as an argument. If no `DataConnect` argument is passed in, then the generated SDK will call `getDataConnect(connectorConfig)` behind the scenes for you.
 
 Below are examples of how to use the `example` connector's generated functions to execute each query. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-queries).
+
+## ListTrainings
+You can execute the `ListTrainings` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+listTrainings(vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
+
+interface ListTrainingsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListTrainingsVariables): QueryRef<ListTrainingsData, ListTrainingsVariables>;
+}
+export const listTrainingsRef: ListTrainingsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listTrainings(dc: DataConnect, vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
+
+interface ListTrainingsRef {
+  ...
+  (dc: DataConnect, vars?: ListTrainingsVariables): QueryRef<ListTrainingsData, ListTrainingsVariables>;
+}
+export const listTrainingsRef: ListTrainingsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listTrainingsRef:
+```typescript
+const name = listTrainingsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListTrainings` query has an optional argument of type `ListTrainingsVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListTrainingsVariables {
+  limit?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListTrainings` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListTrainingsData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListTrainingsData {
+  trainings: ({
+    trainingId: string;
+    title: string;
+    eventDate: DateString;
+  } & Training_Key)[];
+}
+```
+### Using `ListTrainings`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listTrainings, ListTrainingsVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListTrainings` query has an optional argument of type `ListTrainingsVariables`:
+const listTrainingsVars: ListTrainingsVariables = {
+  limit: ..., // optional
+};
+
+// Call the `listTrainings()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listTrainings(listTrainingsVars);
+// Variables can be defined inline as well.
+const { data } = await listTrainings({ limit: ..., });
+// Since all variables are optional for this query, you can omit the `ListTrainingsVariables` argument.
+const { data } = await listTrainings();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listTrainings(dataConnect, listTrainingsVars);
+
+console.log(data.trainings);
+
+// Or, you can use the `Promise` API.
+listTrainings(listTrainingsVars).then((response) => {
+  const data = response.data;
+  console.log(data.trainings);
+});
+```
+
+### Using `ListTrainings`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listTrainingsRef, ListTrainingsVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListTrainings` query has an optional argument of type `ListTrainingsVariables`:
+const listTrainingsVars: ListTrainingsVariables = {
+  limit: ..., // optional
+};
+
+// Call the `listTrainingsRef()` function to get a reference to the query.
+const ref = listTrainingsRef(listTrainingsVars);
+// Variables can be defined inline as well.
+const ref = listTrainingsRef({ limit: ..., });
+// Since all variables are optional for this query, you can omit the `ListTrainingsVariables` argument.
+const ref = listTrainingsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listTrainingsRef(dataConnect, listTrainingsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.trainings);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.trainings);
+});
+```
 
 ## SearchMemberCompanies
 You can execute the `SearchMemberCompanies` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
