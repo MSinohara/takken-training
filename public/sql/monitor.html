@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SQL受付モニター</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+    {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+  </script>
+</head>
+<body>
+  <header><h1>SQL受付モニター</h1></header>
+  <nav><a href="index.html">受付</a><a href="monitor.html">受付モニター</a><a href="load-test.html">負荷試験</a><a href="../training-menu.html">研修会管理へ戻る</a></nav>
+  <main>
+    <section class="panel">
+      <h2>直近の受付</h2>
+      <div class="grid"><label>対象研修<select id="training"></select></label></div>
+      <div class="actions"><button id="refresh">今すぐ更新</button><button id="auto" class="secondary">自動更新開始</button></div>
+      <p id="status" class="status"></p>
+    </section>
+    <section class="panel">
+      <div id="list" class="empty">受付履歴を読み込んでいます。</div>
+    </section>
+  </main>
+  <script type="module" src="js/monitor.js?v=7"></script>
+</body>
+</html>
