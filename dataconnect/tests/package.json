@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "load-test": "node five-concurrent-checkins.mjs"
+    "load-test": "node five-concurrent-checkins.mjs",
+    "migrate-development-data": "node migrate-development-data.mjs"
   },
   "dependencies": {
     "@takken-training/sql-dataconnect": "file:generated",

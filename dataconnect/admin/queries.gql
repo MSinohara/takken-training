@@ -1,0 +1,33 @@
+# Firebase CLIからだけ実行する開発データ移行操作。
+# NO_ACCESSにして、ブラウザや一般クライアントからの実行を禁止する。
+mutation AdminUpsertMemberCompanies(
+  $data: [MemberCompany_Data!]! @allow(fields: "memberNo companyName branch district block email")
+) @transaction @auth(level: NO_ACCESS) {
+  memberCompany_upsertMany(data: $data)
+}
+
+mutation AdminUpsertPeople(
+  $data: [Person_Data!]! @allow(fields: "personalId memberNo name email")
+) @transaction @auth(level: NO_ACCESS) {
+  person_upsertMany(data: $data)
+}
+
+mutation AdminUpsertTrainings(
+  $data: [Training_Data!]! @allow(fields: "trainingId title eventDate")
+) @transaction @auth(level: NO_ACCESS) {
+  training_upsertMany(data: $data)
+}
+
+mutation AdminUpsertTrainingTargets(
+  $data: [TrainingTarget_Data!]! @allow(fields: "trainingId targetType targetId memberNo personalId branch district block")
+) @transaction @auth(level: NO_ACCESS) {
+  trainingTarget_upsertMany(data: $data)
+}
+
+query AdminMigrationVerification @auth(level: NO_ACCESS) {
+  memberCompanies(limit: 5000) { memberNo }
+  people(limit: 5000) { personalId }
+  trainings(limit: 5000) { trainingId }
+  trainingTargets(limit: 5000) { trainingId targetType targetId }
+  checkins(limit: 5000) { checkinId }
+}

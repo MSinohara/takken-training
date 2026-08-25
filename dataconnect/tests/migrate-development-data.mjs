@@ -1,0 +1,156 @@
+import { spawnSync } from "node:child_process";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+const BATCH_SIZE = 100;
+const DRY_RUN = process.argv.includes("--dry-run");
+const PROJECT_ID = "takken-training-demo";
+const SERVICE_ID = "takken-training";
+const LOCATION_ID = "asia-northeast1";
+const QUERIES_FILE = fileURLToPath(new URL("../admin/queries.gql", import.meta.url));
+const VARIABLES_DIR = fileURLToPath(new URL("../../.tmp/migration-vars/", import.meta.url));
+
+function normalizeDate(value) {
+  const match = String(value || "").match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (!match) return null;
+  return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+}
+
+function nullable(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
+function executeAdminOperation(operationName, variablesFile) {
+  const args = [
+    "firebase-tools",
+    "dataconnect:execute",
+    QUERIES_FILE,
+    operationName,
+    "--service",
+    SERVICE_ID,
+    "--location",
+    LOCATION_ID,
+    "--project",
+    PROJECT_ID,
+    "--no-debug-details",
+  ];
+  if (variablesFile) args.push("--variables", `@${variablesFile}`);
+
+  const result = spawnSync("npx.cmd", args, {
+    cwd: fileURLToPath(new URL("../..", import.meta.url)),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NODE_OPTIONS: "--use-system-ca",
+      npm_config_cache: fileURLToPath(new URL("../../.npm-cache", import.meta.url)),
+    },
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    const detail = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+    throw new Error(`${operationName} の実行に失敗しました。\n${detail}`);
+  }
+  return result.stdout.trim();
+}
+
+async function upsertBatches(operationName, items, label) {
+  for (let start = 0; start < items.length; start += BATCH_SIZE) {
+    const batch = items.slice(start, start + BATCH_SIZE);
+    const variablesFile = `${VARIABLES_DIR}${operationName}-${start}.json`;
+    await writeFile(variablesFile, JSON.stringify({ data: batch }), "utf8");
+    if (!DRY_RUN) executeAdminOperation(operationName, variablesFile);
+    console.log(`${label}: ${Math.min(start + batch.length, items.length)}/${items.length}`);
+  }
+}
+
+await mkdir(VARIABLES_DIR, { recursive: true });
+const exported = JSON.parse(await readFile(new URL("../../.tmp/development-data.json", import.meta.url), "utf8"));
+const memberRows = exported["会員マスタ"] || [];
+const personalRows = exported["個人会員マスタ"] || [];
+const trainingRows = exported["研修会"] || [];
+const targetRows = exported["受付索引"] || [];
+
+const members = memberRows
+  .filter((row) => String(row["業者番号"] || "").trim())
+  .map((row) => ({
+    memberNo: String(row["業者番号"]).trim(),
+    companyName: String(row["会社名"] || "").trim(),
+    branch: String(row["支部"] || "").trim(),
+    district: nullable(row["地区"]),
+    block: String(row["ブロック"] || "").trim(),
+    email: nullable(row["メール"]),
+    representativeName: String(row["代表者名"] || "").trim(),
+  }));
+
+const peopleById = new Map();
+for (const member of members) {
+  if (!member.representativeName) continue;
+  const personalId = `${member.memberNo}-001`;
+  peopleById.set(personalId, {
+    personalId,
+    memberNo: member.memberNo,
+    name: member.representativeName,
+    email: member.email,
+  });
+}
+for (const row of personalRows) {
+  const personalId = String(row["個人ID"] || "").trim();
+  const memberNo = String(row["業者番号"] || "").trim();
+  if (!personalId || !memberNo || String(row["有効"] || "TRUE").toUpperCase() === "FALSE") continue;
+  peopleById.set(personalId, {
+    personalId,
+    memberNo,
+    name: String(row["氏名"] || "").trim(),
+    email: nullable(row["メール"]),
+  });
+}
+const people = [...peopleById.values()].filter((person) => person.name);
+
+const trainings = trainingRows
+  .map((row) => ({
+    trainingId: String(row["研修ID"] || "").trim(),
+    title: String(row["研修名"] || "").trim(),
+    eventDate: normalizeDate(row["開催日"]),
+  }))
+  .filter((training) => training.trainingId && training.title && training.eventDate);
+
+const targetMap = new Map();
+for (const row of targetRows) {
+  const trainingId = String(row["研修ID"] || "").trim();
+  const memberNo = String(row["業者番号"] || "").trim();
+  const personalId = String(row["個人ID"] || "").trim();
+  if (!trainingId || !memberNo || String(row["受付キー"] || "").startsWith("__INDEX_BUILT__")) continue;
+  const target = {
+    trainingId,
+    memberNo,
+    branch: String(row["支部"] || "").trim(),
+    district: nullable(row["地区"]),
+    block: String(row["ブロック"] || "").trim(),
+  };
+  if (personalId) {
+    targetMap.set(`${trainingId}:PERSONAL:${personalId}`, { ...target, personalId, targetType: "PERSONAL" });
+  } else {
+    targetMap.set(`${trainingId}:COMPANY:${memberNo}`, { ...target, targetType: "COMPANY" });
+  }
+}
+const targets = [...targetMap.values()];
+
+console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
+await upsertBatches("AdminUpsertMemberCompanies", members.map(({ representativeName, ...member }) => member), "会員会社");
+await upsertBatches("AdminUpsertPeople", people, "個人");
+await upsertBatches("AdminUpsertTrainings", trainings, "研修会");
+await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
+  ...target,
+  targetType,
+  targetId: targetType === "PERSONAL" ? target.personalId : target.memberNo,
+})), "受付対象");
+
+if (DRY_RUN) {
+  const requestCount = [members, people, trainings, targets]
+    .reduce((sum, rows) => sum + Math.ceil(rows.length / BATCH_SIZE), 0);
+  console.log(`ドライラン完了: 一括要求 ${requestCount}回（件数確認を除く）`);
+} else {
+  console.log("SQL件数確認:");
+  console.log(executeAdminOperation("AdminMigrationVerification"));
+}
