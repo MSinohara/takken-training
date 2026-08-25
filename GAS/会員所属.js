@@ -155,6 +155,7 @@ function getOrganizationMembers_(
     sheet.getDataRange().getValues();
 
   const members = [];
+  const displayedPersonalMap = {};
 
   for (let i = 1; i < values.length; i++) {
 
@@ -210,6 +211,11 @@ function getOrganizationMembers_(
 
     personalList.forEach(function(personalMember) {
 
+      if (personalMember.personalId) {
+        displayedPersonalMap[personalMember.personalId] =
+          true;
+      }
+
       members.push({
         memberNo: rowMemberNo,
         companyName: member.companyName || personalMember.companyName || "",
@@ -224,6 +230,49 @@ function getOrganizationMembers_(
       });
     });
   }
+
+  personalMembers.forEach(function(personalMember) {
+
+    const personalId =
+      String(personalMember.personalId || "").trim();
+
+    if (
+      !personalId ||
+      displayedPersonalMap[personalId] ||
+      String(personalMember.active || "TRUE").toUpperCase() === "FALSE"
+    ) {
+      return;
+    }
+
+    if (
+      !personalOrgMap[personalId] ||
+      !personalOrgMap[personalId][orgId]
+    ) {
+      return;
+    }
+
+    const memberNo =
+      String(personalMember.memberNo || "").replace(".0", "").trim();
+
+    const member =
+      memberMap[memberNo] || {};
+
+    members.push({
+      memberNo: memberNo,
+      companyName: member.companyName || personalMember.companyName || "",
+      personalId: personalId,
+      personName: personalMember.personName || "",
+      personType: personalMember.personType || "",
+      block: member.block || personalMember.block || "",
+      branch: member.branch || personalMember.branch || "",
+      district: member.district || personalMember.district || "",
+      mail: personalMember.mail || member.mail || "",
+      registeredAt: ""
+    });
+
+    displayedPersonalMap[personalId] =
+      true;
+  });
 
   members.sort(function(a, b) {
     const companyCompare =
