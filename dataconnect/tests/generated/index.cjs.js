@@ -1,161 +1,187 @@
-import { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } from 'firebase/data-connect';
+const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } = require('firebase/data-connect');
 
-export const connectorConfig = {
+const connectorConfig = {
   connector: 'example',
   service: 'takken-training',
   location: 'asia-northeast1'
 };
-export const dataConnectSettings = {
+exports.connectorConfig = connectorConfig;
+const dataConnectSettings = {
   cacheSettings: {
     cacheProvider: makeMemoryCacheProvider()
   }
 };
-export const searchMemberCompaniesRef = (dcOrVars, vars) => {
+exports.dataConnectSettings = dataConnectSettings;
+
+const searchMemberCompaniesRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'SearchMemberCompanies', inputVars);
 }
 searchMemberCompaniesRef.operationName = 'SearchMemberCompanies';
+exports.searchMemberCompaniesRef = searchMemberCompaniesRef;
 
-export function searchMemberCompanies(dcOrVars, varsOrOptions, options) {
+exports.searchMemberCompanies = function searchMemberCompanies(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(searchMemberCompaniesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
+;
 
-export const getPersonForCheckinRef = (dcOrVars, vars) => {
+const getPersonForCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'GetPersonForCheckin', inputVars);
 }
 getPersonForCheckinRef.operationName = 'GetPersonForCheckin';
+exports.getPersonForCheckinRef = getPersonForCheckinRef;
 
-export function getPersonForCheckin(dcOrVars, varsOrOptions, options) {
+exports.getPersonForCheckin = function getPersonForCheckin(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getPersonForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
+;
 
-export const registerPersonalCheckinRef = (dcOrVars, vars) => {
+const registerPersonalCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'RegisterPersonalCheckin', inputVars);
 }
 registerPersonalCheckinRef.operationName = 'RegisterPersonalCheckin';
+exports.registerPersonalCheckinRef = registerPersonalCheckinRef;
 
-export function registerPersonalCheckin(dcOrVars, vars) {
+exports.registerPersonalCheckin = function registerPersonalCheckin(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(registerPersonalCheckinRef(dcInstance, inputVars));
 }
+;
 
-export const registerCompanyCheckinRef = (dcOrVars, vars) => {
+const registerCompanyCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'RegisterCompanyCheckin', inputVars);
 }
 registerCompanyCheckinRef.operationName = 'RegisterCompanyCheckin';
+exports.registerCompanyCheckinRef = registerCompanyCheckinRef;
 
-export function registerCompanyCheckin(dcOrVars, vars) {
+exports.registerCompanyCheckin = function registerCompanyCheckin(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(registerCompanyCheckinRef(dcInstance, inputVars));
 }
+;
 
-export const recentCheckinsRef = (dcOrVars, vars) => {
+const recentCheckinsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'RecentCheckins', inputVars);
 }
 recentCheckinsRef.operationName = 'RecentCheckins';
+exports.recentCheckinsRef = recentCheckinsRef;
 
-export function recentCheckins(dcOrVars, varsOrOptions, options) {
+exports.recentCheckins = function recentCheckins(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(recentCheckinsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
+;
 
-export const searchUncheckedTargetsRef = (dcOrVars, vars) => {
+const searchUncheckedTargetsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'SearchUncheckedTargets', inputVars);
 }
 searchUncheckedTargetsRef.operationName = 'SearchUncheckedTargets';
+exports.searchUncheckedTargetsRef = searchUncheckedTargetsRef;
 
-export function searchUncheckedTargets(dcOrVars, varsOrOptions, options) {
+exports.searchUncheckedTargets = function searchUncheckedTargets(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchUncheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
+;
 
-export const getCheckinRef = (dcOrVars, vars) => {
+const getCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'GetCheckin', inputVars);
 }
 getCheckinRef.operationName = 'GetCheckin';
+exports.getCheckinRef = getCheckinRef;
 
-export function getCheckin(dcOrVars, varsOrOptions, options) {
+exports.getCheckin = function getCheckin(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
+;
 
-export const upsertMemberCompanyRef = (dcOrVars, vars) => {
+const upsertMemberCompanyRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'UpsertMemberCompany', inputVars);
 }
 upsertMemberCompanyRef.operationName = 'UpsertMemberCompany';
+exports.upsertMemberCompanyRef = upsertMemberCompanyRef;
 
-export function upsertMemberCompany(dcOrVars, vars) {
+exports.upsertMemberCompany = function upsertMemberCompany(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertMemberCompanyRef(dcInstance, inputVars));
 }
+;
 
-export const upsertPersonRef = (dcOrVars, vars) => {
+const upsertPersonRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'UpsertPerson', inputVars);
 }
 upsertPersonRef.operationName = 'UpsertPerson';
+exports.upsertPersonRef = upsertPersonRef;
 
-export function upsertPerson(dcOrVars, vars) {
+exports.upsertPerson = function upsertPerson(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertPersonRef(dcInstance, inputVars));
 }
+;
 
-export const upsertTrainingRef = (dcOrVars, vars) => {
+const upsertTrainingRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'UpsertTraining', inputVars);
 }
 upsertTrainingRef.operationName = 'UpsertTraining';
+exports.upsertTrainingRef = upsertTrainingRef;
 
-export function upsertTraining(dcOrVars, vars) {
+exports.upsertTraining = function upsertTraining(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertTrainingRef(dcInstance, inputVars));
 }
+;
 
-export const upsertPersonalTrainingTargetRef = (dcOrVars, vars) => {
+const upsertPersonalTrainingTargetRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'UpsertPersonalTrainingTarget', inputVars);
 }
 upsertPersonalTrainingTargetRef.operationName = 'UpsertPersonalTrainingTarget';
+exports.upsertPersonalTrainingTargetRef = upsertPersonalTrainingTargetRef;
 
-export function upsertPersonalTrainingTarget(dcOrVars, vars) {
+exports.upsertPersonalTrainingTarget = function upsertPersonalTrainingTarget(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertPersonalTrainingTargetRef(dcInstance, inputVars));
 }
+;
 
-export const upsertCompanyTrainingTargetRef = (dcOrVars, vars) => {
+const upsertCompanyTrainingTargetRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'UpsertCompanyTrainingTarget', inputVars);
 }
 upsertCompanyTrainingTargetRef.operationName = 'UpsertCompanyTrainingTarget';
+exports.upsertCompanyTrainingTargetRef = upsertCompanyTrainingTargetRef;
 
-export function upsertCompanyTrainingTarget(dcOrVars, vars) {
+exports.upsertCompanyTrainingTarget = function upsertCompanyTrainingTarget(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertCompanyTrainingTargetRef(dcInstance, inputVars));
 }
-
+;

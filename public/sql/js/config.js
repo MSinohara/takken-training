@@ -1,7 +1,7 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyBQCZ5yV_KgU5SKqOkNFjPDuI_KC_YqZTs",
-  appId: "1:352627050195:web:fd1dde064d20658ad6f626",
-  projectId: "takken-training-sql-demo"
+  apiKey: "AIzaSyBU3aX5p9NibZpExGWaQ6mF1ehQB3BY-gE",
+  appId: "1:104937796187:web:a3e51471f1f456fa40857e",
+  projectId: "takken-training-demo"
 };
 
 export const trainings = [

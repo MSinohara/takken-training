@@ -1,0 +1,72 @@
+# SQL受付検証用の最小スキーマ。
+# 業務上のIDを主キーにし、UUIDの採番や全件走査を不要にする。
+
+type MemberCompany
+  @table(key: "memberNo")
+  @index(fields: ["branch", "district", "memberNo"])
+  @index(fields: ["block", "branch", "memberNo"]) {
+  memberNo: String!
+  companyName: String! @index
+  branch: String! @index
+  district: String @index
+  block: String! @index
+  email: String
+}
+
+type Person
+  @table(key: "personalId")
+  @index(fields: ["memberNo", "personalId"]) {
+  personalId: String!
+  memberNo: String!
+  company: MemberCompany! @ref(fields: "memberNo", references: "memberNo")
+  name: String! @index
+  email: String
+}
+
+type Training @table(key: "trainingId") {
+  trainingId: String!
+  title: String!
+  eventDate: Date! @index
+}
+
+# 研修ごとの受付対象者。未受付者検索の起点にする。
+# targetType は PERSONAL / COMPANY、targetId は個人ID / 業者番号を格納する。
+type TrainingTarget
+  @table(key: ["trainingId", "targetType", "targetId"])
+  @index(fields: ["trainingId", "branch", "district", "targetId"])
+  @index(fields: ["trainingId", "targetType", "targetId"]) {
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  targetType: String!
+  targetId: String!
+  memberNo: String!
+  company: MemberCompany! @ref(fields: "memberNo", references: "memberNo")
+  personalId: String
+  person: Person @ref(fields: "personalId", references: "personalId")
+  branch: String! @index
+  district: String @index
+  block: String! @index
+}
+
+# checkinId はクライアント側でも追跡できる受付ID。
+# 複合UNIQUE制約により、同じ研修・受付単位・対象者の二重受付をDBで防止する。
+type Checkin
+  @table(key: "checkinId")
+  @unique(
+    fields: ["trainingId", "attendanceUnit", "targetId"]
+    indexName: "checkin_training_unit_target_uidx"
+  )
+  @index(fields: ["trainingId", "checkedInAt"])
+  @index(fields: ["trainingId", "memberNo", "checkedInAt"]) {
+  checkinId: String!
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  memberNo: String!
+  company: MemberCompany! @ref(fields: "memberNo", references: "memberNo")
+  personalId: String
+  person: Person @ref(fields: "personalId", references: "personalId")
+  attendanceUnit: String!
+  targetId: String!
+  checkedInAt: Timestamp! @default(expr: "request.time")
+  checkinMethod: String!
+}

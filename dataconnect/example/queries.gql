@@ -1,0 +1,270 @@
+# SQL受付検証専用の操作。現在は認証UIを作らないためPUBLICにしている。
+# 実運用へ移す際は管理者・受付担当者の認証条件へ変更する。
+
+query SearchMemberCompanies(
+  $memberNo: String
+  $companyName: String
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の会員検索に限定して使用するため。") {
+  memberCompanies(
+    where: {
+      memberNo: { startsWith: $memberNo }
+      companyName: { contains: $companyName }
+      branch: { eq: $branch }
+      district: { eq: $district }
+    }
+    orderBy: [{ memberNo: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    memberNo
+    companyName
+    branch
+    district
+    block
+    email
+    people_on_company {
+      personalId
+      name
+      email
+    }
+  }
+}
+
+query GetPersonForCheckin($personalId: String!)
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の受付候補確認に限定して使用するため。") {
+  person(key: { personalId: $personalId }) {
+    personalId
+    name
+    email
+    company {
+      memberNo
+      companyName
+      branch
+      district
+      block
+    }
+  }
+}
+
+mutation RegisterPersonalCheckin(
+  $checkinId: String!
+  $trainingId: String!
+  $memberNo: String!
+  $personalId: String!
+  $checkinMethod: String!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の並列受付試験に限定して使用するため。") {
+  checkin_insert(
+    data: {
+      checkinId: $checkinId
+      trainingId: $trainingId
+      memberNo: $memberNo
+      personalId: $personalId
+      attendanceUnit: "PERSONAL"
+      targetId: $personalId
+      checkinMethod: $checkinMethod
+    }
+  )
+}
+
+mutation RegisterCompanyCheckin(
+  $checkinId: String!
+  $trainingId: String!
+  $memberNo: String!
+  $checkinMethod: String!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の将来の会社受付確認に限定して使用するため。") {
+  checkin_insert(
+    data: {
+      checkinId: $checkinId
+      trainingId: $trainingId
+      memberNo: $memberNo
+      attendanceUnit: "COMPANY"
+      targetId: $memberNo
+      checkinMethod: $checkinMethod
+    }
+  )
+}
+
+query RecentCheckins($trainingId: String!, $limit: Int = 10)
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の受付モニターに限定して使用するため。") {
+  checkins(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ checkedInAt: DESC }]
+    limit: $limit
+  ) {
+    checkinId
+    checkedInAt
+    checkinMethod
+    attendanceUnit
+    company {
+      memberNo
+      companyName
+    }
+    person {
+      personalId
+      name
+    }
+  }
+}
+
+# 受付対象表から、受付履歴が存在しない個人だけを取得する。
+query SearchUncheckedTargets(
+  $trainingId: String!
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の未受付者検索に限定して使用するため。") {
+  trainingTargets(
+    where: {
+      _and: [
+        {
+          trainingId: { eq: $trainingId }
+          targetType: { eq: "PERSONAL" }
+          branch: { eq: $branch }
+          district: { eq: $district }
+        }
+        {
+          _not: {
+            person: {
+              checkins_on_person: {
+                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } }
+              }
+            }
+          }
+        }
+      ]
+    }
+    orderBy: [{ targetId: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    targetId
+    branch
+    district
+    company {
+      memberNo
+      companyName
+    }
+    person {
+      personalId
+      name
+      email
+    }
+  }
+}
+
+query GetCheckin($checkinId: String!)
+  @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の整合性確認に限定して使用するため。") {
+  checkin(key: { checkinId: $checkinId }) {
+    checkinId
+    trainingId
+    attendanceUnit
+    targetId
+    checkedInAt
+  }
+}
+
+# 開発環境の既存マスタをSQLへ段階移行するための冪等な同期操作。
+# 同じ主キーを再送しても行を増やさず、現在値で更新する。
+mutation UpsertMemberCompany(
+  $memberNo: String!
+  $companyName: String!
+  $branch: String!
+  $district: String
+  $block: String!
+  $email: String
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "開発環境のSQL移行処理に限定して使用するため。") {
+  memberCompany_upsert(
+    data: {
+      memberNo: $memberNo
+      companyName: $companyName
+      branch: $branch
+      district: $district
+      block: $block
+      email: $email
+    }
+  )
+}
+
+mutation UpsertPerson(
+  $personalId: String!
+  $memberNo: String!
+  $name: String!
+  $email: String
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "開発環境のSQL移行処理に限定して使用するため。") {
+  person_upsert(
+    data: {
+      personalId: $personalId
+      memberNo: $memberNo
+      name: $name
+      email: $email
+    }
+  )
+}
+
+mutation UpsertTraining(
+  $trainingId: String!
+  $title: String!
+  $eventDate: Date!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "開発環境のSQL移行処理に限定して使用するため。") {
+  training_upsert(
+    data: {
+      trainingId: $trainingId
+      title: $title
+      eventDate: $eventDate
+    }
+  )
+}
+
+mutation UpsertPersonalTrainingTarget(
+  $trainingId: String!
+  $personalId: String!
+  $memberNo: String!
+  $branch: String!
+  $district: String
+  $block: String!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "開発環境のSQL移行処理に限定して使用するため。") {
+  trainingTarget_upsert(
+    data: {
+      trainingId: $trainingId
+      targetType: "PERSONAL"
+      targetId: $personalId
+      memberNo: $memberNo
+      personalId: $personalId
+      branch: $branch
+      district: $district
+      block: $block
+    }
+  )
+}
+
+mutation UpsertCompanyTrainingTarget(
+  $trainingId: String!
+  $memberNo: String!
+  $branch: String!
+  $district: String
+  $block: String!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "開発環境のSQL移行処理に限定して使用するため。") {
+  trainingTarget_upsert(
+    data: {
+      trainingId: $trainingId
+      targetType: "COMPANY"
+      targetId: $memberNo
+      memberNo: $memberNo
+      branch: $branch
+      district: $district
+      block: $block
+    }
+  )
+}

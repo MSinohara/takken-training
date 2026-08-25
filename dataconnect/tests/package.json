@@ -1,0 +1,12 @@
+{
+  "name": "takken-training-sql-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "load-test": "node five-concurrent-checkins.mjs"
+  },
+  "dependencies": {
+    "@takken-training/sql-dataconnect": "file:generated",
+    "firebase": "^12.11.0"
+  }
+}
