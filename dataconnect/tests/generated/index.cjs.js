@@ -22,7 +22,7 @@ listTrainingsRef.operationName = 'ListTrainings';
 exports.listTrainingsRef = listTrainingsRef;
 
 exports.listTrainings = function listTrainings(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listTrainingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -113,6 +113,36 @@ exports.recentCheckins = function recentCheckins(dcOrVars, varsOrOptions, option
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(recentCheckinsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const trainingCheckinSummaryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'TrainingCheckinSummary', inputVars);
+}
+trainingCheckinSummaryRef.operationName = 'TrainingCheckinSummary';
+exports.trainingCheckinSummaryRef = trainingCheckinSummaryRef;
+
+exports.trainingCheckinSummary = function trainingCheckinSummary(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(trainingCheckinSummaryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const trainingCheckinsByBranchDistrictRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'TrainingCheckinsByBranchDistrict', inputVars);
+}
+trainingCheckinsByBranchDistrictRef.operationName = 'TrainingCheckinsByBranchDistrict';
+exports.trainingCheckinsByBranchDistrictRef = trainingCheckinsByBranchDistrictRef;
+
+exports.trainingCheckinsByBranchDistrict = function trainingCheckinsByBranchDistrict(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(trainingCheckinsByBranchDistrictRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

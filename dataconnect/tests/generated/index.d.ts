@@ -226,6 +226,36 @@ export interface SearchUncheckedTargetsVariables {
   offset?: number | null;
 }
 
+export interface TrainingCheckinSummaryData {
+  targets: ({
+    _count: number;
+  })[];
+  received: ({
+    _count: number;
+  })[];
+}
+
+export interface TrainingCheckinSummaryVariables {
+  trainingId: string;
+  targetType: string;
+  attendanceUnit: string;
+}
+
+export interface TrainingCheckinsByBranchDistrictData {
+  checkins: ({
+    company: {
+      branch: string;
+      district?: string | null;
+    };
+    _count: number;
+  })[];
+}
+
+export interface TrainingCheckinsByBranchDistrictVariables {
+  trainingId: string;
+  attendanceUnit: string;
+}
+
 export interface TrainingTarget_Key {
   trainingId: string;
   targetType: string;
@@ -321,6 +351,30 @@ export const recentCheckinsRef: RecentCheckinsRef;
 
 export function recentCheckins(vars: RecentCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentCheckinsData, RecentCheckinsVariables>;
 export function recentCheckins(dc: DataConnect, vars: RecentCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentCheckinsData, RecentCheckinsVariables>;
+
+interface TrainingCheckinSummaryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: TrainingCheckinSummaryVariables): QueryRef<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: TrainingCheckinSummaryVariables): QueryRef<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+  operationName: string;
+}
+export const trainingCheckinSummaryRef: TrainingCheckinSummaryRef;
+
+export function trainingCheckinSummary(vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+export function trainingCheckinSummary(dc: DataConnect, vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+
+interface TrainingCheckinsByBranchDistrictRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: TrainingCheckinsByBranchDistrictVariables): QueryRef<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: TrainingCheckinsByBranchDistrictVariables): QueryRef<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+  operationName: string;
+}
+export const trainingCheckinsByBranchDistrictRef: TrainingCheckinsByBranchDistrictRef;
+
+export function trainingCheckinsByBranchDistrict(vars: TrainingCheckinsByBranchDistrictVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+export function trainingCheckinsByBranchDistrict(dc: DataConnect, vars: TrainingCheckinsByBranchDistrictVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
 
 interface SearchUncheckedTargetsRef {
   /* Allow users to create refs without passing in DataConnect */

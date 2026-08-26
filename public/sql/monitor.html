@@ -16,8 +16,18 @@
     <section class="panel">
       <h2>直近の受付</h2>
       <div class="grid"><label>対象研修<select id="training"></select></label></div>
-      <div class="actions"><button id="refresh">今すぐ更新</button></div>
+      <div class="actions"><button id="refresh">今すぐ更新</button><button id="breakdown" class="secondary">支部・地区別を見る</button></div>
       <p id="status" class="status"></p>
+    </section>
+    <section class="panel">
+      <h2>受付状況</h2>
+      <div id="summary" class="grid">
+        <div class="metric"><span class="muted">参加対象</span><strong id="target-count">-</strong></div>
+        <div class="metric"><span class="muted">受付済み</span><strong id="received-count">-</strong></div>
+        <div class="metric"><span class="muted">未受付</span><strong id="unchecked-count">-</strong></div>
+        <div class="metric"><span class="muted">参加率</span><strong id="attendance-rate">-</strong></div>
+      </div>
+      <div id="breakdown-list" class="empty" hidden></div>
     </section>
     <section class="panel">
       <div id="list" class="empty">受付履歴を読み込んでいます。</div>
@@ -47,6 +57,6 @@
       <div id="unchecked-list" class="empty">支部・地区を必要に応じて指定し、「未受付者を検索」を押してください。</div>
     </section>
   </main>
-  <script type="module" src="js/monitor.js?v=10"></script>
+  <script type="module" src="js/monitor.js?v=11"></script>
 </body>
 </html>

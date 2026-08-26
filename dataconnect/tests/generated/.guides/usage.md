@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, searchUncheckedTargets, searchUncheckedCompanyTargets, getCheckin } from '@takken-training/sql-dataconnect';
+import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, trainingCheckinSummary, trainingCheckinsByBranchDistrict, searchUncheckedTargets } from '@takken-training/sql-dataconnect';
 
 
 // Operation ListTrainings:  For variables, look at type ListTrainingsVars in ../index.d.ts
@@ -38,14 +38,14 @@ const { data } = await RegisterCompanyCheckin(dataConnect, registerCompanyChecki
 // Operation RecentCheckins:  For variables, look at type RecentCheckinsVars in ../index.d.ts
 const { data } = await RecentCheckins(dataConnect, recentCheckinsVars);
 
+// Operation TrainingCheckinSummary:  For variables, look at type TrainingCheckinSummaryVars in ../index.d.ts
+const { data } = await TrainingCheckinSummary(dataConnect, trainingCheckinSummaryVars);
+
+// Operation TrainingCheckinsByBranchDistrict:  For variables, look at type TrainingCheckinsByBranchDistrictVars in ../index.d.ts
+const { data } = await TrainingCheckinsByBranchDistrict(dataConnect, trainingCheckinsByBranchDistrictVars);
+
 // Operation SearchUncheckedTargets:  For variables, look at type SearchUncheckedTargetsVars in ../index.d.ts
 const { data } = await SearchUncheckedTargets(dataConnect, searchUncheckedTargetsVars);
-
-// Operation SearchUncheckedCompanyTargets:  For variables, look at type SearchUncheckedCompanyTargetsVars in ../index.d.ts
-const { data } = await SearchUncheckedCompanyTargets(dataConnect, searchUncheckedCompanyTargetsVars);
-
-// Operation GetCheckin:  For variables, look at type GetCheckinVars in ../index.d.ts
-const { data } = await GetCheckin(dataConnect, getCheckinVars);
 
 
 ```

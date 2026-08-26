@@ -4,10 +4,12 @@ import {
   connectorConfig,
   listTrainings,
   recentCheckins,
+  trainingCheckinSummary,
+  trainingCheckinsByBranchDistrict,
   searchUncheckedTargets,
   searchUncheckedCompanyTargets,
-} from "./generated.js?v=10";
-import { firebaseConfig } from "./config.js?v=10";
+} from "./generated.js?v=11";
+import { firebaseConfig } from "./config.js?v=11";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
@@ -51,6 +53,10 @@ function isCompanyUnit() {
   return unit === "COMPANY" || unit.startsWith("会社");
 }
 
+function sqlUnit() {
+  return isCompanyUnit() ? "COMPANY" : "PERSONAL";
+}
+
 function formatTimestamp(value) {
   if (!value) return "-";
   const date = typeof value === "string" ? new Date(value) : value.toDate?.() || new Date(value);
@@ -61,8 +67,23 @@ async function refresh() {
   $("refresh").disabled = true;
   $("status").textContent = "更新中...";
   try {
-    const response = await recentCheckins(dc, { trainingId: $("training").value, limit: 10 }, { fetchPolicy: "SERVER_ONLY" });
+    const variables = {
+      trainingId: $("training").value,
+      targetType: sqlUnit(),
+      attendanceUnit: sqlUnit(),
+    };
+    const [response, summaryResponse] = await Promise.all([
+      recentCheckins(dc, { trainingId: variables.trainingId, limit: 10 }, { fetchPolicy: "SERVER_ONLY" }),
+      trainingCheckinSummary(dc, variables, { fetchPolicy: "SERVER_ONLY" }),
+    ]);
     const rows = response.data.checkins || [];
+    const targetCount = Number(summaryResponse.data.targets?.[0]?._count || 0);
+    const receivedCount = Number(summaryResponse.data.received?.[0]?._count || 0);
+    const uncheckedCount = Math.max(0, targetCount - receivedCount);
+    $("target-count").textContent = `${targetCount}件`;
+    $("received-count").textContent = `${receivedCount}件`;
+    $("unchecked-count").textContent = `${uncheckedCount}件`;
+    $("attendance-rate").textContent = targetCount ? `${(receivedCount / targetCount * 100).toFixed(1)}%` : "-";
     if (!rows.length) {
       $("list").className = "empty";
       $("list").textContent = "受付履歴はまだありません。";
@@ -86,6 +107,42 @@ async function refresh() {
     $("status").className = "status error";
   } finally {
     $("refresh").disabled = false;
+  }
+}
+
+async function loadBreakdown() {
+  $("breakdown").disabled = true;
+  $("breakdown-list").hidden = false;
+  $("breakdown-list").className = "empty";
+  $("breakdown-list").textContent = "支部・地区別を集計中...";
+  try {
+    const response = await trainingCheckinsByBranchDistrict(dc, {
+      trainingId: $("training").value,
+      attendanceUnit: sqlUnit(),
+    }, { fetchPolicy: "SERVER_ONLY" });
+    const rows = response.data.checkins || [];
+    if (!rows.length) {
+      $("breakdown-list").textContent = "受付済みの参加者はまだいません。";
+      return;
+    }
+    const table = document.createElement("table");
+    table.innerHTML = "<thead><tr><th>支部</th><th>地区</th><th>受付人数</th></tr></thead><tbody></tbody>";
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      [row.company?.branch || "未設定", row.company?.district || "未設定", `${row._count || 0}件`].forEach((value) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.append(td);
+      });
+      table.tBodies[0].append(tr);
+    });
+    $("breakdown-list").className = "";
+    $("breakdown-list").replaceChildren(table);
+  } catch (error) {
+    $("breakdown-list").textContent = `支部・地区別集計の取得に失敗しました: ${error.message || error}`;
+    $("breakdown-list").className = "status error";
+  } finally {
+    $("breakdown").disabled = false;
   }
 }
 
@@ -168,8 +225,10 @@ function resetUnchecked() {
 }
 
 $("refresh").addEventListener("click", refresh);
+$("breakdown").addEventListener("click", loadBreakdown);
 $("training").addEventListener("change", () => {
   resetUnchecked();
+  $("breakdown-list").hidden = true;
   refresh();
 });
 $("search-unchecked").addEventListener("click", () => searchUnchecked(true));

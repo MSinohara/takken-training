@@ -13,6 +13,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetPersonForCheckin*](#getpersonforcheckin)
   - [*GetTrainingTargetForCheckin*](#gettrainingtargetforcheckin)
   - [*RecentCheckins*](#recentcheckins)
+  - [*TrainingCheckinSummary*](#trainingcheckinsummary)
+  - [*TrainingCheckinsByBranchDistrict*](#trainingcheckinsbybranchdistrict)
   - [*SearchUncheckedTargets*](#searchuncheckedtargets)
   - [*SearchUncheckedCompanyTargets*](#searchuncheckedcompanytargets)
   - [*GetCheckin*](#getcheckin)
@@ -526,7 +528,7 @@ import { connectorConfig, getTrainingTargetForCheckin, GetTrainingTargetForCheck
 
 // The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
 const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
-  trainingId: ...,
+  trainingId: ..., 
   targetType: ..., 
   targetId: ..., 
 };
@@ -558,7 +560,7 @@ import { connectorConfig, getTrainingTargetForCheckinRef, GetTrainingTargetForCh
 
 // The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
 const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
-  trainingId: ...,
+  trainingId: ..., 
   targetType: ..., 
   targetId: ..., 
 };
@@ -696,6 +698,248 @@ const ref = recentCheckinsRef({ trainingId: ..., limit: ..., });
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = recentCheckinsRef(dataConnect, recentCheckinsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.checkins);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.checkins);
+});
+```
+
+## TrainingCheckinSummary
+You can execute the `TrainingCheckinSummary` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+trainingCheckinSummary(vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+
+interface TrainingCheckinSummaryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: TrainingCheckinSummaryVariables): QueryRef<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+}
+export const trainingCheckinSummaryRef: TrainingCheckinSummaryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+trainingCheckinSummary(dc: DataConnect, vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+
+interface TrainingCheckinSummaryRef {
+  ...
+  (dc: DataConnect, vars: TrainingCheckinSummaryVariables): QueryRef<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+}
+export const trainingCheckinSummaryRef: TrainingCheckinSummaryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the trainingCheckinSummaryRef:
+```typescript
+const name = trainingCheckinSummaryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `TrainingCheckinSummary` query requires an argument of type `TrainingCheckinSummaryVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface TrainingCheckinSummaryVariables {
+  trainingId: string;
+  targetType: string;
+  attendanceUnit: string;
+}
+```
+### Return Type
+Recall that executing the `TrainingCheckinSummary` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `TrainingCheckinSummaryData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface TrainingCheckinSummaryData {
+  targets: ({
+    _count: number;
+  })[];
+  received: ({
+    _count: number;
+  })[];
+}
+```
+### Using `TrainingCheckinSummary`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, trainingCheckinSummary, TrainingCheckinSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `TrainingCheckinSummary` query requires an argument of type `TrainingCheckinSummaryVariables`:
+const trainingCheckinSummaryVars: TrainingCheckinSummaryVariables = {
+  trainingId: ..., 
+  targetType: ..., 
+  attendanceUnit: ..., 
+};
+
+// Call the `trainingCheckinSummary()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await trainingCheckinSummary(trainingCheckinSummaryVars);
+// Variables can be defined inline as well.
+const { data } = await trainingCheckinSummary({ trainingId: ..., targetType: ..., attendanceUnit: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await trainingCheckinSummary(dataConnect, trainingCheckinSummaryVars);
+
+console.log(data.targets);
+console.log(data.received);
+
+// Or, you can use the `Promise` API.
+trainingCheckinSummary(trainingCheckinSummaryVars).then((response) => {
+  const data = response.data;
+  console.log(data.targets);
+  console.log(data.received);
+});
+```
+
+### Using `TrainingCheckinSummary`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, trainingCheckinSummaryRef, TrainingCheckinSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `TrainingCheckinSummary` query requires an argument of type `TrainingCheckinSummaryVariables`:
+const trainingCheckinSummaryVars: TrainingCheckinSummaryVariables = {
+  trainingId: ..., 
+  targetType: ..., 
+  attendanceUnit: ..., 
+};
+
+// Call the `trainingCheckinSummaryRef()` function to get a reference to the query.
+const ref = trainingCheckinSummaryRef(trainingCheckinSummaryVars);
+// Variables can be defined inline as well.
+const ref = trainingCheckinSummaryRef({ trainingId: ..., targetType: ..., attendanceUnit: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = trainingCheckinSummaryRef(dataConnect, trainingCheckinSummaryVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.targets);
+console.log(data.received);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.targets);
+  console.log(data.received);
+});
+```
+
+## TrainingCheckinsByBranchDistrict
+You can execute the `TrainingCheckinsByBranchDistrict` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+trainingCheckinsByBranchDistrict(vars: TrainingCheckinsByBranchDistrictVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+
+interface TrainingCheckinsByBranchDistrictRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: TrainingCheckinsByBranchDistrictVariables): QueryRef<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+}
+export const trainingCheckinsByBranchDistrictRef: TrainingCheckinsByBranchDistrictRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+trainingCheckinsByBranchDistrict(dc: DataConnect, vars: TrainingCheckinsByBranchDistrictVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+
+interface TrainingCheckinsByBranchDistrictRef {
+  ...
+  (dc: DataConnect, vars: TrainingCheckinsByBranchDistrictVariables): QueryRef<TrainingCheckinsByBranchDistrictData, TrainingCheckinsByBranchDistrictVariables>;
+}
+export const trainingCheckinsByBranchDistrictRef: TrainingCheckinsByBranchDistrictRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the trainingCheckinsByBranchDistrictRef:
+```typescript
+const name = trainingCheckinsByBranchDistrictRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `TrainingCheckinsByBranchDistrict` query requires an argument of type `TrainingCheckinsByBranchDistrictVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface TrainingCheckinsByBranchDistrictVariables {
+  trainingId: string;
+  attendanceUnit: string;
+}
+```
+### Return Type
+Recall that executing the `TrainingCheckinsByBranchDistrict` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `TrainingCheckinsByBranchDistrictData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface TrainingCheckinsByBranchDistrictData {
+  checkins: ({
+    company: {
+      branch: string;
+      district?: string | null;
+    };
+    _count: number;
+  })[];
+}
+```
+### Using `TrainingCheckinsByBranchDistrict`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, trainingCheckinsByBranchDistrict, TrainingCheckinsByBranchDistrictVariables } from '@takken-training/sql-dataconnect';
+
+// The `TrainingCheckinsByBranchDistrict` query requires an argument of type `TrainingCheckinsByBranchDistrictVariables`:
+const trainingCheckinsByBranchDistrictVars: TrainingCheckinsByBranchDistrictVariables = {
+  trainingId: ..., 
+  attendanceUnit: ..., 
+};
+
+// Call the `trainingCheckinsByBranchDistrict()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await trainingCheckinsByBranchDistrict(trainingCheckinsByBranchDistrictVars);
+// Variables can be defined inline as well.
+const { data } = await trainingCheckinsByBranchDistrict({ trainingId: ..., attendanceUnit: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await trainingCheckinsByBranchDistrict(dataConnect, trainingCheckinsByBranchDistrictVars);
+
+console.log(data.checkins);
+
+// Or, you can use the `Promise` API.
+trainingCheckinsByBranchDistrict(trainingCheckinsByBranchDistrictVars).then((response) => {
+  const data = response.data;
+  console.log(data.checkins);
+});
+```
+
+### Using `TrainingCheckinsByBranchDistrict`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, trainingCheckinsByBranchDistrictRef, TrainingCheckinsByBranchDistrictVariables } from '@takken-training/sql-dataconnect';
+
+// The `TrainingCheckinsByBranchDistrict` query requires an argument of type `TrainingCheckinsByBranchDistrictVariables`:
+const trainingCheckinsByBranchDistrictVars: TrainingCheckinsByBranchDistrictVariables = {
+  trainingId: ..., 
+  attendanceUnit: ..., 
+};
+
+// Call the `trainingCheckinsByBranchDistrictRef()` function to get a reference to the query.
+const ref = trainingCheckinsByBranchDistrictRef(trainingCheckinsByBranchDistrictVars);
+// Variables can be defined inline as well.
+const ref = trainingCheckinsByBranchDistrictRef({ trainingId: ..., attendanceUnit: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = trainingCheckinsByBranchDistrictRef(dataConnect, trainingCheckinsByBranchDistrictVars);
 
 // Call `executeQuery()` on the reference to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
@@ -1343,3 +1587,4 @@ executeMutation(ref).then((response) => {
   console.log(data.checkin_insert);
 });
 ```
+

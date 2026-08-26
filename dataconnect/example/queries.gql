@@ -164,6 +164,40 @@ query RecentCheckins($trainingId: String!, $limit: Int = 10)
   }
 }
 
+# 一覧を読み込まず、SQLの集約だけで当日の基本件数を取得する。
+query TrainingCheckinSummary(
+  $trainingId: String!
+  $targetType: String!
+  $attendanceUnit: String!
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の件数集計に限定して使用するため。") {
+  targets: trainingTargets(
+    where: { trainingId: { eq: $trainingId }, targetType: { eq: $targetType } }
+  ) {
+    _count
+  }
+  received: checkins(
+    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit } }
+  ) {
+    _count
+  }
+}
+
+# 支部・地区別の受付件数は、明細を送らずSQL側でグループ集計する。
+query TrainingCheckinsByBranchDistrict(
+  $trainingId: String!
+  $attendanceUnit: String!
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の支部地区別集計に限定して使用するため。") {
+  checkins(
+    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit } }
+  ) {
+    company {
+      branch
+      district
+    }
+    _count
+  }
+}
+
 # 確定対象者名簿と受付履歴をDB内で照合し、未受付の個人だけを取得する。
 # クライアントへの全件送信や、別の受付索引・同期処理は行わない。
 query SearchUncheckedTargets(
