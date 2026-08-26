@@ -276,9 +276,9 @@ function renderTrainings(){
             : ''
         ) +
 
-        '<a class="btn" href="staff-checkin.html?event=' +
+        '<a class="btn" href="sql/index.html?event=' +
         encodeURIComponent(t.eventId) +
-        '&return=checkin">係員用検索受付</a>' +
+        '">係員用検索受付</a>' +
 
         '<a class="btn" href="poster.html?event=' +
         encodeURIComponent(t.eventId) +
@@ -286,9 +286,9 @@ function renderTrainings(){
 
         makeResetPosterButton(t) +
 
-        '<a class="btn sub" href="live-checkin.html?event=' +
+        '<a class="btn sub" href="sql/monitor.html?event=' +
         encodeURIComponent(t.eventId) +
-        '&return=checkin">受付モニター</a>' +
+        '">受付モニター</a>' +
 
         '<a class="btn sub" href="planned-attendees.html?event=' +
         encodeURIComponent(t.eventId) +

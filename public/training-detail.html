@@ -310,47 +310,14 @@ let checkinIndexJobTimer =
   null;
 
 function loadStats(){
-
-  jsonp(
-    "getTrainingStatsSummaryJsonp",
-    { event: eventId },
-    function(res){
-
-      const statsBox =
-        document.getElementById("stats");
-
-      if(!res || !res.ok){
-        statsBox.style.display =
-          "block";
-
-        statsBox.innerHTML =
-          '<h2>参加状況集計</h2>' +
-          '<div class="muted">' +
-          '参加状況集計は現在読み込めません。受付・編集・メール送信などの操作はそのまま利用できます。必要な場合は「受付索引を更新」後に再読み込みしてください。' +
-          '</div>';
-
-        return;
-      }
-
-      const s =
-        res.stats;
-
-      statsBox.style.display =
-        "block";
-
-      statsBox.innerHTML =
-        '<h2>参加状況集計</h2>' +
-
-        '<div class="stats-summary">' +
-          makeStatsSummaryHtml(s) +
-          makeReferenceParticipationItems(s) +
-        '</div>' +
-
-        makeStatsSummaryNoteHtml(s) +
-
-        '<div class="muted">支部別・地区別などの詳しい一覧は、必要な項目の「一覧を見る」から読み込みます。</div>';
-    }
-  );
+  const statsBox = document.getElementById("stats");
+  statsBox.style.display = "block";
+  statsBox.innerHTML =
+    '<h2>参加状況集計</h2>' +
+    '<div class="muted">受付人数・未受付人数・支部地区別集計は、SQL受付モニターで必要な時だけ読み込みます。</div>' +
+    '<div class="actions"><a class="btn" href="sql/monitor.html?event=' +
+    encodeURIComponent(eventId) +
+    '">受付状況を見る</a></div>';
 }
 
 function makeStatsSummaryHtml(stats){
@@ -1500,15 +1467,15 @@ function loadDetailFromResponse(res){
 
           makeReceptionButtons(t) +
 
-          '<a class="btn" href="staff-checkin.html?event=' +
+          '<a class="btn" href="sql/index.html?event=' +
           encodeURIComponent(t.eventId) +
-          '&return=detail">係員用検索受付</a>' +
+          '">係員用検索受付</a>' +
 
           makeResetPosterButton(t) +
 
-          '<a class="btn" href="live-checkin.html?event=' +
+          '<a class="btn" href="sql/monitor.html?event=' +
           encodeURIComponent(t.eventId) +
-          '&return=detail">受付モニター</a>' +
+          '">受付モニター</a>' +
 
           '<a class="btn sub" href="planned-attendees.html?event=' +
           encodeURIComponent(t.eventId) +
@@ -1533,7 +1500,6 @@ function loadDetailFromResponse(res){
         100
       );
 
-      loadCheckinIndexJobStatusOnOpen(t.eventId);
 }
 
 function loadCheckinIndexJobStatusOnOpen(targetEventId){
@@ -1815,11 +1781,7 @@ function makeManagementButtons(t){
 
     '<a class="btn" href="mail-send.html?event=' +
     encodeURIComponent(t.eventId) +
-    '&return=detail">メール送信</a>' +
-
-    '<button class="btn sub" onclick="buildCheckinIndex(\'' +
-    escapeJs(t.eventId) +
-    '\')">受付索引を更新</button>'
+    '&return=detail">メール送信</a>'
   );
 }
 

@@ -30,6 +30,7 @@ async function loadTrainings() {
     if (requestedTrainingId && rows.some((row) => row.trainingId === requestedTrainingId)) {
       $("training").value = requestedTrainingId;
     }
+    updateMonitorLink();
     if (!rows.length) setStatus("SQLに研修会が登録されていません。", "error");
   } catch (error) {
     $("training").replaceChildren(new Option("研修会を取得できませんでした", ""));
@@ -37,6 +38,13 @@ async function loadTrainings() {
   } finally {
     $("training").disabled = false;
   }
+}
+
+function updateMonitorLink() {
+  const trainingId = $("training").value;
+  $("monitor-link").href = trainingId
+    ? `monitor.html?event=${encodeURIComponent(trainingId)}`
+    : "monitor.html";
 }
 
 function setStatus(message, type = "") {
@@ -217,6 +225,7 @@ $("next").addEventListener("click", () => {
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("training").addEventListener("change", () => {
+  updateMonitorLink();
   $("companiesPanel").hidden = true;
   $("peoplePanel").hidden = true;
   $("resultPanel").hidden = true;
