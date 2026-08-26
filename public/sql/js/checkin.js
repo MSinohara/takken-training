@@ -1,11 +1,19 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, listTrainings, searchMemberCompanies, registerPersonalCheckin } from "./generated.js?v=8";
-import { firebaseConfig } from "./config.js?v=8";
+import {
+  connectorConfig,
+  getTrainingTargetForCheckin,
+  listTrainings,
+  registerCompanyCheckin,
+  registerPersonalCheckin,
+  searchMemberCompanies
+} from "./generated.js?v=9";
+import { firebaseConfig } from "./config.js?v=9";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
+let trainings = [];
 const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
 
 async function loadTrainings() {
@@ -14,6 +22,7 @@ async function loadTrainings() {
   try {
     const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
     const rows = response.data.trainings || [];
+    trainings = rows;
     $("training").replaceChildren();
     rows.forEach((training) => {
       $("training").add(new Option(`${training.title} (${training.trainingId})`, training.trainingId));
@@ -39,10 +48,46 @@ function duplicateError(error) {
   return /unique|duplicate|already exists|ALREADY_EXISTS/i.test(String(error?.message || error));
 }
 
+function selectedTraining() {
+  return trainings.find((training) => training.trainingId === $("training").value) || null;
+}
+
+function isCompanyUnit() {
+  const unit = String(selectedTraining()?.attendanceUnit || "").toUpperCase();
+  return unit === "COMPANY" || unit.startsWith("会社");
+}
+
+async function lookupTarget(targetType, targetId) {
+  const response = await getTrainingTargetForCheckin(dc, {
+    trainingId: $("training").value,
+    targetType,
+    targetId
+  }, { fetchPolicy: "SERVER_ONLY" });
+  return response.data.trainingTarget || null;
+}
+
+function showResult(title, body) {
+  $("resultTitle").textContent = title;
+  $("resultBody").textContent = body;
+  $("resultPanel").hidden = false;
+  $("resultPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function renderPeople(company) {
   selectedCompany = company;
   $("selectedCompany").textContent = `${company.companyName} / 業者番号 ${company.memberNo}`;
   $("people").replaceChildren();
+  if (isCompanyUnit()) {
+    $("peopleHeading").textContent = "会社を受付";
+    const button = document.createElement("button");
+    button.textContent = "この会社を受付";
+    button.addEventListener("click", () => checkinCompany(button));
+    $("people").append(button);
+    $("peoplePanel").hidden = false;
+    $("peoplePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  $("peopleHeading").textContent = "参加者を選択";
   (company.people_on_company || []).forEach((person) => {
     const row = document.createElement("div");
     row.className = "person";
@@ -111,6 +156,7 @@ async function checkin(person, button) {
   button.textContent = "受付中...";
   const trainingId = $("training").value;
   try {
+    const target = await lookupTarget("PERSONAL", person.personalId);
     await registerPersonalCheckin(dc, {
       checkinId: `${trainingId}:PERSONAL:${person.personalId}`,
       trainingId,
@@ -118,16 +164,39 @@ async function checkin(person, button) {
       personalId: person.personalId,
       checkinMethod: "SQL_WEB"
     });
-    $("resultTitle").textContent = "受付完了";
-    $("resultBody").textContent = `${selectedCompany.companyName} ${person.name} 様`;
+    showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様${target ? "" : "（対象外参加）"}`);
   } catch (error) {
-    $("resultTitle").textContent = duplicateError(error) ? "既に受付済みです" : "受付できませんでした";
-    $("resultBody").textContent = duplicateError(error) ? `${selectedCompany.companyName} ${person.name} 様` : String(error?.message || error);
+    showResult(
+      duplicateError(error) ? "既に受付済みです" : "受付できませんでした",
+      duplicateError(error) ? `${selectedCompany.companyName} ${person.name} 様` : String(error?.message || error)
+    );
   } finally {
-    $("resultPanel").hidden = false;
-    $("resultPanel").scrollIntoView({ behavior: "smooth", block: "center" });
     button.disabled = false;
     button.textContent = "この人を受付";
+  }
+}
+
+async function checkinCompany(button) {
+  button.disabled = true;
+  button.textContent = "受付中...";
+  const trainingId = $("training").value;
+  try {
+    const target = await lookupTarget("COMPANY", selectedCompany.memberNo);
+    await registerCompanyCheckin(dc, {
+      checkinId: `${trainingId}:COMPANY:${selectedCompany.memberNo}`,
+      trainingId,
+      memberNo: selectedCompany.memberNo,
+      checkinMethod: "SQL_WEB"
+    });
+    showResult("受付完了", `${selectedCompany.companyName}${target ? "" : "（対象外参加）"}`);
+  } catch (error) {
+    showResult(
+      duplicateError(error) ? "既に受付済みです" : "受付できませんでした",
+      duplicateError(error) ? selectedCompany.companyName : String(error?.message || error)
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "この会社を受付";
   }
 }
 
@@ -147,4 +216,10 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+$("training").addEventListener("change", () => {
+  $("companiesPanel").hidden = true;
+  $("peoplePanel").hidden = true;
+  $("resultPanel").hidden = true;
+  setStatus("会社を検索してください。");
+});
 loadTrainings();

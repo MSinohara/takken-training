@@ -14,7 +14,7 @@
   <nav><a href="index.html">受付</a><a href="monitor.html">受付モニター</a><a href="load-test.html">負荷試験</a><a href="../training-menu.html">研修会管理へ戻る</a></nav>
   <main>
     <section class="panel">
-      <h2>会社を検索</h2>
+      <h2>受付対象を検索</h2>
       <div class="grid">
         <label>対象研修<select id="training"></select></label>
         <label>支部<select id="branch"><option value="">指定なし</option><option>杉並区支部</option><option>中野区支部</option><option>世田谷区支部</option></select></label>
@@ -23,14 +23,14 @@
         <label>地区<input id="district" placeholder="指定なし"></label>
       </div>
       <div class="actions"><button id="search">検索</button><button id="clear" class="secondary">入力を消す</button></div>
-      <p id="searchStatus" class="status">条件を入力して検索してください。</p>
+      <p id="searchStatus" class="status">研修会を選び、会社を検索してください。</p>
     </section>
     <section id="companiesPanel" class="panel" hidden>
       <h2>会社を選択</h2>
       <div id="companies"></div>
     </section>
     <section id="peoplePanel" class="panel" hidden>
-      <h2>参加者を選択</h2>
+      <h2 id="peopleHeading">参加者を選択</h2>
       <div id="selectedCompany" class="status"></div>
       <div id="people" class="people"></div>
     </section>
@@ -40,6 +40,6 @@
       <div class="actions"><button id="next">次の受付へ</button><a class="button-link secondary" href="monitor.html">モニターを見る</a></div>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=8"></script>
+  <script type="module" src="js/checkin.js?v=9"></script>
 </body>
 </html>
