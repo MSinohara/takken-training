@@ -7,6 +7,26 @@ query ListTrainings($limit: Int = 200)
     trainingId
     title
     eventDate
+    hostType
+    receptionType
+    attendanceUnit
+    checkinTargetMode
+    eventType
+    venueId
+    targetBlock
+    targetBranch
+    targetDistrict
+    targetOrgIdsNew
+    senderOrganizationId
+    certificateEnabled
+    active
+    locationCheckEnabled
+    locationCheckinStart
+    locationCheckinEnd
+    attendanceConfirmEnabled
+    attendanceStatusPublic
+    subject
+    body
   }
 }
 

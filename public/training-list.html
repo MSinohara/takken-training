@@ -8,6 +8,13 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script>
+window.sqlTrainingDataReady = import("./js/sql-training-data.js?v=9")
+  .then(function(module){ return module.sqlTrainingData; });
+</script>
 
 <style>
 .btn{
@@ -195,10 +202,30 @@ function loadTrainings(attempt){
   attempt =
     Number(attempt || 0);
 
+  window.sqlTrainingDataReady
+    .then(function(sqlData){
+      return sqlData.list();
+    })
+    .then(function(trainings){
+      handleTrainingListResponse({ ok:true, trainings:trainings }, attempt);
+    })
+    .catch(function(){
+      loadTrainingsFromGas(attempt);
+    });
+}
+
+function loadTrainingsFromGas(attempt){
   jsonp(
     "getActiveTrainingsJsonp",
     {},
     function(res){
+      handleTrainingListResponse(res, attempt);
+    },
+    90000
+  );
+}
+
+function handleTrainingListResponse(res, attempt){
 
       const status =
         document.getElementById("status");
@@ -209,11 +236,7 @@ function loadTrainings(attempt){
           status.textContent =
             "研修会一覧の読み込みに時間がかかっています。もう一度読み込みます...";
 
-          setTimeout(function(){
-            loadTrainings(
-              attempt + 1
-            );
-          }, 1500);
+          setTimeout(function(){ loadTrainingsFromGas(attempt + 1); }, 1500);
 
           return;
         }
@@ -250,10 +273,6 @@ function loadTrainings(attempt){
       renderTrainings(
         true
       );
-    }
-  ,
-  90000
-  );
 }
 
 

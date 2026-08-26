@@ -110,6 +110,26 @@ export interface ListTrainingsData {
     trainingId: string;
     title: string;
     eventDate: DateString;
+    hostType?: string | null;
+    receptionType?: string | null;
+    attendanceUnit?: string | null;
+    checkinTargetMode?: string | null;
+    eventType?: string | null;
+    venueId?: string | null;
+    targetBlock?: string | null;
+    targetBranch?: string | null;
+    targetDistrict?: string | null;
+    targetOrgIdsNew?: string | null;
+    senderOrganizationId?: string | null;
+    certificateEnabled?: boolean | null;
+    active?: boolean | null;
+    locationCheckEnabled?: boolean | null;
+    locationCheckinStart?: string | null;
+    locationCheckinEnd?: string | null;
+    attendanceConfirmEnabled?: boolean | null;
+    attendanceStatusPublic?: boolean | null;
+    subject?: string | null;
+    body?: string | null;
   } & Training_Key)[];
 }
 ```

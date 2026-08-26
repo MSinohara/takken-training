@@ -27,6 +27,26 @@ type Training @table(key: "trainingId") {
   trainingId: String!
   title: String!
   eventDate: Date! @index
+  hostType: String
+  receptionType: String
+  attendanceUnit: String
+  checkinTargetMode: String
+  eventType: String
+  venueId: String
+  targetBlock: String
+  targetBranch: String
+  targetDistrict: String
+  targetOrgIdsNew: String
+  senderOrganizationId: String
+  certificateEnabled: Boolean
+  active: Boolean
+  locationCheckEnabled: Boolean
+  locationCheckinStart: String
+  locationCheckinEnd: String
+  attendanceConfirmEnabled: Boolean
+  attendanceStatusPublic: Boolean
+  subject: String
+  body: String
 }
 
 # 研修ごとの受付対象者。未受付者検索の起点にする。

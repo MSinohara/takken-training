@@ -18,6 +18,12 @@ mutation AdminUpsertTrainings(
   training_upsertMany(data: $data)
 }
 
+mutation AdminUpsertTrainingDetails(
+  $data: [Training_Data!]! @allow(fields: "trainingId title eventDate hostType receptionType attendanceUnit checkinTargetMode eventType venueId targetBlock targetBranch targetDistrict targetOrgIdsNew senderOrganizationId certificateEnabled active locationCheckEnabled locationCheckinStart locationCheckinEnd attendanceConfirmEnabled attendanceStatusPublic subject body")
+) @transaction @auth(level: NO_ACCESS) {
+  training_upsertMany(data: $data)
+}
+
 mutation AdminUpsertTrainingTargets(
   $data: [TrainingTarget_Data!]! @allow(fields: "trainingId targetType targetId memberNo personalId branch district block")
 ) @transaction @auth(level: NO_ACCESS) {

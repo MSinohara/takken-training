@@ -55,6 +55,8 @@ GAS/node_modules/
 # Local npm cache for clasp setup
 GAS/.npm-cache/
 .npm-cache/
+.npm-cache-install/
+.npm-cache-node22/
 
 # Optional npm cache directory
 .npm

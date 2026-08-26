@@ -21,6 +21,11 @@ function nullable(value) {
   return text || null;
 }
 
+function booleanValue(value, fallback = false) {
+  if (value === null || value === undefined || value === "") return fallback;
+  return value === true || String(value).toUpperCase() === "TRUE";
+}
+
 function executeAdminOperation(operationName, variablesFile) {
   const args = [
     "firebase-tools",
@@ -112,6 +117,26 @@ const trainings = trainingRows
     trainingId: String(row["研修ID"] || "").trim(),
     title: String(row["研修名"] || "").trim(),
     eventDate: normalizeDate(row["開催日"]),
+    hostType: nullable(row["主催区分"]),
+    receptionType: nullable(row["受付方式"]),
+    attendanceUnit: nullable(row["受付単位"]) || "会社",
+    checkinTargetMode: nullable(row["受付対象方式"]) || "対象設定",
+    eventType: nullable(row["イベント種別"]) || "研修会",
+    venueId: nullable(row["会場ID"]),
+    targetBlock: nullable(row["対象ブロック"]),
+    targetBranch: nullable(row["対象支部"]),
+    targetDistrict: nullable(row["対象地区"]),
+    targetOrgIdsNew: nullable(row["対象組織ID"]),
+    senderOrganizationId: nullable(row["差出人組織ID"]),
+    certificateEnabled: booleanValue(row["修了証発行"]),
+    active: booleanValue(row["有効"], true),
+    locationCheckEnabled: booleanValue(row["位置情報受付"]),
+    locationCheckinStart: nullable(row["位置情報受付開始"]),
+    locationCheckinEnd: nullable(row["位置情報受付終了"]),
+    attendanceConfirmEnabled: booleanValue(row["出欠回答"]),
+    attendanceStatusPublic: booleanValue(row["出欠状況公開"]),
+    subject: nullable(row["件名"]),
+    body: nullable(row["本文"]),
   }))
   .filter((training) => training.trainingId && training.title && training.eventDate);
 
@@ -139,7 +164,7 @@ const targets = [...targetMap.values()];
 console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
 await upsertBatches("AdminUpsertMemberCompanies", members.map(({ representativeName, ...member }) => member), "会員会社");
 await upsertBatches("AdminUpsertPeople", people, "個人");
-await upsertBatches("AdminUpsertTrainings", trainings, "研修会");
+await upsertBatches("AdminUpsertTrainingDetails", trainings, "研修会");
 await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
   ...target,
   targetType,
