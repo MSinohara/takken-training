@@ -212,6 +212,50 @@ query SearchUncheckedTargets(
   }
 }
 
+# 会社単位の確定対象名簿と受付履歴をDB内で照合し、未受付会社だけを取得する。
+query SearchUncheckedCompanyTargets(
+  $trainingId: String!
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の未受付会社検索に限定して使用するため。") {
+  trainingTargets(
+    where: {
+      _and: [
+        {
+          trainingId: { eq: $trainingId }
+          targetType: { eq: "COMPANY" }
+          branch: { eq: $branch }
+          district: { eq: $district }
+        }
+        {
+          _not: {
+            company: {
+              checkins_on_company: {
+                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } }
+              }
+            }
+          }
+        }
+      ]
+    }
+    orderBy: [{ targetId: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    targetType
+    targetId
+    branch
+    district
+    company {
+      memberNo
+      companyName
+      email
+    }
+  }
+}
+
 query GetCheckin($checkinId: String!)
   @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の整合性確認に限定して使用するため。") {
   checkin(key: { checkinId: $checkinId }) {

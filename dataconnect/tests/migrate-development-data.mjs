@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { relative } from "node:path";
 
 const BATCH_SIZE = 100;
 const DRY_RUN = process.argv.includes("--dry-run");
 const TRAININGS_ONLY = process.argv.includes("--trainings-only");
+const TARGETS_ONLY = process.argv.includes("--targets-only");
 const PROJECT_ID = "takken-training-demo";
 const SERVICE_ID = "takken-training";
 const LOCATION_ID = "asia-northeast1";
@@ -41,11 +43,15 @@ function executeAdminOperation(operationName, variablesFile) {
     PROJECT_ID,
     "--no-debug-details",
   ];
-  if (variablesFile) args.push("--variables", `@${variablesFile}`);
+  if (variablesFile) {
+    const projectRoot = fileURLToPath(new URL("../..", import.meta.url));
+    const relativeVariablesFile = relative(projectRoot, variablesFile).replaceAll("\\", "/");
+    args.push("--variables", `@${relativeVariablesFile}`);
+  }
 
   const result = spawnSync("npx.cmd", args, {
     cwd: fileURLToPath(new URL("../..", import.meta.url)),
-    encoding: "utf8",
+    stdio: "inherit",
     env: {
       ...process.env,
       NODE_OPTIONS: "--use-system-ca",
@@ -54,10 +60,9 @@ function executeAdminOperation(operationName, variablesFile) {
     windowsHide: true,
   });
   if (result.status !== 0) {
-    const detail = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
-    throw new Error(`${operationName} の実行に失敗しました。\n${detail}`);
+    throw new Error(`${operationName} の実行に失敗しました。`);
   }
-  return result.stdout.trim();
+  return "実行完了";
 }
 
 async function upsertBatches(operationName, items, label) {
@@ -163,11 +168,13 @@ for (const row of targetRows) {
 const targets = [...targetMap.values()];
 
 console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
-if (!TRAININGS_ONLY) {
+if (!TRAININGS_ONLY && !TARGETS_ONLY) {
   await upsertBatches("AdminUpsertMemberCompanies", members.map(({ representativeName, ...member }) => member), "会員会社");
   await upsertBatches("AdminUpsertPeople", people, "個人");
 }
-await upsertBatches("AdminUpsertTrainingDetails", trainings, "研修会");
+if (!TARGETS_ONLY) {
+  await upsertBatches("AdminUpsertTrainingDetails", trainings, "研修会");
+}
 if (!TRAININGS_ONLY) {
   await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
     ...target,
@@ -177,7 +184,11 @@ if (!TRAININGS_ONLY) {
 }
 
 if (DRY_RUN) {
-  const requestGroups = TRAININGS_ONLY ? [trainings] : [members, people, trainings, targets];
+  const requestGroups = TRAININGS_ONLY
+    ? [trainings]
+    : TARGETS_ONLY
+      ? [targets]
+      : [members, people, trainings, targets];
   const requestCount = requestGroups
     .reduce((sum, rows) => sum + Math.ceil(rows.length / BATCH_SIZE), 0);
   console.log(`ドライラン完了: 一括要求 ${requestCount}回（件数確認を除く）`);

@@ -22,7 +22,7 @@ listTrainingsRef.operationName = 'ListTrainings';
 exports.listTrainingsRef = listTrainingsRef;
 
 exports.listTrainings = function listTrainings(dcOrVars, varsOrOptions, options) {
-  
+
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listTrainingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -128,6 +128,21 @@ exports.searchUncheckedTargets = function searchUncheckedTargets(dcOrVars, varsO
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchUncheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const searchUncheckedCompanyTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchUncheckedCompanyTargets', inputVars);
+}
+searchUncheckedCompanyTargetsRef.operationName = 'SearchUncheckedCompanyTargets';
+exports.searchUncheckedCompanyTargetsRef = searchUncheckedCompanyTargetsRef;
+
+exports.searchUncheckedCompanyTargets = function searchUncheckedCompanyTargets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(searchUncheckedCompanyTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

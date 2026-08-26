@@ -14,6 +14,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetTrainingTargetForCheckin*](#gettrainingtargetforcheckin)
   - [*RecentCheckins*](#recentcheckins)
   - [*SearchUncheckedTargets*](#searchuncheckedtargets)
+  - [*SearchUncheckedCompanyTargets*](#searchuncheckedcompanytargets)
   - [*GetCheckin*](#getcheckin)
 - [**Mutations**](#mutations)
   - [*RegisterPersonalCheckin*](#registerpersonalcheckin)
@@ -525,7 +526,7 @@ import { connectorConfig, getTrainingTargetForCheckin, GetTrainingTargetForCheck
 
 // The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
 const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
-  trainingId: ..., 
+  trainingId: ...,
   targetType: ..., 
   targetId: ..., 
 };
@@ -557,7 +558,7 @@ import { connectorConfig, getTrainingTargetForCheckinRef, GetTrainingTargetForCh
 
 // The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
 const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
-  trainingId: ..., 
+  trainingId: ...,
   targetType: ..., 
   targetId: ..., 
 };
@@ -829,6 +830,137 @@ const ref = searchUncheckedTargetsRef({ trainingId: ..., branch: ..., district: 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = searchUncheckedTargetsRef(dataConnect, searchUncheckedTargetsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.trainingTargets);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.trainingTargets);
+});
+```
+
+## SearchUncheckedCompanyTargets
+You can execute the `SearchUncheckedCompanyTargets` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+searchUncheckedCompanyTargets(vars: SearchUncheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+
+interface SearchUncheckedCompanyTargetsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SearchUncheckedCompanyTargetsVariables): QueryRef<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+}
+export const searchUncheckedCompanyTargetsRef: SearchUncheckedCompanyTargetsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+searchUncheckedCompanyTargets(dc: DataConnect, vars: SearchUncheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+
+interface SearchUncheckedCompanyTargetsRef {
+  ...
+  (dc: DataConnect, vars: SearchUncheckedCompanyTargetsVariables): QueryRef<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+}
+export const searchUncheckedCompanyTargetsRef: SearchUncheckedCompanyTargetsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the searchUncheckedCompanyTargetsRef:
+```typescript
+const name = searchUncheckedCompanyTargetsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SearchUncheckedCompanyTargets` query requires an argument of type `SearchUncheckedCompanyTargetsVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SearchUncheckedCompanyTargetsVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `SearchUncheckedCompanyTargets` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SearchUncheckedCompanyTargetsData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SearchUncheckedCompanyTargetsData {
+  trainingTargets: ({
+    targetType: string;
+    targetId: string;
+    branch: string;
+    district?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+      email?: string | null;
+    } & MemberCompany_Key;
+  })[];
+}
+```
+### Using `SearchUncheckedCompanyTargets`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, searchUncheckedCompanyTargets, SearchUncheckedCompanyTargetsVariables } from '@takken-training/sql-dataconnect';
+
+// The `SearchUncheckedCompanyTargets` query requires an argument of type `SearchUncheckedCompanyTargetsVariables`:
+const searchUncheckedCompanyTargetsVars: SearchUncheckedCompanyTargetsVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `searchUncheckedCompanyTargets()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await searchUncheckedCompanyTargets(searchUncheckedCompanyTargetsVars);
+// Variables can be defined inline as well.
+const { data } = await searchUncheckedCompanyTargets({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await searchUncheckedCompanyTargets(dataConnect, searchUncheckedCompanyTargetsVars);
+
+console.log(data.trainingTargets);
+
+// Or, you can use the `Promise` API.
+searchUncheckedCompanyTargets(searchUncheckedCompanyTargetsVars).then((response) => {
+  const data = response.data;
+  console.log(data.trainingTargets);
+});
+```
+
+### Using `SearchUncheckedCompanyTargets`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, searchUncheckedCompanyTargetsRef, SearchUncheckedCompanyTargetsVariables } from '@takken-training/sql-dataconnect';
+
+// The `SearchUncheckedCompanyTargets` query requires an argument of type `SearchUncheckedCompanyTargetsVariables`:
+const searchUncheckedCompanyTargetsVars: SearchUncheckedCompanyTargetsVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `searchUncheckedCompanyTargetsRef()` function to get a reference to the query.
+const ref = searchUncheckedCompanyTargetsRef(searchUncheckedCompanyTargetsVars);
+// Variables can be defined inline as well.
+const ref = searchUncheckedCompanyTargetsRef({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = searchUncheckedCompanyTargetsRef(dataConnect, searchUncheckedCompanyTargetsVars);
 
 // Call `executeQuery()` on the reference to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
@@ -1211,4 +1343,3 @@ executeMutation(ref).then((response) => {
   console.log(data.checkin_insert);
 });
 ```
-

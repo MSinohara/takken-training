@@ -3,6 +3,7 @@ import { getDataConnect } from "firebase/data-connect";
 import {
   connectorConfig,
   getTrainingTargetForCheckin,
+  searchUncheckedCompanyTargets,
   searchUncheckedTargets,
 } from "@takken-training/sql-dataconnect";
 
@@ -17,6 +18,7 @@ const trainingId = process.argv[2];
 const targetId = process.argv[3] || "";
 const branch = process.argv[4] || undefined;
 const district = process.argv[5] || undefined;
+const requestedTargetType = process.argv[6] || "";
 if (!trainingId) {
   console.error("研修IDを指定してください。");
   console.error("例: npm run target-query-test -- 2026-020 100737-001 杉並区支部 阿佐谷・西武");
@@ -40,8 +42,11 @@ async function measure(name, action) {
   };
 }
 
+const searchUnchecked = requestedTargetType === "COMPANY"
+  ? searchUncheckedCompanyTargets
+  : searchUncheckedTargets;
 const unchecked = await measure("未受付者50件検索", () =>
-  searchUncheckedTargets(
+  searchUnchecked(
     dataConnect,
     { trainingId, branch, district, limit: 50, offset: 0 },
     { fetchPolicy: "SERVER_ONLY" },
@@ -49,13 +54,14 @@ const unchecked = await measure("未受付者50件検索", () =>
 );
 const rows = unchecked.response.data.trainingTargets || [];
 const selectedTargetId = targetId || rows[0]?.targetId || "";
+const selectedTargetType = requestedTargetType || rows.find((row) => row.targetId === selectedTargetId)?.targetType || "PERSONAL";
 
 let direct = null;
 if (selectedTargetId) {
   direct = await measure("受付対象1件確認", () =>
     getTrainingTargetForCheckin(
       dataConnect,
-      { trainingId, targetType: "PERSONAL", targetId: selectedTargetId },
+      { trainingId, targetType: selectedTargetType, targetId: selectedTargetId },
       { fetchPolicy: "SERVER_ONLY" },
     ),
   );

@@ -179,6 +179,28 @@ export interface SearchMemberCompaniesVariables {
   offset?: number | null;
 }
 
+export interface SearchUncheckedCompanyTargetsData {
+  trainingTargets: ({
+    targetType: string;
+    targetId: string;
+    branch: string;
+    district?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+      email?: string | null;
+    } & MemberCompany_Key;
+  })[];
+}
+
+export interface SearchUncheckedCompanyTargetsVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface SearchUncheckedTargetsData {
   trainingTargets: ({
     targetId: string;
@@ -311,6 +333,18 @@ export const searchUncheckedTargetsRef: SearchUncheckedTargetsRef;
 
 export function searchUncheckedTargets(vars: SearchUncheckedTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedTargetsData, SearchUncheckedTargetsVariables>;
 export function searchUncheckedTargets(dc: DataConnect, vars: SearchUncheckedTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedTargetsData, SearchUncheckedTargetsVariables>;
+
+interface SearchUncheckedCompanyTargetsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SearchUncheckedCompanyTargetsVariables): QueryRef<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SearchUncheckedCompanyTargetsVariables): QueryRef<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+  operationName: string;
+}
+export const searchUncheckedCompanyTargetsRef: SearchUncheckedCompanyTargetsRef;
+
+export function searchUncheckedCompanyTargets(vars: SearchUncheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
+export function searchUncheckedCompanyTargets(dc: DataConnect, vars: SearchUncheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchUncheckedCompanyTargetsData, SearchUncheckedCompanyTargetsVariables>;
 
 interface GetCheckinRef {
   /* Allow users to create refs without passing in DataConnect */
