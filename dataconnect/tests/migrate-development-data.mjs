@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const BATCH_SIZE = 100;
 const DRY_RUN = process.argv.includes("--dry-run");
+const TRAININGS_ONLY = process.argv.includes("--trainings-only");
 const PROJECT_ID = "takken-training-demo";
 const SERVICE_ID = "takken-training";
 const LOCATION_ID = "asia-northeast1";
@@ -162,17 +163,22 @@ for (const row of targetRows) {
 const targets = [...targetMap.values()];
 
 console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
-await upsertBatches("AdminUpsertMemberCompanies", members.map(({ representativeName, ...member }) => member), "会員会社");
-await upsertBatches("AdminUpsertPeople", people, "個人");
+if (!TRAININGS_ONLY) {
+  await upsertBatches("AdminUpsertMemberCompanies", members.map(({ representativeName, ...member }) => member), "会員会社");
+  await upsertBatches("AdminUpsertPeople", people, "個人");
+}
 await upsertBatches("AdminUpsertTrainingDetails", trainings, "研修会");
-await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
-  ...target,
-  targetType,
-  targetId: targetType === "PERSONAL" ? target.personalId : target.memberNo,
-})), "受付対象");
+if (!TRAININGS_ONLY) {
+  await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
+    ...target,
+    targetType,
+    targetId: targetType === "PERSONAL" ? target.personalId : target.memberNo,
+  })), "受付対象");
+}
 
 if (DRY_RUN) {
-  const requestCount = [members, people, trainings, targets]
+  const requestGroups = TRAININGS_ONLY ? [trainings] : [members, people, trainings, targets];
+  const requestCount = requestGroups
     .reduce((sum, rows) => sum + Math.ceil(rows.length / BATCH_SIZE), 0);
   console.log(`ドライラン完了: 一括要求 ${requestCount}回（件数確認を除く）`);
 } else {
