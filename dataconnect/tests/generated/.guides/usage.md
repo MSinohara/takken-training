@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listTrainings, searchMemberCompanies, getPersonForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, searchUncheckedTargets, getCheckin } from '@takken-training/sql-dataconnect';
+import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, searchUncheckedTargets, getCheckin } from '@takken-training/sql-dataconnect';
 
 
 // Operation ListTrainings:  For variables, look at type ListTrainingsVars in ../index.d.ts
@@ -25,6 +25,9 @@ const { data } = await SearchMemberCompanies(dataConnect, searchMemberCompaniesV
 
 // Operation GetPersonForCheckin:  For variables, look at type GetPersonForCheckinVars in ../index.d.ts
 const { data } = await GetPersonForCheckin(dataConnect, getPersonForCheckinVars);
+
+// Operation GetTrainingTargetForCheckin:  For variables, look at type GetTrainingTargetForCheckinVars in ../index.d.ts
+const { data } = await GetTrainingTargetForCheckin(dataConnect, getTrainingTargetForCheckinVars);
 
 // Operation RegisterPersonalCheckin:  For variables, look at type RegisterPersonalCheckinVars in ../index.d.ts
 const { data } = await RegisterPersonalCheckin(dataConnect, registerPersonalCheckinVars);

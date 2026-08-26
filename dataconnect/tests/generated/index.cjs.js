@@ -22,7 +22,7 @@ listTrainingsRef.operationName = 'ListTrainings';
 exports.listTrainingsRef = listTrainingsRef;
 
 exports.listTrainings = function listTrainings(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listTrainingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -37,7 +37,7 @@ searchMemberCompaniesRef.operationName = 'SearchMemberCompanies';
 exports.searchMemberCompaniesRef = searchMemberCompaniesRef;
 
 exports.searchMemberCompanies = function searchMemberCompanies(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(searchMemberCompaniesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -52,9 +52,24 @@ getPersonForCheckinRef.operationName = 'GetPersonForCheckin';
 exports.getPersonForCheckinRef = getPersonForCheckinRef;
 
 exports.getPersonForCheckin = function getPersonForCheckin(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getPersonForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getTrainingTargetForCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetTrainingTargetForCheckin', inputVars);
+}
+getTrainingTargetForCheckinRef.operationName = 'GetTrainingTargetForCheckin';
+exports.getTrainingTargetForCheckinRef = getTrainingTargetForCheckinRef;
+
+exports.getTrainingTargetForCheckin = function getTrainingTargetForCheckin(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getTrainingTargetForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -95,7 +110,7 @@ recentCheckinsRef.operationName = 'RecentCheckins';
 exports.recentCheckinsRef = recentCheckinsRef;
 
 exports.recentCheckins = function recentCheckins(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(recentCheckinsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -110,7 +125,7 @@ searchUncheckedTargetsRef.operationName = 'SearchUncheckedTargets';
 exports.searchUncheckedTargetsRef = searchUncheckedTargetsRef;
 
 exports.searchUncheckedTargets = function searchUncheckedTargets(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchUncheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -125,7 +140,7 @@ getCheckinRef.operationName = 'GetCheckin';
 exports.getCheckinRef = getCheckinRef;
 
 exports.getCheckin = function getCheckin(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }

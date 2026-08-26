@@ -49,6 +49,24 @@ export interface GetPersonForCheckinVariables {
   personalId: string;
 }
 
+export interface GetTrainingTargetForCheckinData {
+  trainingTarget?: {
+    targetType: string;
+    targetId: string;
+    memberNo: string;
+    personalId?: string | null;
+    branch: string;
+    district?: string | null;
+    block: string;
+  };
+}
+
+export interface GetTrainingTargetForCheckinVariables {
+  trainingId: string;
+  targetType: string;
+  targetId: string;
+}
+
 export interface ListTrainingsData {
   trainings: ({
     trainingId: string;
@@ -233,6 +251,18 @@ export const getPersonForCheckinRef: GetPersonForCheckinRef;
 
 export function getPersonForCheckin(vars: GetPersonForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPersonForCheckinData, GetPersonForCheckinVariables>;
 export function getPersonForCheckin(dc: DataConnect, vars: GetPersonForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPersonForCheckinData, GetPersonForCheckinVariables>;
+
+interface GetTrainingTargetForCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetTrainingTargetForCheckinVariables): QueryRef<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetTrainingTargetForCheckinVariables): QueryRef<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+  operationName: string;
+}
+export const getTrainingTargetForCheckinRef: GetTrainingTargetForCheckinRef;
+
+export function getTrainingTargetForCheckin(vars: GetTrainingTargetForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+export function getTrainingTargetForCheckin(dc: DataConnect, vars: GetTrainingTargetForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
 
 interface RegisterPersonalCheckinRef {
   /* Allow users to create refs without passing in DataConnect */

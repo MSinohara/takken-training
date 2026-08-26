@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "load-test": "node five-concurrent-checkins.mjs",
+    "target-query-test": "node target-query-performance.mjs",
     "migrate-development-data": "node migrate-development-data.mjs"
   },
   "dependencies": {

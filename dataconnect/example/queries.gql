@@ -79,6 +79,29 @@ query GetPersonForCheckin($personalId: String!)
   }
 }
 
+# 受付時の対象者確認は、名簿全件を読み込まず複合主キーで1件だけ取得する。
+query GetTrainingTargetForCheckin(
+  $trainingId: String!
+  $targetType: String!
+  $targetId: String!
+) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の受付対象確認に限定して使用するため。") {
+  trainingTarget(
+    key: {
+      trainingId: $trainingId
+      targetType: $targetType
+      targetId: $targetId
+    }
+  ) {
+    targetType
+    targetId
+    memberNo
+    personalId
+    branch
+    district
+    block
+  }
+}
+
 mutation RegisterPersonalCheckin(
   $checkinId: String!
   $trainingId: String!
@@ -141,7 +164,8 @@ query RecentCheckins($trainingId: String!, $limit: Int = 10)
   }
 }
 
-# 受付対象表から、受付履歴が存在しない個人だけを取得する。
+# 確定対象者名簿と受付履歴をDB内で照合し、未受付の個人だけを取得する。
+# クライアントへの全件送信や、別の受付索引・同期処理は行わない。
 query SearchUncheckedTargets(
   $trainingId: String!
   $branch: String

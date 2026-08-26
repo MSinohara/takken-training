@@ -11,6 +11,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListTrainings*](#listtrainings)
   - [*SearchMemberCompanies*](#searchmembercompanies)
   - [*GetPersonForCheckin*](#getpersonforcheckin)
+  - [*GetTrainingTargetForCheckin*](#gettrainingtargetforcheckin)
   - [*RecentCheckins*](#recentcheckins)
   - [*SearchUncheckedTargets*](#searchuncheckedtargets)
   - [*GetCheckin*](#getcheckin)
@@ -457,6 +458,129 @@ console.log(data.person);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.person);
+});
+```
+
+## GetTrainingTargetForCheckin
+You can execute the `GetTrainingTargetForCheckin` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+getTrainingTargetForCheckin(vars: GetTrainingTargetForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+
+interface GetTrainingTargetForCheckinRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetTrainingTargetForCheckinVariables): QueryRef<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+}
+export const getTrainingTargetForCheckinRef: GetTrainingTargetForCheckinRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getTrainingTargetForCheckin(dc: DataConnect, vars: GetTrainingTargetForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+
+interface GetTrainingTargetForCheckinRef {
+  ...
+  (dc: DataConnect, vars: GetTrainingTargetForCheckinVariables): QueryRef<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
+}
+export const getTrainingTargetForCheckinRef: GetTrainingTargetForCheckinRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getTrainingTargetForCheckinRef:
+```typescript
+const name = getTrainingTargetForCheckinRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetTrainingTargetForCheckinVariables {
+  trainingId: string;
+  targetType: string;
+  targetId: string;
+}
+```
+### Return Type
+Recall that executing the `GetTrainingTargetForCheckin` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetTrainingTargetForCheckinData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetTrainingTargetForCheckinData {
+  trainingTarget?: {
+    targetType: string;
+    targetId: string;
+    memberNo: string;
+    personalId?: string | null;
+    branch: string;
+    district?: string | null;
+    block: string;
+  };
+}
+```
+### Using `GetTrainingTargetForCheckin`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getTrainingTargetForCheckin, GetTrainingTargetForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
+const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
+  trainingId: ..., 
+  targetType: ..., 
+  targetId: ..., 
+};
+
+// Call the `getTrainingTargetForCheckin()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getTrainingTargetForCheckin(getTrainingTargetForCheckinVars);
+// Variables can be defined inline as well.
+const { data } = await getTrainingTargetForCheckin({ trainingId: ..., targetType: ..., targetId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getTrainingTargetForCheckin(dataConnect, getTrainingTargetForCheckinVars);
+
+console.log(data.trainingTarget);
+
+// Or, you can use the `Promise` API.
+getTrainingTargetForCheckin(getTrainingTargetForCheckinVars).then((response) => {
+  const data = response.data;
+  console.log(data.trainingTarget);
+});
+```
+
+### Using `GetTrainingTargetForCheckin`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getTrainingTargetForCheckinRef, GetTrainingTargetForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetTrainingTargetForCheckin` query requires an argument of type `GetTrainingTargetForCheckinVariables`:
+const getTrainingTargetForCheckinVars: GetTrainingTargetForCheckinVariables = {
+  trainingId: ..., 
+  targetType: ..., 
+  targetId: ..., 
+};
+
+// Call the `getTrainingTargetForCheckinRef()` function to get a reference to the query.
+const ref = getTrainingTargetForCheckinRef(getTrainingTargetForCheckinVars);
+// Variables can be defined inline as well.
+const ref = getTrainingTargetForCheckinRef({ trainingId: ..., targetType: ..., targetId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getTrainingTargetForCheckinRef(dataConnect, getTrainingTargetForCheckinVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.trainingTarget);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.trainingTarget);
 });
 ```
 

@@ -49,11 +49,13 @@ type Training @table(key: "trainingId") {
   body: String
 }
 
-# 研修ごとの受付対象者。未受付者検索の起点にする。
+# 研修ごとに確定した受付対象者名簿。
+# これはFirestore対策の「受付索引」ではなく、事前申込者や開催時点の対象者を
+# 固定しておくための業務データ。受付済み状態は保持せず、CheckinとのJOINで判定する。
 # targetType は PERSONAL / COMPANY、targetId は個人ID / 業者番号を格納する。
 type TrainingTarget
   @table(key: ["trainingId", "targetType", "targetId"])
-  @index(fields: ["trainingId", "branch", "district", "targetId"])
+  @index(fields: ["trainingId", "targetType", "branch", "district", "targetId"])
   @index(fields: ["trainingId", "targetType", "targetId"]) {
   trainingId: String!
   training: Training! @ref(fields: "trainingId", references: "trainingId")
