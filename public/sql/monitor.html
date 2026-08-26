@@ -16,13 +16,37 @@
     <section class="panel">
       <h2>直近の受付</h2>
       <div class="grid"><label>対象研修<select id="training"></select></label></div>
-      <div class="actions"><button id="refresh">今すぐ更新</button><button id="auto" class="secondary">自動更新開始</button></div>
+      <div class="actions"><button id="refresh">今すぐ更新</button></div>
       <p id="status" class="status"></p>
     </section>
     <section class="panel">
       <div id="list" class="empty">受付履歴を読み込んでいます。</div>
     </section>
+    <section class="panel">
+      <h2>未受付者一覧</h2>
+      <p class="muted">必要な時だけ検索します。最初は50件まで表示し、次の50件を追加で読み込めます。</p>
+      <div class="grid">
+        <label>支部
+          <select id="branch">
+            <option value="">指定なし</option>
+            <option value="杉並区支部">杉並区支部</option>
+            <option value="中野区支部">中野区支部</option>
+            <option value="世田谷区支部">世田谷区支部</option>
+          </select>
+        </label>
+        <label>地区
+          <input id="district" type="text" placeholder="指定なし">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="search-unchecked">未受付者を検索</button>
+        <button id="previous" class="secondary" disabled>前の50件</button>
+        <button id="next" class="secondary" disabled>次の50件</button>
+      </div>
+      <p id="unchecked-status" class="status"></p>
+      <div id="unchecked-list" class="empty">支部・地区を必要に応じて指定し、「未受付者を検索」を押してください。</div>
+    </section>
   </main>
-  <script type="module" src="js/monitor.js?v=8"></script>
+  <script type="module" src="js/monitor.js?v=10"></script>
 </body>
 </html>

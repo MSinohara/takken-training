@@ -1,11 +1,20 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, listTrainings, recentCheckins } from "./generated.js?v=8";
-import { firebaseConfig } from "./config.js?v=8";
+import {
+  connectorConfig,
+  listTrainings,
+  recentCheckins,
+  searchUncheckedTargets,
+  searchUncheckedCompanyTargets,
+} from "./generated.js?v=10";
+import { firebaseConfig } from "./config.js?v=10";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
-let timer = null;
+let trainings = [];
+let uncheckedOffset = 0;
+let uncheckedRows = [];
+const pageSize = 50;
 const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
 
 async function loadTrainings() {
@@ -14,6 +23,7 @@ async function loadTrainings() {
   try {
     const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
     const rows = response.data.trainings || [];
+    trainings = rows;
     $("training").replaceChildren();
     rows.forEach((training) => {
       $("training").add(new Option(`${training.title} (${training.trainingId})`, training.trainingId));
@@ -30,6 +40,15 @@ async function loadTrainings() {
   } finally {
     $("training").disabled = false;
   }
+}
+
+function selectedTraining() {
+  return trainings.find((row) => row.trainingId === $("training").value) || null;
+}
+
+function isCompanyUnit() {
+  const unit = String(selectedTraining()?.attendanceUnit || "").toUpperCase();
+  return unit === "COMPANY" || unit.startsWith("会社");
 }
 
 function formatTimestamp(value) {
@@ -70,13 +89,96 @@ async function refresh() {
   }
 }
 
-$("refresh").addEventListener("click", refresh);
-$("training").addEventListener("change", refresh);
-$("auto").addEventListener("click", () => {
-  if (timer) {
-    clearInterval(timer); timer = null; $("auto").textContent = "自動更新開始";
-  } else {
-    timer = setInterval(refresh, 10000); $("auto").textContent = "自動更新停止"; refresh();
+function renderUnchecked(rows) {
+  if (!rows.length) {
+    $("unchecked-list").className = "empty";
+    $("unchecked-list").textContent = "この条件に該当する未受付者はいません。";
+    return;
   }
+
+  const table = document.createElement("table");
+  const participantLabel = isCompanyUnit() ? "受付対象" : "参加者";
+  table.innerHTML = `<thead><tr><th>業者番号</th><th>会社名</th><th>${participantLabel}</th><th>支部・地区</th></tr></thead><tbody></tbody>`;
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    const values = [
+      row.company?.memberNo || row.targetId || "-",
+      row.company?.companyName || "-",
+      isCompanyUnit() ? "会社単位" : row.person?.name || "-",
+      [row.branch, row.district].filter(Boolean).join(" / ") || "-",
+    ];
+    values.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.append(td);
+    });
+    table.tBodies[0].append(tr);
+  });
+  $("unchecked-list").className = "";
+  $("unchecked-list").replaceChildren(table);
+}
+
+async function searchUnchecked(resetPage = true) {
+  if (resetPage) uncheckedOffset = 0;
+  $("search-unchecked").disabled = true;
+  $("previous").disabled = true;
+  $("next").disabled = true;
+  $("unchecked-status").className = "status";
+  $("unchecked-status").textContent = "未受付者を検索中...";
+
+  const vars = {
+    trainingId: $("training").value,
+    limit: pageSize,
+    offset: uncheckedOffset,
+  };
+  const branch = $("branch").value.trim();
+  const district = $("district").value.trim();
+  if (branch) vars.branch = branch;
+  if (district) vars.district = district;
+
+  try {
+    const query = isCompanyUnit() ? searchUncheckedCompanyTargets : searchUncheckedTargets;
+    const response = await query(dc, vars, { fetchPolicy: "SERVER_ONLY" });
+    uncheckedRows = response.data.trainingTargets || [];
+    renderUnchecked(uncheckedRows);
+    const start = uncheckedRows.length ? uncheckedOffset + 1 : 0;
+    const end = uncheckedOffset + uncheckedRows.length;
+    $("unchecked-status").textContent = `${isCompanyUnit() ? "会社" : "個人"}単位 / ${start}～${end}件を表示`;
+    $("previous").disabled = uncheckedOffset === 0;
+    $("next").disabled = uncheckedRows.length < pageSize;
+  } catch (error) {
+    $("unchecked-status").textContent = `未受付者の取得に失敗しました: ${error.message || error}`;
+    $("unchecked-status").className = "status error";
+    $("unchecked-list").className = "empty";
+    $("unchecked-list").textContent = "取得できませんでした。条件を確認して再度お試しください。";
+    $("previous").disabled = uncheckedOffset === 0;
+  } finally {
+    $("search-unchecked").disabled = false;
+  }
+}
+
+function resetUnchecked() {
+  uncheckedOffset = 0;
+  uncheckedRows = [];
+  $("previous").disabled = true;
+  $("next").disabled = true;
+  $("unchecked-status").textContent = "";
+  $("unchecked-list").className = "empty";
+  $("unchecked-list").textContent = "支部・地区を必要に応じて指定し、「未受付者を検索」を押してください。";
+}
+
+$("refresh").addEventListener("click", refresh);
+$("training").addEventListener("change", () => {
+  resetUnchecked();
+  refresh();
+});
+$("search-unchecked").addEventListener("click", () => searchUnchecked(true));
+$("previous").addEventListener("click", () => {
+  uncheckedOffset = Math.max(0, uncheckedOffset - pageSize);
+  searchUnchecked(false);
+});
+$("next").addEventListener("click", () => {
+  uncheckedOffset += pageSize;
+  searchUnchecked(false);
 });
 loadTrainings();
