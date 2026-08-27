@@ -109,6 +109,21 @@ export interface GetTrainingTargetForCheckinVariables {
   targetId: string;
 }
 
+export interface GuestCheckinSummaryData {
+  guestCheckins: ({
+    _count: number;
+  })[];
+}
+
+export interface GuestCheckinSummaryVariables {
+  trainingId: string;
+}
+
+export interface GuestCheckin_Key {
+  checkinId: string;
+  __typename?: 'GuestCheckin_Key';
+}
+
 export interface ListCheckedPlannedCompanyData {
   plannedAttendees: ({
     plannedId: string;
@@ -330,6 +345,22 @@ export interface RecentCheckinsVariables {
   limit?: number | null;
 }
 
+export interface RecentGuestCheckinsData {
+  guestCheckins: ({
+    checkinId: string;
+    checkedInAt: TimestampString;
+    checkinMethod: string;
+    participantName: string;
+    organizationName?: string | null;
+    receptionCategory: string;
+  } & GuestCheckin_Key)[];
+}
+
+export interface RecentGuestCheckinsVariables {
+  trainingId: string;
+  limit?: number | null;
+}
+
 export interface RegisterCompanyCheckinData {
   checkin_insert: Checkin_Key;
 }
@@ -338,6 +369,21 @@ export interface RegisterCompanyCheckinVariables {
   checkinId: string;
   trainingId: string;
   memberNo: string;
+  checkinMethod: string;
+}
+
+export interface RegisterGuestCheckinData {
+  guestCheckin_insert: GuestCheckin_Key;
+}
+
+export interface RegisterGuestCheckinVariables {
+  checkinId: string;
+  trainingId: string;
+  guestKey: string;
+  participantName: string;
+  organizationName?: string | null;
+  email?: string | null;
+  phone?: string | null;
   checkinMethod: string;
 }
 
@@ -637,6 +683,42 @@ export const registerCompanyCheckinRef: RegisterCompanyCheckinRef;
 
 export function registerCompanyCheckin(vars: RegisterCompanyCheckinVariables): MutationPromise<RegisterCompanyCheckinData, RegisterCompanyCheckinVariables>;
 export function registerCompanyCheckin(dc: DataConnect, vars: RegisterCompanyCheckinVariables): MutationPromise<RegisterCompanyCheckinData, RegisterCompanyCheckinVariables>;
+
+interface RegisterGuestCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RegisterGuestCheckinVariables): MutationRef<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RegisterGuestCheckinVariables): MutationRef<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+  operationName: string;
+}
+export const registerGuestCheckinRef: RegisterGuestCheckinRef;
+
+export function registerGuestCheckin(vars: RegisterGuestCheckinVariables): MutationPromise<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+export function registerGuestCheckin(dc: DataConnect, vars: RegisterGuestCheckinVariables): MutationPromise<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+
+interface RecentGuestCheckinsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RecentGuestCheckinsVariables): QueryRef<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RecentGuestCheckinsVariables): QueryRef<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+  operationName: string;
+}
+export const recentGuestCheckinsRef: RecentGuestCheckinsRef;
+
+export function recentGuestCheckins(vars: RecentGuestCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+export function recentGuestCheckins(dc: DataConnect, vars: RecentGuestCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+
+interface GuestCheckinSummaryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GuestCheckinSummaryVariables): QueryRef<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GuestCheckinSummaryVariables): QueryRef<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+  operationName: string;
+}
+export const guestCheckinSummaryRef: GuestCheckinSummaryRef;
+
+export function guestCheckinSummary(vars: GuestCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+export function guestCheckinSummary(dc: DataConnect, vars: GuestCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
 
 interface RecentCheckinsRef {
   /* Allow users to create refs without passing in DataConnect */

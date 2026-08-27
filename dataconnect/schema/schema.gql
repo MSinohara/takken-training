@@ -130,3 +130,22 @@ type Checkin
   restoredBy: String
   restoreReason: String
 }
+
+# 会員マスタに存在しない一般参加者の受付。会員受付とは分離して保存する。
+type GuestCheckin
+  @table(key: "checkinId")
+  @unique(fields: ["trainingId", "guestKey"], indexName: "guest_checkin_training_key_uidx")
+  @index(fields: ["trainingId", "checkedInAt"]) {
+  checkinId: String!
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  guestKey: String!
+  participantName: String!
+  organizationName: String
+  email: String
+  phone: String
+  receptionCategory: String! @default(value: "一般参加")
+  checkinMethod: String!
+  checkedInAt: Timestamp! @default(expr: "request.time")
+  cancelled: Boolean! @default(value: false)
+}

@@ -142,6 +142,53 @@ mutation RegisterCompanyCheckin(
   )
 }
 
+mutation RegisterGuestCheckin(
+  $checkinId: String!
+  $trainingId: String!
+  $guestKey: String!
+  $participantName: String!
+  $organizationName: String
+  $email: String
+  $phone: String
+  $checkinMethod: String!
+) @auth(level: PUBLIC, insecureReason: "会場QRから一般参加者本人が受付するため。") {
+  guestCheckin_insert(
+    data: {
+      checkinId: $checkinId
+      trainingId: $trainingId
+      guestKey: $guestKey
+      participantName: $participantName
+      organizationName: $organizationName
+      email: $email
+      phone: $phone
+      checkinMethod: $checkinMethod
+    }
+  )
+}
+
+query RecentGuestCheckins($trainingId: String!, $limit: Int = 10)
+  @auth(level: PUBLIC, insecureReason: "SQL受付モニターの直近受付表示に限定して使用するため。") {
+  guestCheckins(
+    where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }
+    orderBy: [{ checkedInAt: DESC }]
+    limit: $limit
+  ) {
+    checkinId
+    checkedInAt
+    checkinMethod
+    participantName
+    organizationName
+    receptionCategory
+  }
+}
+
+query GuestCheckinSummary($trainingId: String!)
+  @auth(level: PUBLIC, insecureReason: "SQL受付モニターの一般参加件数表示に限定して使用するため。") {
+  guestCheckins(where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }) {
+    _count
+  }
+}
+
 query RecentCheckins($trainingId: String!, $limit: Int = 10)
   @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の受付モニターに限定して使用するため。") {
   checkins(

@@ -34,12 +34,27 @@
       <div id="selectedCompany" class="status"></div>
       <div id="people" class="people"></div>
     </section>
+    <section class="panel">
+      <h2>会員以外の一般参加者</h2>
+      <p class="muted">会員会社に該当しない方はこちらから受付してください。</p>
+      <button id="showGuest" class="secondary">一般参加者として受付する</button>
+      <div id="guestForm" hidden>
+        <div class="grid guest-grid">
+          <label>参加者名<input id="guestName" autocomplete="name" placeholder="例：山田 太郎"></label>
+          <label>会社・団体名（任意）<input id="guestOrganization" placeholder="例：株式会社サンプル"></label>
+          <label>メール（任意）<input id="guestEmail" type="email" autocomplete="email" placeholder="例：sample@example.com"></label>
+          <label>電話（任意）<input id="guestPhone" type="tel" autocomplete="tel" placeholder="例：03-0000-0000"></label>
+        </div>
+        <div class="actions"><button id="registerGuest">この内容で受付する</button><button id="hideGuest" class="secondary">閉じる</button></div>
+        <p id="guestStatus" class="status"></p>
+      </div>
+    </section>
     <section id="resultPanel" class="panel complete" hidden>
       <h2 id="resultTitle">受付完了</h2>
       <div id="resultBody"></div>
       <div class="actions"><button id="next">次の受付へ</button></div>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=19"></script>
+  <script type="module" src="js/checkin.js?v=20"></script>
 </body>
 </html>

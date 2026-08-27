@@ -101,6 +101,50 @@ exports.registerCompanyCheckin = function registerCompanyCheckin(dcOrVars, vars)
 }
 ;
 
+const registerGuestCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RegisterGuestCheckin', inputVars);
+}
+registerGuestCheckinRef.operationName = 'RegisterGuestCheckin';
+exports.registerGuestCheckinRef = registerGuestCheckinRef;
+
+exports.registerGuestCheckin = function registerGuestCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(registerGuestCheckinRef(dcInstance, inputVars));
+}
+;
+
+const recentGuestCheckinsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'RecentGuestCheckins', inputVars);
+}
+recentGuestCheckinsRef.operationName = 'RecentGuestCheckins';
+exports.recentGuestCheckinsRef = recentGuestCheckinsRef;
+
+exports.recentGuestCheckins = function recentGuestCheckins(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(recentGuestCheckinsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const guestCheckinSummaryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GuestCheckinSummary', inputVars);
+}
+guestCheckinSummaryRef.operationName = 'GuestCheckinSummary';
+exports.guestCheckinSummaryRef = guestCheckinSummaryRef;
+
+exports.guestCheckinSummary = function guestCheckinSummary(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(guestCheckinSummaryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const recentCheckinsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

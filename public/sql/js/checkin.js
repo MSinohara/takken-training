@@ -6,10 +6,11 @@ import {
   getTrainingTargetForCheckin,
   listTrainings,
   registerCompanyCheckin,
+  registerGuestCheckin,
   registerPersonalCheckin,
   restoreCheckin,
   searchMemberCompanies
-} from "./generated.js?v=14";
+} from "./generated.js?v=19";
 import { firebaseConfig } from "./config.js?v=17";
 
 const app = initializeApp(firebaseConfig);
@@ -57,6 +58,53 @@ function setStatus(message, type = "") {
 
 function duplicateError(error) {
   return /unique|duplicate|already exists|ALREADY_EXISTS/i.test(String(error?.message || error));
+}
+
+async function guestKey(values) {
+  const source = [values.name, values.organization, values.email, values.phone]
+    .map((value) => String(value || "").normalize("NFKC").replace(/\s+/g, "").toLowerCase())
+    .join("|");
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  return Array.from(new Uint8Array(bytes)).map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function checkinGuest() {
+  const button = $("registerGuest");
+  const values = {
+    name: $("guestName").value.trim(),
+    organization: $("guestOrganization").value.trim(),
+    email: $("guestEmail").value.trim(),
+    phone: $("guestPhone").value.trim(),
+  };
+  if (!values.name) {
+    $("guestStatus").textContent = "参加者名を入力してください。";
+    $("guestStatus").className = "status error";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "受付中...";
+  try {
+    const key = await guestKey(values);
+    await registerGuestCheckin(dc, {
+      checkinId: `${$("training").value}:GUEST:${key}`,
+      trainingId: $("training").value,
+      guestKey: key,
+      participantName: values.name,
+      organizationName: values.organization || null,
+      email: values.email || null,
+      phone: values.phone || null,
+      checkinMethod: "SQL_WEB",
+    });
+    showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（一般参加）`);
+    $("guestStatus").textContent = "受付しました。";
+    $("guestStatus").className = "status ok";
+  } catch (error) {
+    const duplicate = duplicateError(error);
+    showResult(duplicate ? "既に受付済みです" : "受付できませんでした", duplicate ? `${values.name} 様` : String(error?.message || error));
+  } finally {
+    button.disabled = false;
+    button.textContent = "この内容で受付する";
+  }
 }
 
 async function restoreIfCancelled(checkinId) {
@@ -245,6 +293,16 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+$("showGuest").addEventListener("click", () => {
+  $("guestForm").hidden = false;
+  $("showGuest").hidden = true;
+  $("guestName").focus();
+});
+$("hideGuest").addEventListener("click", () => {
+  $("guestForm").hidden = true;
+  $("showGuest").hidden = false;
+});
+$("registerGuest").addEventListener("click", checkinGuest);
 async function initializePublicCheckin() {
   $("search").disabled = true;
   $("clear").disabled = true;

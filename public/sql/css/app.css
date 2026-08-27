@@ -55,6 +55,7 @@ th { background: #eef2f5; font-size: 13px; }
 .person-row:first-of-type { margin-top: 10px; }
 .result-ok { color: #08752e; font-weight: 700; }
 .ng { color: #b00020; font-weight: 700; }
+.guest-grid { margin-top: 16px; }
 
 @media (max-width: 680px) {
   header { padding: 15px 16px; }
