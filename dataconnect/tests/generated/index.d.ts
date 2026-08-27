@@ -80,6 +80,17 @@ export interface GetPersonForCheckinVariables {
   personalId: string;
 }
 
+export interface GetPlannedAttendeeData {
+  plannedAttendee?: {
+    plannedId: string;
+    active: boolean;
+  } & PlannedAttendee_Key;
+}
+
+export interface GetPlannedAttendeeVariables {
+  plannedId: string;
+}
+
 export interface GetTrainingTargetForCheckinData {
   trainingTarget?: {
     targetType: string;
@@ -770,6 +781,18 @@ export const restoreCheckinRef: RestoreCheckinRef;
 
 export function restoreCheckin(vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
 export function restoreCheckin(dc: DataConnect, vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
+
+interface GetPlannedAttendeeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPlannedAttendeeVariables): QueryRef<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetPlannedAttendeeVariables): QueryRef<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+  operationName: string;
+}
+export const getPlannedAttendeeRef: GetPlannedAttendeeRef;
+
+export function getPlannedAttendee(vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+export function getPlannedAttendee(dc: DataConnect, vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
 
 interface ListPlannedAttendeesRef {
   /* Allow users to create refs without passing in DataConnect */

@@ -4,11 +4,13 @@ import { getDataConnect } from "firebase/data-connect";
 import {
   addPlannedAttendee,
   connectorConfig,
+  getPlannedAttendee,
+  getTrainingTargetForCheckin,
   listPlannedAttendees,
   listTrainings,
   removePlannedAttendee,
   searchMemberCompanies,
-} from "./generated.js?v=17";
+} from "./generated.js?v=18";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
@@ -48,14 +50,30 @@ async function addPerson(company, person) {
   const button = document.querySelector(`[data-add-id="${CSS.escape(targetId)}"]`);
   if (button) setBusy(button, true, "追加中...", "予定者へ追加");
   try {
+    const plannedId = makePlannedId(type, targetId);
+    const [plannedResponse, targetResponse] = await Promise.all([
+      getPlannedAttendee(dc, { plannedId }, { fetchPolicy: "SERVER_ONLY" }),
+      getTrainingTargetForCheckin(dc, { trainingId: eventId, targetType: type, targetId }, { fetchPolicy: "SERVER_ONLY" }),
+    ]);
+    const alreadyPlanned = Boolean(plannedResponse.data.plannedAttendee?.active);
+    const alreadyTarget = Boolean(targetResponse.data.trainingTarget);
+
+    if (alreadyPlanned) {
+      $("searchStatus").innerHTML = `<span class="result-ok">${esc(company.companyName)} ${esc(companyUnit() ? "会社単位" : person.name)}は、すでに当日参加予定者として登録されています。</span>`;
+      return;
+    }
+
     await addPlannedAttendee(dc, {
-      plannedId: makePlannedId(type, targetId), trainingId: eventId, targetType: type, targetId,
+      plannedId, trainingId: eventId, targetType: type, targetId,
       memberNo: company.memberNo, personalId: companyUnit() ? null : person.personalId,
       participantName: companyUnit() ? null : person.name,
       email: companyUnit() ? company.email : person.email,
       branch: company.branch, district: company.district, block: company.block, source: "MEMBER_MASTER",
     });
-    $("searchStatus").innerHTML = `<span class="result-ok">${esc(company.companyName)} ${esc(companyUnit() ? "会社単位" : person.name)}を追加しました。</span>`;
+    const targetNote = alreadyTarget
+      ? "<br>この方はすでに参加対象者に含まれているため、参加対象の合計人数は変わりません。"
+      : "";
+    $("searchStatus").innerHTML = `<span class="result-ok">${esc(company.companyName)} ${esc(companyUnit() ? "会社単位" : person.name)}を当日参加予定者として登録しました。${targetNote}</span>`;
     offset = 0;
     await loadPlanned();
   } catch (error) {

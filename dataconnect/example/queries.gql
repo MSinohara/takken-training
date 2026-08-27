@@ -477,6 +477,14 @@ mutation RestoreCheckin(
 }
 
 # 当日参加予定者は受付対象全体とは別に管理する。管理者だけが追加・削除できる。
+query GetPlannedAttendee($plannedId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  plannedAttendee(key: { plannedId: $plannedId }) {
+    plannedId
+    active
+  }
+}
+
 query ListPlannedAttendees(
   $trainingId: String!
   $branch: String
