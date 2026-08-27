@@ -15,6 +15,7 @@
 window.sqlTrainingDataReady = import("./js/sql-training-data.js?v=9")
   .then(function(module){ return module.sqlTrainingData; });
 </script>
+<script type="module" src="sql/js/detail-stats.js?v=13"></script>
 
 <style>
 .row{
@@ -314,10 +315,17 @@ function loadStats(){
   statsBox.style.display = "block";
   statsBox.innerHTML =
     '<h2>参加状況集計</h2>' +
-    '<div class="muted">受付人数・未受付人数・支部地区別集計は、SQL受付モニターで必要な時だけ読み込みます。</div>' +
-    '<div class="actions"><a class="btn" href="sql/monitor.html?event=' +
-    encodeURIComponent(eventId) +
-    '">受付状況を見る</a></div>';
+    '<div class="status">参加状況を読み込み中...</div>';
+
+  if(window.sqlDetailStats){
+    window.sqlDetailStats.render(eventId, statsBox);
+    return;
+  }
+
+  window.addEventListener("sql-detail-stats-ready", function onReady(){
+    window.removeEventListener("sql-detail-stats-ready", onReady);
+    window.sqlDetailStats.render(eventId, statsBox);
+  });
 }
 
 function makeStatsSummaryHtml(stats){
@@ -1473,7 +1481,7 @@ function loadDetailFromResponse(res){
 
           makeResetPosterButton(t) +
 
-          '<a class="btn" href="sql/monitor.html?event=' +
+          '<a class="btn" href="live-checkin.html?event=' +
           encodeURIComponent(t.eventId) +
           '">受付モニター</a>' +
 

@@ -180,6 +180,116 @@ query TrainingCheckinSummary(
   ) {
     _count
   }
+  personalTargetReceived: trainingTargets(
+    where: {
+      _and: [
+        { trainingId: { eq: $trainingId }, targetType: { eq: "PERSONAL" } }
+        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } } } } }
+      ]
+    }
+  ) {
+    _count
+  }
+  companyTargetReceived: trainingTargets(
+    where: {
+      _and: [
+        { trainingId: { eq: $trainingId }, targetType: { eq: "COMPANY" } }
+        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } } } } }
+      ]
+    }
+  ) {
+    _count
+  }
+}
+
+# 従来画面の「参加対象」一覧。DBの確定対象名簿を50件ずつ返す。
+query SearchTrainingTargets(
+  $trainingId: String!
+  $targetType: String!
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付画面の対象者一覧に限定して使用するため。") {
+  trainingTargets(
+    where: {
+      trainingId: { eq: $trainingId }
+      targetType: { eq: $targetType }
+      branch: { eq: $branch }
+      district: { eq: $district }
+    }
+    orderBy: [{ targetId: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    targetId
+    branch
+    district
+    company { memberNo companyName }
+    person { personalId name email }
+  }
+}
+
+# 従来画面の「対象者受付」一覧。対象名簿と受付履歴をDB内で照合する。
+query SearchCheckedTargets(
+  $trainingId: String!
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付画面の対象内受付一覧に限定して使用するため。") {
+  trainingTargets(
+    where: {
+      _and: [
+        {
+          trainingId: { eq: $trainingId }
+          targetType: { eq: "PERSONAL" }
+          branch: { eq: $branch }
+          district: { eq: $district }
+        }
+        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } } } } }
+      ]
+    }
+    orderBy: [{ targetId: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    targetId
+    branch
+    district
+    company { memberNo companyName }
+    person { personalId name email }
+  }
+}
+
+query SearchCheckedCompanyTargets(
+  $trainingId: String!
+  $branch: String
+  $district: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(level: PUBLIC, insecureReason: "SQL受付画面の会社単位対象内受付一覧に限定して使用するため。") {
+  trainingTargets(
+    where: {
+      _and: [
+        {
+          trainingId: { eq: $trainingId }
+          targetType: { eq: "COMPANY" }
+          branch: { eq: $branch }
+          district: { eq: $district }
+        }
+        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } } } } }
+      ]
+    }
+    orderBy: [{ targetId: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    targetId
+    branch
+    district
+    company { memberNo companyName email }
+  }
 }
 
 # 支部・地区別の受付件数は、明細を送らずSQL側でグループ集計する。

@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, trainingCheckinSummary, trainingCheckinsByBranchDistrict, searchUncheckedTargets } from '@takken-training/sql-dataconnect';
+import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, trainingCheckinSummary, searchTrainingTargets, searchCheckedTargets } from '@takken-training/sql-dataconnect';
 
 
 // Operation ListTrainings:  For variables, look at type ListTrainingsVars in ../index.d.ts
@@ -41,11 +41,11 @@ const { data } = await RecentCheckins(dataConnect, recentCheckinsVars);
 // Operation TrainingCheckinSummary:  For variables, look at type TrainingCheckinSummaryVars in ../index.d.ts
 const { data } = await TrainingCheckinSummary(dataConnect, trainingCheckinSummaryVars);
 
-// Operation TrainingCheckinsByBranchDistrict:  For variables, look at type TrainingCheckinsByBranchDistrictVars in ../index.d.ts
-const { data } = await TrainingCheckinsByBranchDistrict(dataConnect, trainingCheckinsByBranchDistrictVars);
+// Operation SearchTrainingTargets:  For variables, look at type SearchTrainingTargetsVars in ../index.d.ts
+const { data } = await SearchTrainingTargets(dataConnect, searchTrainingTargetsVars);
 
-// Operation SearchUncheckedTargets:  For variables, look at type SearchUncheckedTargetsVars in ../index.d.ts
-const { data } = await SearchUncheckedTargets(dataConnect, searchUncheckedTargetsVars);
+// Operation SearchCheckedTargets:  For variables, look at type SearchCheckedTargetsVars in ../index.d.ts
+const { data } = await SearchCheckedTargets(dataConnect, searchCheckedTargetsVars);
 
 
 ```

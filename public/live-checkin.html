@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -330,7 +333,7 @@ main{
 </div>
 </main>
 
-<script>
+<script type="text/plain" id="legacy-live-checkin-script">
 const params =
   new URLSearchParams(location.search);
 
@@ -1530,6 +1533,7 @@ setupBackLink();
 loadTraining();
 startTimer();
 </script>
+<script type="module" src="sql/js/live-monitor.js?v=13"></script>
 
 </body>
 </html>

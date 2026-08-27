@@ -131,6 +131,51 @@ exports.trainingCheckinSummary = function trainingCheckinSummary(dcOrVars, varsO
 }
 ;
 
+const searchTrainingTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchTrainingTargets', inputVars);
+}
+searchTrainingTargetsRef.operationName = 'SearchTrainingTargets';
+exports.searchTrainingTargetsRef = searchTrainingTargetsRef;
+
+exports.searchTrainingTargets = function searchTrainingTargets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(searchTrainingTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const searchCheckedTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchCheckedTargets', inputVars);
+}
+searchCheckedTargetsRef.operationName = 'SearchCheckedTargets';
+exports.searchCheckedTargetsRef = searchCheckedTargetsRef;
+
+exports.searchCheckedTargets = function searchCheckedTargets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(searchCheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const searchCheckedCompanyTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchCheckedCompanyTargets', inputVars);
+}
+searchCheckedCompanyTargetsRef.operationName = 'SearchCheckedCompanyTargets';
+exports.searchCheckedCompanyTargetsRef = searchCheckedCompanyTargetsRef;
+
+exports.searchCheckedCompanyTargets = function searchCheckedCompanyTargets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(searchCheckedCompanyTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const trainingCheckinsByBranchDistrictRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

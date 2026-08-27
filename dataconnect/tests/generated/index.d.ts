@@ -154,6 +154,52 @@ export interface RegisterPersonalCheckinVariables {
   checkinMethod: string;
 }
 
+export interface SearchCheckedCompanyTargetsData {
+  trainingTargets: ({
+    targetId: string;
+    branch: string;
+    district?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+      email?: string | null;
+    } & MemberCompany_Key;
+  })[];
+}
+
+export interface SearchCheckedCompanyTargetsVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface SearchCheckedTargetsData {
+  trainingTargets: ({
+    targetId: string;
+    branch: string;
+    district?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  })[];
+}
+
+export interface SearchCheckedTargetsVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface SearchMemberCompaniesData {
   memberCompanies: ({
     memberNo: string;
@@ -173,6 +219,32 @@ export interface SearchMemberCompaniesData {
 export interface SearchMemberCompaniesVariables {
   memberNo?: string | null;
   companyName?: string | null;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface SearchTrainingTargetsData {
+  trainingTargets: ({
+    targetId: string;
+    branch: string;
+    district?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  })[];
+}
+
+export interface SearchTrainingTargetsVariables {
+  trainingId: string;
+  targetType: string;
   branch?: string | null;
   district?: string | null;
   limit?: number | null;
@@ -231,6 +303,12 @@ export interface TrainingCheckinSummaryData {
     _count: number;
   })[];
   received: ({
+    _count: number;
+  })[];
+  personalTargetReceived: ({
+    _count: number;
+  })[];
+  companyTargetReceived: ({
     _count: number;
   })[];
 }
@@ -363,6 +441,42 @@ export const trainingCheckinSummaryRef: TrainingCheckinSummaryRef;
 
 export function trainingCheckinSummary(vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
 export function trainingCheckinSummary(dc: DataConnect, vars: TrainingCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<TrainingCheckinSummaryData, TrainingCheckinSummaryVariables>;
+
+interface SearchTrainingTargetsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SearchTrainingTargetsVariables): QueryRef<SearchTrainingTargetsData, SearchTrainingTargetsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SearchTrainingTargetsVariables): QueryRef<SearchTrainingTargetsData, SearchTrainingTargetsVariables>;
+  operationName: string;
+}
+export const searchTrainingTargetsRef: SearchTrainingTargetsRef;
+
+export function searchTrainingTargets(vars: SearchTrainingTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchTrainingTargetsData, SearchTrainingTargetsVariables>;
+export function searchTrainingTargets(dc: DataConnect, vars: SearchTrainingTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchTrainingTargetsData, SearchTrainingTargetsVariables>;
+
+interface SearchCheckedTargetsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SearchCheckedTargetsVariables): QueryRef<SearchCheckedTargetsData, SearchCheckedTargetsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SearchCheckedTargetsVariables): QueryRef<SearchCheckedTargetsData, SearchCheckedTargetsVariables>;
+  operationName: string;
+}
+export const searchCheckedTargetsRef: SearchCheckedTargetsRef;
+
+export function searchCheckedTargets(vars: SearchCheckedTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchCheckedTargetsData, SearchCheckedTargetsVariables>;
+export function searchCheckedTargets(dc: DataConnect, vars: SearchCheckedTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchCheckedTargetsData, SearchCheckedTargetsVariables>;
+
+interface SearchCheckedCompanyTargetsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SearchCheckedCompanyTargetsVariables): QueryRef<SearchCheckedCompanyTargetsData, SearchCheckedCompanyTargetsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SearchCheckedCompanyTargetsVariables): QueryRef<SearchCheckedCompanyTargetsData, SearchCheckedCompanyTargetsVariables>;
+  operationName: string;
+}
+export const searchCheckedCompanyTargetsRef: SearchCheckedCompanyTargetsRef;
+
+export function searchCheckedCompanyTargets(vars: SearchCheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchCheckedCompanyTargetsData, SearchCheckedCompanyTargetsVariables>;
+export function searchCheckedCompanyTargets(dc: DataConnect, vars: SearchCheckedCompanyTargetsVariables, options?: ExecuteQueryOptions): QueryPromise<SearchCheckedCompanyTargetsData, SearchCheckedCompanyTargetsVariables>;
 
 interface TrainingCheckinsByBranchDistrictRef {
   /* Allow users to create refs without passing in DataConnect */
