@@ -10,7 +10,7 @@ import {
   searchMemberCompanies,
 } from "./generated.js?v=17";
 import { firebaseConfig } from "./config.js?v=16";
-import { requireSqlAdmin } from "./admin-auth.js?v=15";
+import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);

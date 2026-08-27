@@ -1,8 +1,9 @@
 import {
   getAuth,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
 } from "firebase/auth";
 
 const ADMIN_EMAILS = ["ohzakai.kk@gmail.com"];
@@ -10,6 +11,10 @@ const ADMIN_EMAILS = ["ohzakai.kk@gmail.com"];
 export function requireSqlAdmin(app, statusElement) {
   const auth = getAuth(app);
   return new Promise((resolve, reject) => {
+    getRedirectResult(auth).catch((error) => {
+      statusElement.innerHTML = `<span class="ng">管理者確認に失敗しました。${String(error.message || error)}</span>`;
+      reject(error);
+    });
     const stop = onAuthStateChanged(auth, (user) => {
       if (user && ADMIN_EMAILS.includes(String(user.email || "").toLowerCase())) {
         stop();
@@ -24,12 +29,8 @@ export function requireSqlAdmin(app, statusElement) {
         '<button type="button" class="btn" id="sqlAdminSignIn" style="margin-top:10px;">Googleアカウントで確認</button>';
       document.getElementById("sqlAdminSignIn").onclick = async () => {
         try {
-          const result = await signInWithPopup(auth, new GoogleAuthProvider());
-          if (!ADMIN_EMAILS.includes(String(result.user.email || "").toLowerCase())) {
-            throw new Error("このGoogleアカウントには管理権限がありません。");
-          }
-          stop();
-          resolve(result.user);
+          statusElement.innerHTML = "Googleアカウント確認へ移動しています...";
+          await signInWithRedirect(auth, new GoogleAuthProvider());
         } catch (error) {
           statusElement.innerHTML = `<span class="ng">管理者確認に失敗しました。${String(error.message || error)}</span>`;
           reject(error);
