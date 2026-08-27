@@ -30,10 +30,17 @@ mutation AdminUpsertTrainingTargets(
   trainingTarget_upsertMany(data: $data)
 }
 
+mutation AdminUpsertPlannedAttendees(
+  $data: [PlannedAttendee_Data!]! @allow(fields: "plannedId trainingId targetType targetId memberNo personalId participantName email branch district block source active createdAt removedAt removedBy")
+) @transaction @auth(level: NO_ACCESS) {
+  plannedAttendee_upsertMany(data: $data)
+}
+
 query AdminMigrationVerification @auth(level: NO_ACCESS) {
   memberCompanies(limit: 5000) { memberNo }
   people(limit: 5000) { personalId }
   trainings(limit: 5000) { trainingId }
   trainingTargets(limit: 5000) { trainingId targetType targetId }
+  plannedAttendees(limit: 5000) { plannedId trainingId targetType targetId }
   checkins(limit: 5000) { checkinId }
 }

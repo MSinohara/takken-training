@@ -240,3 +240,79 @@ export function restoreCheckin(dcOrVars, vars) {
   return executeMutation(restoreCheckinRef(dcInstance, inputVars));
 }
 
+export const listPlannedAttendeesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListPlannedAttendees', inputVars);
+}
+listPlannedAttendeesRef.operationName = 'ListPlannedAttendees';
+
+export function listPlannedAttendees(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listPlannedAttendeesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const plannedAttendeeSummaryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'PlannedAttendeeSummary', inputVars);
+}
+plannedAttendeeSummaryRef.operationName = 'PlannedAttendeeSummary';
+
+export function plannedAttendeeSummary(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(plannedAttendeeSummaryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listCheckedPlannedPersonalRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCheckedPlannedPersonal', inputVars);
+}
+listCheckedPlannedPersonalRef.operationName = 'ListCheckedPlannedPersonal';
+
+export function listCheckedPlannedPersonal(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCheckedPlannedPersonalRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listCheckedPlannedCompanyRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCheckedPlannedCompany', inputVars);
+}
+listCheckedPlannedCompanyRef.operationName = 'ListCheckedPlannedCompany';
+
+export function listCheckedPlannedCompany(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCheckedPlannedCompanyRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const addPlannedAttendeeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AddPlannedAttendee', inputVars);
+}
+addPlannedAttendeeRef.operationName = 'AddPlannedAttendee';
+
+export function addPlannedAttendee(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(addPlannedAttendeeRef(dcInstance, inputVars));
+}
+
+export const removePlannedAttendeeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RemovePlannedAttendee', inputVars);
+}
+removePlannedAttendeeRef.operationName = 'RemovePlannedAttendee';
+
+export function removePlannedAttendee(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(removePlannedAttendeeRef(dcInstance, inputVars));
+}
+

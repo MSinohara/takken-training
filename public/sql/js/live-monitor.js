@@ -3,6 +3,10 @@ import { getDataConnect } from "firebase/data-connect";
 import {
   connectorConfig,
   listTrainings,
+  listCheckedPlannedCompany,
+  listCheckedPlannedPersonal,
+  listPlannedAttendees,
+  plannedAttendeeSummary,
   recentCheckins,
   trainingCheckinSummary,
   trainingCheckinsByBranchDistrict,
@@ -11,10 +15,12 @@ import {
   searchCheckedCompanyTargets,
   searchUncheckedTargets,
   searchUncheckedCompanyTargets,
-} from "./generated.js?v=13";
+} from "./generated.js?v=17";
 import { firebaseConfig } from "./config.js?v=16";
+import { requireSqlAdmin } from "./admin-auth.js?v=15";
 
-const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
+const app = initializeApp(firebaseConfig);
+const dc = getDataConnect(app, connectorConfig);
 const params = new URLSearchParams(location.search);
 const eventId = params.get("event") || "";
 const returnTo = params.get("return") || "";
@@ -70,9 +76,10 @@ async function loadAll() {
   if (!training) return;
   const unit = sqlUnit();
   try {
-    const [recentResponse, summaryResponse] = await Promise.all([
+    const [recentResponse, summaryResponse, plannedResponse] = await Promise.all([
       recentCheckins(dc, { trainingId: eventId, limit: 10 }, { fetchPolicy: "SERVER_ONLY" }),
       trainingCheckinSummary(dc, { trainingId: eventId, targetType: unit, attendanceUnit: unit }, { fetchPolicy: "SERVER_ONLY" }),
+      plannedAttendeeSummary(dc, { trainingId: eventId }, { fetchPolicy: "SERVER_ONLY" }),
     ]);
     const target = Number(summaryResponse.data.targets?.[0]?._count || 0);
     const total = Number(summaryResponse.data.received?.[0]?._count || 0);
@@ -82,8 +89,12 @@ async function loadAll() {
     $("targetCount").textContent = target;
     $("checkedCount").textContent = `${targetReceived} / ${target}`;
     $("totalCheckedCount").textContent = total;
-    $("plannedCount").textContent = "-";
-    $("plannedCheckedCount").textContent = "-";
+    const planned = Number(plannedResponse.data.planned?.[0]?._count || 0);
+    const plannedChecked = Number((companyUnit()
+      ? plannedResponse.data.companyReceived
+      : plannedResponse.data.personalReceived)?.[0]?._count || 0);
+    $("plannedCount").textContent = planned;
+    $("plannedCheckedCount").textContent = `${plannedChecked} / ${planned}`;
     $("absentCount").textContent = Math.max(0, target - targetReceived);
     $("notFoundCount").textContent = Math.max(0, total - targetReceived);
     renderRecent(recentResponse.data.checkins || []);
@@ -94,18 +105,24 @@ async function loadAll() {
 }
 
 function listTitle(type) {
-  return type === "target" ? "参加対象" : type === "checked" ? "対象者受付" : "未受付";
+  if (type === "target") return "参加対象";
+  if (type === "checked") return "対象者受付";
+  if (type === "planned") return "当日参加予定者";
+  if (type === "plannedChecked") return "予定者受付";
+  return "未受付";
 }
 
 function listQuery(type) {
   if (type === "target") return searchTrainingTargets;
   if (type === "checked") return companyUnit() ? searchCheckedCompanyTargets : searchCheckedTargets;
+  if (type === "planned") return listPlannedAttendees;
+  if (type === "plannedChecked") return companyUnit() ? listCheckedPlannedCompany : listCheckedPlannedPersonal;
   return companyUnit() ? searchUncheckedCompanyTargets : searchUncheckedTargets;
 }
 
 function listVariables() {
   const variables = { trainingId: eventId, limit: pageSize, offset: listState.offset };
-  if (listState.type !== "unchecked") variables.targetType = sqlUnit();
+  if (["target", "checked"].includes(listState.type)) variables.targetType = sqlUnit();
   if (listState.branch) variables.branch = listState.branch;
   if (listState.district) variables.district = listState.district;
   return variables;
@@ -126,13 +143,13 @@ async function loadMemberList() {
   area.textContent = "一覧を読み込み中...";
   try {
     const response = await listQuery(listState.type)(dc, listVariables(), { fetchPolicy: "SERVER_ONLY" });
-    const rows = response.data.trainingTargets || [];
+    const rows = response.data.trainingTargets || response.data.plannedAttendees || [];
     if (!rows.length) {
       area.textContent = "該当する方はいません。";
     } else {
       area.innerHTML = '<table><thead><tr><th>業者番号</th><th>会社名</th><th>参加者</th><th>支部・地区</th></tr></thead><tbody>' +
         rows.map((row) => `<tr><td>${esc(row.company?.memberNo || row.targetId || "-")}</td><td>${esc(row.company?.companyName || "-")}</td>` +
-          `<td>${esc(companyUnit() ? "会社単位" : row.person?.name || "-")}</td><td>${esc([row.branch, row.district].filter(Boolean).join(" / ") || "-")}</td></tr>`).join("") +
+          `<td>${esc(companyUnit() ? "会社単位" : row.person?.name || row.participantName || "-")}</td><td>${esc([row.branch, row.district].filter(Boolean).join(" / ") || "-")}</td></tr>`).join("") +
         "</tbody></table>";
     }
     $("sqlPageInfo").textContent = rows.length ? `${listState.offset + 1}～${listState.offset + rows.length}件` : "0件";
@@ -181,6 +198,7 @@ async function init() {
     return;
   }
   try {
+    await requireSqlAdmin(app, $("trainingInfo"));
     const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
     training = (response.data.trainings || []).find((row) => row.trainingId === eventId);
     if (!training) throw new Error("SQLに研修会が登録されていません。");
@@ -199,8 +217,8 @@ window.toggleFilterPanel = toggleFilterPanel;
 window.openTargetMembersModal = () => openList("target");
 window.openCheckedMembersModal = () => openList("checked");
 window.openAbsentMembersModal = () => openList("unchecked");
-window.openPlannedMembersModal = () => alert("当日参加予定者はSQL移行中です。");
-window.openPlannedCheckedMembersModal = () => alert("当日参加予定者はSQL移行中です。");
+window.openPlannedMembersModal = () => openList("planned");
+window.openPlannedCheckedMembersModal = () => openList("plannedChecked");
 window.sqlMonitorSearchList = () => {
   listState.branch = $("sqlListBranch").value.trim();
   listState.district = $("sqlListDistrict").value.trim();

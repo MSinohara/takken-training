@@ -70,6 +70,37 @@ type TrainingTarget
   block: String! @index
 }
 
+# 当日参加予定者・事前申込者。受付対象全体とは分けて保持し、
+# 受付済みかどうかは Checkin とのJOINで判定する。
+type PlannedAttendee
+  @table(key: "plannedId")
+  @unique(
+    fields: ["trainingId", "targetType", "targetId"]
+    indexName: "planned_training_type_target_uidx"
+  )
+  @index(fields: ["trainingId", "active", "createdAt"])
+  @index(fields: ["trainingId", "branch", "district", "createdAt"]) {
+  plannedId: String!
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  targetType: String!
+  targetId: String!
+  memberNo: String
+  company: MemberCompany @ref(fields: "memberNo", references: "memberNo")
+  personalId: String
+  person: Person @ref(fields: "personalId", references: "personalId")
+  participantName: String
+  email: String
+  branch: String @index
+  district: String @index
+  block: String @index
+  source: String
+  active: Boolean! @default(value: true)
+  createdAt: Timestamp! @default(expr: "request.time")
+  removedAt: Timestamp
+  removedBy: String
+}
+
 # checkinId はクライアント側でも追跡できる受付ID。
 # 複合UNIQUE制約により、同じ研修・受付単位・対象者の二重受付をDBで防止する。
 type Checkin

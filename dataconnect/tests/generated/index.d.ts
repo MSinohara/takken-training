@@ -11,6 +11,25 @@ export type DateString = string;
 
 
 
+export interface AddPlannedAttendeeData {
+  plannedAttendee_upsert: PlannedAttendee_Key;
+}
+
+export interface AddPlannedAttendeeVariables {
+  plannedId: string;
+  trainingId: string;
+  targetType: string;
+  targetId: string;
+  memberNo?: string | null;
+  personalId?: string | null;
+  participantName?: string | null;
+  email?: string | null;
+  branch?: string | null;
+  district?: string | null;
+  block?: string | null;
+  source?: string | null;
+}
+
 export interface CancelCheckinData {
   checkin_update?: Checkin_Key | null;
 }
@@ -79,6 +98,70 @@ export interface GetTrainingTargetForCheckinVariables {
   targetId: string;
 }
 
+export interface ListCheckedPlannedCompanyData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+
+export interface ListCheckedPlannedCompanyVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListCheckedPlannedPersonalData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+
+export interface ListCheckedPlannedPersonalVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListCheckinHistoryData {
   checkins: ({
     checkinId: string;
@@ -115,6 +198,38 @@ export interface ListCheckinHistoryData {
 
 export interface ListCheckinHistoryVariables {
   trainingId?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListPlannedAttendeesData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+
+export interface ListPlannedAttendeesVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
   limit?: number | null;
   offset?: number | null;
 }
@@ -161,6 +276,27 @@ export interface Person_Key {
   __typename?: 'Person_Key';
 }
 
+export interface PlannedAttendeeSummaryData {
+  planned: ({
+    _count: number;
+  })[];
+  personalReceived: ({
+    _count: number;
+  })[];
+  companyReceived: ({
+    _count: number;
+  })[];
+}
+
+export interface PlannedAttendeeSummaryVariables {
+  trainingId: string;
+}
+
+export interface PlannedAttendee_Key {
+  plannedId: string;
+  __typename?: 'PlannedAttendee_Key';
+}
+
 export interface RecentCheckinsData {
   checkins: ({
     checkinId: string;
@@ -204,6 +340,16 @@ export interface RegisterPersonalCheckinVariables {
   memberNo: string;
   personalId: string;
   checkinMethod: string;
+}
+
+export interface RemovePlannedAttendeeData {
+  plannedAttendee_update?: PlannedAttendee_Key | null;
+}
+
+export interface RemovePlannedAttendeeVariables {
+  plannedId: string;
+  changedAt: TimestampString;
+  operator?: string | null;
 }
 
 export interface RestoreCheckinData {
@@ -624,4 +770,76 @@ export const restoreCheckinRef: RestoreCheckinRef;
 
 export function restoreCheckin(vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
 export function restoreCheckin(dc: DataConnect, vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
+
+interface ListPlannedAttendeesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListPlannedAttendeesVariables): QueryRef<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListPlannedAttendeesVariables): QueryRef<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+  operationName: string;
+}
+export const listPlannedAttendeesRef: ListPlannedAttendeesRef;
+
+export function listPlannedAttendees(vars: ListPlannedAttendeesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+export function listPlannedAttendees(dc: DataConnect, vars: ListPlannedAttendeesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+
+interface PlannedAttendeeSummaryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: PlannedAttendeeSummaryVariables): QueryRef<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: PlannedAttendeeSummaryVariables): QueryRef<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+  operationName: string;
+}
+export const plannedAttendeeSummaryRef: PlannedAttendeeSummaryRef;
+
+export function plannedAttendeeSummary(vars: PlannedAttendeeSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+export function plannedAttendeeSummary(dc: DataConnect, vars: PlannedAttendeeSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+
+interface ListCheckedPlannedPersonalRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListCheckedPlannedPersonalVariables): QueryRef<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListCheckedPlannedPersonalVariables): QueryRef<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+  operationName: string;
+}
+export const listCheckedPlannedPersonalRef: ListCheckedPlannedPersonalRef;
+
+export function listCheckedPlannedPersonal(vars: ListCheckedPlannedPersonalVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+export function listCheckedPlannedPersonal(dc: DataConnect, vars: ListCheckedPlannedPersonalVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+
+interface ListCheckedPlannedCompanyRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListCheckedPlannedCompanyVariables): QueryRef<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListCheckedPlannedCompanyVariables): QueryRef<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+  operationName: string;
+}
+export const listCheckedPlannedCompanyRef: ListCheckedPlannedCompanyRef;
+
+export function listCheckedPlannedCompany(vars: ListCheckedPlannedCompanyVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+export function listCheckedPlannedCompany(dc: DataConnect, vars: ListCheckedPlannedCompanyVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+
+interface AddPlannedAttendeeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AddPlannedAttendeeVariables): MutationRef<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AddPlannedAttendeeVariables): MutationRef<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+  operationName: string;
+}
+export const addPlannedAttendeeRef: AddPlannedAttendeeRef;
+
+export function addPlannedAttendee(vars: AddPlannedAttendeeVariables): MutationPromise<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+export function addPlannedAttendee(dc: DataConnect, vars: AddPlannedAttendeeVariables): MutationPromise<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+
+interface RemovePlannedAttendeeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RemovePlannedAttendeeVariables): MutationRef<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RemovePlannedAttendeeVariables): MutationRef<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+  operationName: string;
+}
+export const removePlannedAttendeeRef: RemovePlannedAttendeeRef;
+
+export function removePlannedAttendee(vars: RemovePlannedAttendeeVariables): MutationPromise<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+export function removePlannedAttendee(dc: DataConnect, vars: RemovePlannedAttendeeVariables): MutationPromise<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
 

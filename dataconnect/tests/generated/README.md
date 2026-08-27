@@ -22,11 +22,17 @@ This README will guide you through the process of using the generated JavaScript
   - [*SearchUncheckedCompanyTargets*](#searchuncheckedcompanytargets)
   - [*GetCheckin*](#getcheckin)
   - [*ListCheckinHistory*](#listcheckinhistory)
+  - [*ListPlannedAttendees*](#listplannedattendees)
+  - [*PlannedAttendeeSummary*](#plannedattendeesummary)
+  - [*ListCheckedPlannedPersonal*](#listcheckedplannedpersonal)
+  - [*ListCheckedPlannedCompany*](#listcheckedplannedcompany)
 - [**Mutations**](#mutations)
   - [*RegisterPersonalCheckin*](#registerpersonalcheckin)
   - [*RegisterCompanyCheckin*](#registercompanycheckin)
   - [*CancelCheckin*](#cancelcheckin)
   - [*RestoreCheckin*](#restorecheckin)
+  - [*AddPlannedAttendee*](#addplannedattendee)
+  - [*RemovePlannedAttendee*](#removeplannedattendee)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -1905,6 +1911,554 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListPlannedAttendees
+You can execute the `ListPlannedAttendees` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+listPlannedAttendees(vars: ListPlannedAttendeesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+
+interface ListPlannedAttendeesRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListPlannedAttendeesVariables): QueryRef<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+}
+export const listPlannedAttendeesRef: ListPlannedAttendeesRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listPlannedAttendees(dc: DataConnect, vars: ListPlannedAttendeesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+
+interface ListPlannedAttendeesRef {
+  ...
+  (dc: DataConnect, vars: ListPlannedAttendeesVariables): QueryRef<ListPlannedAttendeesData, ListPlannedAttendeesVariables>;
+}
+export const listPlannedAttendeesRef: ListPlannedAttendeesRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listPlannedAttendeesRef:
+```typescript
+const name = listPlannedAttendeesRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListPlannedAttendees` query requires an argument of type `ListPlannedAttendeesVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListPlannedAttendeesVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListPlannedAttendees` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListPlannedAttendeesData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListPlannedAttendeesData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+```
+### Using `ListPlannedAttendees`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listPlannedAttendees, ListPlannedAttendeesVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListPlannedAttendees` query requires an argument of type `ListPlannedAttendeesVariables`:
+const listPlannedAttendeesVars: ListPlannedAttendeesVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listPlannedAttendees()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listPlannedAttendees(listPlannedAttendeesVars);
+// Variables can be defined inline as well.
+const { data } = await listPlannedAttendees({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listPlannedAttendees(dataConnect, listPlannedAttendeesVars);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+listPlannedAttendees(listPlannedAttendeesVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+### Using `ListPlannedAttendees`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listPlannedAttendeesRef, ListPlannedAttendeesVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListPlannedAttendees` query requires an argument of type `ListPlannedAttendeesVariables`:
+const listPlannedAttendeesVars: ListPlannedAttendeesVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listPlannedAttendeesRef()` function to get a reference to the query.
+const ref = listPlannedAttendeesRef(listPlannedAttendeesVars);
+// Variables can be defined inline as well.
+const ref = listPlannedAttendeesRef({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listPlannedAttendeesRef(dataConnect, listPlannedAttendeesVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+## PlannedAttendeeSummary
+You can execute the `PlannedAttendeeSummary` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+plannedAttendeeSummary(vars: PlannedAttendeeSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+
+interface PlannedAttendeeSummaryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: PlannedAttendeeSummaryVariables): QueryRef<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+}
+export const plannedAttendeeSummaryRef: PlannedAttendeeSummaryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+plannedAttendeeSummary(dc: DataConnect, vars: PlannedAttendeeSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+
+interface PlannedAttendeeSummaryRef {
+  ...
+  (dc: DataConnect, vars: PlannedAttendeeSummaryVariables): QueryRef<PlannedAttendeeSummaryData, PlannedAttendeeSummaryVariables>;
+}
+export const plannedAttendeeSummaryRef: PlannedAttendeeSummaryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the plannedAttendeeSummaryRef:
+```typescript
+const name = plannedAttendeeSummaryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `PlannedAttendeeSummary` query requires an argument of type `PlannedAttendeeSummaryVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface PlannedAttendeeSummaryVariables {
+  trainingId: string;
+}
+```
+### Return Type
+Recall that executing the `PlannedAttendeeSummary` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `PlannedAttendeeSummaryData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface PlannedAttendeeSummaryData {
+  planned: ({
+    _count: number;
+  })[];
+  personalReceived: ({
+    _count: number;
+  })[];
+  companyReceived: ({
+    _count: number;
+  })[];
+}
+```
+### Using `PlannedAttendeeSummary`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, plannedAttendeeSummary, PlannedAttendeeSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `PlannedAttendeeSummary` query requires an argument of type `PlannedAttendeeSummaryVariables`:
+const plannedAttendeeSummaryVars: PlannedAttendeeSummaryVariables = {
+  trainingId: ..., 
+};
+
+// Call the `plannedAttendeeSummary()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await plannedAttendeeSummary(plannedAttendeeSummaryVars);
+// Variables can be defined inline as well.
+const { data } = await plannedAttendeeSummary({ trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await plannedAttendeeSummary(dataConnect, plannedAttendeeSummaryVars);
+
+console.log(data.planned);
+console.log(data.personalReceived);
+console.log(data.companyReceived);
+
+// Or, you can use the `Promise` API.
+plannedAttendeeSummary(plannedAttendeeSummaryVars).then((response) => {
+  const data = response.data;
+  console.log(data.planned);
+  console.log(data.personalReceived);
+  console.log(data.companyReceived);
+});
+```
+
+### Using `PlannedAttendeeSummary`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, plannedAttendeeSummaryRef, PlannedAttendeeSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `PlannedAttendeeSummary` query requires an argument of type `PlannedAttendeeSummaryVariables`:
+const plannedAttendeeSummaryVars: PlannedAttendeeSummaryVariables = {
+  trainingId: ..., 
+};
+
+// Call the `plannedAttendeeSummaryRef()` function to get a reference to the query.
+const ref = plannedAttendeeSummaryRef(plannedAttendeeSummaryVars);
+// Variables can be defined inline as well.
+const ref = plannedAttendeeSummaryRef({ trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = plannedAttendeeSummaryRef(dataConnect, plannedAttendeeSummaryVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.planned);
+console.log(data.personalReceived);
+console.log(data.companyReceived);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.planned);
+  console.log(data.personalReceived);
+  console.log(data.companyReceived);
+});
+```
+
+## ListCheckedPlannedPersonal
+You can execute the `ListCheckedPlannedPersonal` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+listCheckedPlannedPersonal(vars: ListCheckedPlannedPersonalVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+
+interface ListCheckedPlannedPersonalRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListCheckedPlannedPersonalVariables): QueryRef<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+}
+export const listCheckedPlannedPersonalRef: ListCheckedPlannedPersonalRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listCheckedPlannedPersonal(dc: DataConnect, vars: ListCheckedPlannedPersonalVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+
+interface ListCheckedPlannedPersonalRef {
+  ...
+  (dc: DataConnect, vars: ListCheckedPlannedPersonalVariables): QueryRef<ListCheckedPlannedPersonalData, ListCheckedPlannedPersonalVariables>;
+}
+export const listCheckedPlannedPersonalRef: ListCheckedPlannedPersonalRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listCheckedPlannedPersonalRef:
+```typescript
+const name = listCheckedPlannedPersonalRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListCheckedPlannedPersonal` query requires an argument of type `ListCheckedPlannedPersonalVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListCheckedPlannedPersonalVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListCheckedPlannedPersonal` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListCheckedPlannedPersonalData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListCheckedPlannedPersonalData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+```
+### Using `ListCheckedPlannedPersonal`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listCheckedPlannedPersonal, ListCheckedPlannedPersonalVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListCheckedPlannedPersonal` query requires an argument of type `ListCheckedPlannedPersonalVariables`:
+const listCheckedPlannedPersonalVars: ListCheckedPlannedPersonalVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listCheckedPlannedPersonal()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listCheckedPlannedPersonal(listCheckedPlannedPersonalVars);
+// Variables can be defined inline as well.
+const { data } = await listCheckedPlannedPersonal({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listCheckedPlannedPersonal(dataConnect, listCheckedPlannedPersonalVars);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+listCheckedPlannedPersonal(listCheckedPlannedPersonalVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+### Using `ListCheckedPlannedPersonal`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listCheckedPlannedPersonalRef, ListCheckedPlannedPersonalVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListCheckedPlannedPersonal` query requires an argument of type `ListCheckedPlannedPersonalVariables`:
+const listCheckedPlannedPersonalVars: ListCheckedPlannedPersonalVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listCheckedPlannedPersonalRef()` function to get a reference to the query.
+const ref = listCheckedPlannedPersonalRef(listCheckedPlannedPersonalVars);
+// Variables can be defined inline as well.
+const ref = listCheckedPlannedPersonalRef({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listCheckedPlannedPersonalRef(dataConnect, listCheckedPlannedPersonalVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+## ListCheckedPlannedCompany
+You can execute the `ListCheckedPlannedCompany` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+listCheckedPlannedCompany(vars: ListCheckedPlannedCompanyVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+
+interface ListCheckedPlannedCompanyRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListCheckedPlannedCompanyVariables): QueryRef<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+}
+export const listCheckedPlannedCompanyRef: ListCheckedPlannedCompanyRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listCheckedPlannedCompany(dc: DataConnect, vars: ListCheckedPlannedCompanyVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+
+interface ListCheckedPlannedCompanyRef {
+  ...
+  (dc: DataConnect, vars: ListCheckedPlannedCompanyVariables): QueryRef<ListCheckedPlannedCompanyData, ListCheckedPlannedCompanyVariables>;
+}
+export const listCheckedPlannedCompanyRef: ListCheckedPlannedCompanyRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listCheckedPlannedCompanyRef:
+```typescript
+const name = listCheckedPlannedCompanyRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListCheckedPlannedCompany` query requires an argument of type `ListCheckedPlannedCompanyVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListCheckedPlannedCompanyVariables {
+  trainingId: string;
+  branch?: string | null;
+  district?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListCheckedPlannedCompany` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListCheckedPlannedCompanyData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListCheckedPlannedCompanyData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    participantName?: string | null;
+    email?: string | null;
+    branch?: string | null;
+    district?: string | null;
+    block?: string | null;
+    source?: string | null;
+    createdAt: TimestampString;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+```
+### Using `ListCheckedPlannedCompany`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listCheckedPlannedCompany, ListCheckedPlannedCompanyVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListCheckedPlannedCompany` query requires an argument of type `ListCheckedPlannedCompanyVariables`:
+const listCheckedPlannedCompanyVars: ListCheckedPlannedCompanyVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listCheckedPlannedCompany()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listCheckedPlannedCompany(listCheckedPlannedCompanyVars);
+// Variables can be defined inline as well.
+const { data } = await listCheckedPlannedCompany({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listCheckedPlannedCompany(dataConnect, listCheckedPlannedCompanyVars);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+listCheckedPlannedCompany(listCheckedPlannedCompanyVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+### Using `ListCheckedPlannedCompany`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listCheckedPlannedCompanyRef, ListCheckedPlannedCompanyVariables } from '@takken-training/sql-dataconnect';
+
+// The `ListCheckedPlannedCompany` query requires an argument of type `ListCheckedPlannedCompanyVariables`:
+const listCheckedPlannedCompanyVars: ListCheckedPlannedCompanyVariables = {
+  trainingId: ..., 
+  branch: ..., // optional
+  district: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listCheckedPlannedCompanyRef()` function to get a reference to the query.
+const ref = listCheckedPlannedCompanyRef(listCheckedPlannedCompanyVars);
+// Variables can be defined inline as well.
+const ref = listCheckedPlannedCompanyRef({ trainingId: ..., branch: ..., district: ..., limit: ..., offset: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listCheckedPlannedCompanyRef(dataConnect, listCheckedPlannedCompanyVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -2392,6 +2946,263 @@ console.log(data.checkin_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.checkin_update);
+});
+```
+
+## AddPlannedAttendee
+You can execute the `AddPlannedAttendee` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+addPlannedAttendee(vars: AddPlannedAttendeeVariables): MutationPromise<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+
+interface AddPlannedAttendeeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AddPlannedAttendeeVariables): MutationRef<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+}
+export const addPlannedAttendeeRef: AddPlannedAttendeeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+addPlannedAttendee(dc: DataConnect, vars: AddPlannedAttendeeVariables): MutationPromise<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+
+interface AddPlannedAttendeeRef {
+  ...
+  (dc: DataConnect, vars: AddPlannedAttendeeVariables): MutationRef<AddPlannedAttendeeData, AddPlannedAttendeeVariables>;
+}
+export const addPlannedAttendeeRef: AddPlannedAttendeeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the addPlannedAttendeeRef:
+```typescript
+const name = addPlannedAttendeeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AddPlannedAttendee` mutation requires an argument of type `AddPlannedAttendeeVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AddPlannedAttendeeVariables {
+  plannedId: string;
+  trainingId: string;
+  targetType: string;
+  targetId: string;
+  memberNo?: string | null;
+  personalId?: string | null;
+  participantName?: string | null;
+  email?: string | null;
+  branch?: string | null;
+  district?: string | null;
+  block?: string | null;
+  source?: string | null;
+}
+```
+### Return Type
+Recall that executing the `AddPlannedAttendee` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AddPlannedAttendeeData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AddPlannedAttendeeData {
+  plannedAttendee_upsert: PlannedAttendee_Key;
+}
+```
+### Using `AddPlannedAttendee`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, addPlannedAttendee, AddPlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `AddPlannedAttendee` mutation requires an argument of type `AddPlannedAttendeeVariables`:
+const addPlannedAttendeeVars: AddPlannedAttendeeVariables = {
+  plannedId: ..., 
+  trainingId: ..., 
+  targetType: ..., 
+  targetId: ..., 
+  memberNo: ..., // optional
+  personalId: ..., // optional
+  participantName: ..., // optional
+  email: ..., // optional
+  branch: ..., // optional
+  district: ..., // optional
+  block: ..., // optional
+  source: ..., // optional
+};
+
+// Call the `addPlannedAttendee()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await addPlannedAttendee(addPlannedAttendeeVars);
+// Variables can be defined inline as well.
+const { data } = await addPlannedAttendee({ plannedId: ..., trainingId: ..., targetType: ..., targetId: ..., memberNo: ..., personalId: ..., participantName: ..., email: ..., branch: ..., district: ..., block: ..., source: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await addPlannedAttendee(dataConnect, addPlannedAttendeeVars);
+
+console.log(data.plannedAttendee_upsert);
+
+// Or, you can use the `Promise` API.
+addPlannedAttendee(addPlannedAttendeeVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee_upsert);
+});
+```
+
+### Using `AddPlannedAttendee`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, addPlannedAttendeeRef, AddPlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `AddPlannedAttendee` mutation requires an argument of type `AddPlannedAttendeeVariables`:
+const addPlannedAttendeeVars: AddPlannedAttendeeVariables = {
+  plannedId: ..., 
+  trainingId: ..., 
+  targetType: ..., 
+  targetId: ..., 
+  memberNo: ..., // optional
+  personalId: ..., // optional
+  participantName: ..., // optional
+  email: ..., // optional
+  branch: ..., // optional
+  district: ..., // optional
+  block: ..., // optional
+  source: ..., // optional
+};
+
+// Call the `addPlannedAttendeeRef()` function to get a reference to the mutation.
+const ref = addPlannedAttendeeRef(addPlannedAttendeeVars);
+// Variables can be defined inline as well.
+const ref = addPlannedAttendeeRef({ plannedId: ..., trainingId: ..., targetType: ..., targetId: ..., memberNo: ..., personalId: ..., participantName: ..., email: ..., branch: ..., district: ..., block: ..., source: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = addPlannedAttendeeRef(dataConnect, addPlannedAttendeeVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.plannedAttendee_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee_upsert);
+});
+```
+
+## RemovePlannedAttendee
+You can execute the `RemovePlannedAttendee` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+removePlannedAttendee(vars: RemovePlannedAttendeeVariables): MutationPromise<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+
+interface RemovePlannedAttendeeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RemovePlannedAttendeeVariables): MutationRef<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+}
+export const removePlannedAttendeeRef: RemovePlannedAttendeeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+removePlannedAttendee(dc: DataConnect, vars: RemovePlannedAttendeeVariables): MutationPromise<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+
+interface RemovePlannedAttendeeRef {
+  ...
+  (dc: DataConnect, vars: RemovePlannedAttendeeVariables): MutationRef<RemovePlannedAttendeeData, RemovePlannedAttendeeVariables>;
+}
+export const removePlannedAttendeeRef: RemovePlannedAttendeeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the removePlannedAttendeeRef:
+```typescript
+const name = removePlannedAttendeeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RemovePlannedAttendee` mutation requires an argument of type `RemovePlannedAttendeeVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RemovePlannedAttendeeVariables {
+  plannedId: string;
+  changedAt: TimestampString;
+  operator?: string | null;
+}
+```
+### Return Type
+Recall that executing the `RemovePlannedAttendee` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RemovePlannedAttendeeData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RemovePlannedAttendeeData {
+  plannedAttendee_update?: PlannedAttendee_Key | null;
+}
+```
+### Using `RemovePlannedAttendee`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, removePlannedAttendee, RemovePlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `RemovePlannedAttendee` mutation requires an argument of type `RemovePlannedAttendeeVariables`:
+const removePlannedAttendeeVars: RemovePlannedAttendeeVariables = {
+  plannedId: ..., 
+  changedAt: ..., 
+  operator: ..., // optional
+};
+
+// Call the `removePlannedAttendee()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await removePlannedAttendee(removePlannedAttendeeVars);
+// Variables can be defined inline as well.
+const { data } = await removePlannedAttendee({ plannedId: ..., changedAt: ..., operator: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await removePlannedAttendee(dataConnect, removePlannedAttendeeVars);
+
+console.log(data.plannedAttendee_update);
+
+// Or, you can use the `Promise` API.
+removePlannedAttendee(removePlannedAttendeeVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee_update);
+});
+```
+
+### Using `RemovePlannedAttendee`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, removePlannedAttendeeRef, RemovePlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `RemovePlannedAttendee` mutation requires an argument of type `RemovePlannedAttendeeVariables`:
+const removePlannedAttendeeVars: RemovePlannedAttendeeVariables = {
+  plannedId: ..., 
+  changedAt: ..., 
+  operator: ..., // optional
+};
+
+// Call the `removePlannedAttendeeRef()` function to get a reference to the mutation.
+const ref = removePlannedAttendeeRef(removePlannedAttendeeVars);
+// Variables can be defined inline as well.
+const ref = removePlannedAttendeeRef({ plannedId: ..., changedAt: ..., operator: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = removePlannedAttendeeRef(dataConnect, removePlannedAttendeeVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.plannedAttendee_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee_update);
 });
 ```
 
