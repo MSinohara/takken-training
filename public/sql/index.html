@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SQL受付検証</title>
+  <title>会場受付</title>
   <link rel="stylesheet" href="css/app.css">
   <script type="importmap">
     {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
   </script>
 </head>
 <body>
-  <header><h1>SQL受付検証</h1></header>
-  <nav><a href="index.html">受付</a><a href="monitor.html">受付モニター</a><a href="load-test.html">負荷試験</a><a href="../training-menu.html">研修会管理へ戻る</a></nav>
+  <header><h1>会場受付</h1></header>
   <main>
     <section class="panel">
       <h2>受付対象を検索</h2>
+      <p id="trainingName" class="status">研修会を確認中...</p>
       <div class="grid">
-        <label>対象研修<select id="training"></select></label>
+        <label style="display:none">対象研修<select id="training"></select></label>
         <label>支部<select id="branch"><option value="">指定なし</option><option>杉並区支部</option><option>中野区支部</option><option>世田谷区支部</option></select></label>
         <label>業者番号<input id="memberNo" inputmode="numeric" placeholder="例: 90001"></label>
         <label>会社名<input id="companyName" placeholder="会社名の一部"></label>
         <label>地区<input id="district" placeholder="指定なし"></label>
       </div>
       <div class="actions"><button id="search">検索</button><button id="clear" class="secondary">入力を消す</button></div>
-      <p id="searchStatus" class="status">研修会を選び、会社を検索してください。</p>
+      <p id="searchStatus" class="status">会社を検索してください。</p>
     </section>
     <section id="companiesPanel" class="panel" hidden>
       <h2>会社を選択</h2>
@@ -37,9 +37,9 @@
     <section id="resultPanel" class="panel complete" hidden>
       <h2 id="resultTitle">受付完了</h2>
       <div id="resultBody"></div>
-      <div class="actions"><button id="next">次の受付へ</button><a id="monitor-link" class="button-link secondary" href="monitor.html">モニターを見る</a></div>
+      <div class="actions"><button id="next">次の受付へ</button></div>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=16"></script>
+  <script type="module" src="js/checkin.js?v=18"></script>
 </body>
 </html>

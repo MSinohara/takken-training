@@ -11,7 +11,6 @@ import {
   searchMemberCompanies
 } from "./generated.js?v=14";
 import { firebaseConfig } from "./config.js?v=17";
-import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -34,21 +33,21 @@ async function loadTrainings() {
     if (requestedTrainingId && rows.some((row) => row.trainingId === requestedTrainingId)) {
       $("training").value = requestedTrainingId;
     }
-    updateMonitorLink();
-    if (!rows.length) setStatus("SQLに研修会が登録されていません。", "error");
+    const selected = selectedTraining();
+    $("trainingName").textContent = selected
+      ? `${selected.title} / 開催日：${selected.eventDate || "-"}`
+      : "指定された研修会を確認できませんでした。";
+    if (!requestedTrainingId || !selected) {
+      setStatus("QRコードをもう一度読み取ってください。", "error");
+      return false;
+    }
+    return true;
   } catch (error) {
     $("training").replaceChildren(new Option("研修会を取得できませんでした", ""));
     setStatus(`研修会の取得に失敗しました: ${error.message || error}`, "error");
   } finally {
     $("training").disabled = false;
   }
-}
-
-function updateMonitorLink() {
-  const trainingId = $("training").value;
-  $("monitor-link").href = trainingId
-    ? `monitor.html?event=${encodeURIComponent(trainingId)}`
-    : "monitor.html";
 }
 
 function setStatus(message, type = "") {
@@ -248,24 +247,16 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
-$("training").addEventListener("change", () => {
-  updateMonitorLink();
-  $("companiesPanel").hidden = true;
-  $("peoplePanel").hidden = true;
-  $("resultPanel").hidden = true;
-  setStatus("会社を検索してください。");
-});
-async function initializeStaffCheckin() {
+async function initializePublicCheckin() {
   $("search").disabled = true;
   $("clear").disabled = true;
   try {
-    await requireSqlAdmin(app, $("searchStatus"));
-    await loadTrainings();
-    $("search").disabled = false;
-    $("clear").disabled = false;
+    const ready = await loadTrainings();
+    $("search").disabled = !ready;
+    $("clear").disabled = !ready;
   } catch (error) {
     console.error(error);
   }
 }
 
-initializeStaffCheckin();
+initializePublicCheckin();
