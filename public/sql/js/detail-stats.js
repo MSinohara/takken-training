@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import { connectorConfig, listTrainings, trainingCheckinSummary } from "./generated.js?v=13";
-import { firebaseConfig } from "./config.js?v=16";
+import { firebaseConfig } from "./config.js?v=17";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 

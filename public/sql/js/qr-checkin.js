@@ -10,7 +10,7 @@ import {
   registerPersonalCheckin,
   searchMemberCompanies,
 } from "./generated.js?v=14";
-import { firebaseConfig } from "./config.js?v=16";
+import { firebaseConfig } from "./config.js?v=17";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 let trainingsPromise = null;

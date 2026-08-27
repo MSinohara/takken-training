@@ -16,7 +16,7 @@ import {
   searchUncheckedTargets,
   searchUncheckedCompanyTargets,
 } from "./generated.js?v=17";
-import { firebaseConfig } from "./config.js?v=16";
+import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
 const app = initializeApp(firebaseConfig);
