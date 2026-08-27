@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module" src="sql/js/qr-checkin.js?v=12"></script>
 
 <style>
 main{
@@ -121,7 +125,7 @@ function setupBackLink(){
     "受付メニューへ戻る";
 }
 
-function loadTraining(){
+async function loadTraining(){
 
   if(!eventId){
     document.getElementById("trainingInfo").innerHTML =
@@ -129,19 +133,9 @@ function loadTraining(){
     return;
   }
 
-  jsonp(
-    "getTrainingDetailJsonp",
-    { event: eventId },
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("trainingInfo").innerHTML =
-          '<span class="ng">研修会情報を取得できませんでした。</span>';
-        return;
-      }
-
-      currentTraining =
-        res.training;
+  try {
+      const api = await waitForSqlQr();
+      currentTraining = await api.getTraining(eventId);
 
       document.getElementById("trainingInfo").innerHTML =
         '<strong>研修会</strong><br>' +
@@ -152,8 +146,23 @@ function loadTraining(){
             ? "開催日：" + currentTraining.eventDate
             : ""
         );
-    }
-  );
+  } catch(error) {
+    document.getElementById("trainingInfo").innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
+}
+
+function waitForSqlQr(){
+  if(window.sqlQrCheckin){ return Promise.resolve(window.sqlQrCheckin); }
+  return new Promise(function(resolve, reject){
+    const startedAt = Date.now();
+    const timer = setInterval(function(){
+      if(window.sqlQrCheckin){ clearInterval(timer); resolve(window.sqlQrCheckin); }
+      else if(Date.now() - startedAt >= 10000){
+        clearInterval(timer);
+        reject(new Error("SQL受付機能を読み込めませんでした。画面を再読み込みしてください。"));
+      }
+    }, 50);
+  });
 }
 
 
@@ -260,7 +269,7 @@ function onScanFailure(errorMessage){
 }
 
 
-function registerScannedCode(code){
+async function registerScannedCode(code){
 
   const result =
     document.getElementById("result");
@@ -271,20 +280,15 @@ function registerScannedCode(code){
   result.textContent =
     "読み取り済みです。受付登録中...";
 
-  if(code.indexOf("MEMBER:") !== 0 && code.indexOf("PLANNED:") !== 0){
+  if(code.indexOf("MEMBER:") !== 0 && code.indexOf("PERSONAL:") !== 0 && code.indexOf("PLANNED:") !== 0){
     result.innerHTML =
-      '<div class="ng">これは会社QRではありません。会社QRを読み取ってください。</div>';
+      '<div class="ng">対応している会社QRまたは個人QRではありません。</div>';
     return;
   }
 
-  jsonp(
-    "registerCheckinJsonp",
-    {
-      event: eventId,
-      code: code,
-      method: code.indexOf("PLANNED:") === 0 ? "予定者QR" : "会社QR"
-    },
-    function(res){
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, code, "SQL_QR_CAMERA");
 
       if(!res || !res.ok){
         result.innerHTML =
@@ -313,12 +317,18 @@ function registerScannedCode(code){
             : ''
         ) +
         (
+          res.outside
+            ? '<div>対象外参加として受付しました。</div>'
+            : ''
+        ) +
+        (
           res.checkedAt
             ? '<div>受付日時：' + escapeHtml(res.checkedAt) + '</div>'
             : ''
         );
-    }
-  );
+  } catch(error) {
+    result.innerHTML = '<div class="ng">' + escapeHtml(error.message || String(error)) + '</div>' + '<div>読取値：' + escapeHtml(code) + '</div>';
+  }
 }
 
 window.addEventListener("beforeunload", function(){

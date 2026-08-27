@@ -8,6 +8,10 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module" src="sql/js/qr-checkin.js?v=12"></script>
 
 <style>
 main{
@@ -96,25 +100,34 @@ function setupBackLink(){
     "受付メニューへ戻る";
 }
 
-function loadTraining(){
+async function loadTraining(){
 
   if(!eventId){
     return;
   }
 
-  jsonp(
-    "getTrainingDetailJsonp",
-    { event: eventId },
-    function(res){
-      if(res && res.ok){
-        currentTraining =
-          res.training || null;
-      }
-    }
-  );
+  try {
+    currentTraining = await waitForSqlQr().then(function(api){ return api.getTraining(eventId); });
+  } catch(error) {
+    document.getElementById("result").innerHTML = '<div class="ng">' + escapeHtml(error.message || String(error)) + '</div>';
+  }
 }
 
-function checkin(){
+function waitForSqlQr(){
+  if(window.sqlQrCheckin){ return Promise.resolve(window.sqlQrCheckin); }
+  return new Promise(function(resolve, reject){
+    const startedAt = Date.now();
+    const timer = setInterval(function(){
+      if(window.sqlQrCheckin){ clearInterval(timer); resolve(window.sqlQrCheckin); }
+      else if(Date.now() - startedAt >= 10000){
+        clearInterval(timer);
+        reject(new Error("SQL受付機能を読み込めませんでした。画面を再読み込みしてください。"));
+      }
+    }, 50);
+  });
+}
+
+async function checkin(){
 
   if(!eventId){
     alert("研修IDが指定されていません。");
@@ -138,14 +151,9 @@ function checkin(){
   result.textContent =
     "受付処理中...";
 
-	jsonp(
-	  "registerCheckinJsonp",
-	  {
-	    event: eventId,
-	    code: code,
-	    method: code.indexOf("PLANNED:") === 0 ? "予定者QR" : "会社QR"
-	  },
-	  function(res){
+	try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, code, "SQL_QR_READER");
 
       if(!res || !res.ok){
         result.innerHTML =
@@ -183,6 +191,12 @@ function checkin(){
         ) +
 
         (
+          res.outside
+            ? '<div>対象外参加として受付しました。</div>'
+            : ''
+        ) +
+
+        (
           res.checkedAt
             ? '<div>受付日時：' + escapeHtml(res.checkedAt) + '</div>'
             : ''
@@ -192,8 +206,9 @@ function checkin(){
         "";
 
       document.getElementById("code").focus();
+    } catch(error) {
+      result.innerHTML = '<div class="ng">' + escapeHtml(error.message || String(error)) + '</div>';
     }
-  );
 }
 
 document.addEventListener("DOMContentLoaded", function(){
