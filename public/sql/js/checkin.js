@@ -2,15 +2,19 @@ import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import {
   connectorConfig,
+  getCheckin,
   getTrainingTargetForCheckin,
   listTrainings,
   registerCompanyCheckin,
   registerPersonalCheckin,
+  restoreCheckin,
   searchMemberCompanies
-} from "./generated.js?v=9";
-import { firebaseConfig } from "./config.js?v=9";
+} from "./generated.js?v=14";
+import { firebaseConfig } from "./config.js?v=14";
+import { requireSqlAdmin } from "./admin-auth.js?v=15";
 
-const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
+const app = initializeApp(firebaseConfig);
+const dc = getDataConnect(app, connectorConfig);
 const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
 let trainings = [];
@@ -54,6 +58,18 @@ function setStatus(message, type = "") {
 
 function duplicateError(error) {
   return /unique|duplicate|already exists|ALREADY_EXISTS/i.test(String(error?.message || error));
+}
+
+async function restoreIfCancelled(checkinId) {
+  const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
+  if (!response.data.checkin?.cancelled) return false;
+  await restoreCheckin(dc, {
+    checkinId,
+    changedAt: new Date().toISOString(),
+    operator: "係員受付",
+    reason: "再受付",
+  });
+  return true;
 }
 
 function selectedTraining() {
@@ -174,6 +190,10 @@ async function checkin(person, button) {
     });
     showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様${target ? "" : "（対象外参加）"}`);
   } catch (error) {
+    if (duplicateError(error) && await restoreIfCancelled(`${trainingId}:PERSONAL:${person.personalId}`)) {
+      showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様`);
+      return;
+    }
     showResult(
       duplicateError(error) ? "既に受付済みです" : "受付できませんでした",
       duplicateError(error) ? `${selectedCompany.companyName} ${person.name} 様` : String(error?.message || error)
@@ -198,6 +218,10 @@ async function checkinCompany(button) {
     });
     showResult("受付完了", `${selectedCompany.companyName}${target ? "" : "（対象外参加）"}`);
   } catch (error) {
+    if (duplicateError(error) && await restoreIfCancelled(`${trainingId}:COMPANY:${selectedCompany.memberNo}`)) {
+      showResult("受付完了", selectedCompany.companyName);
+      return;
+    }
     showResult(
       duplicateError(error) ? "既に受付済みです" : "受付できませんでした",
       duplicateError(error) ? selectedCompany.companyName : String(error?.message || error)
@@ -231,4 +255,17 @@ $("training").addEventListener("change", () => {
   $("resultPanel").hidden = true;
   setStatus("会社を検索してください。");
 });
-loadTrainings();
+async function initializeStaffCheckin() {
+  $("search").disabled = true;
+  $("clear").disabled = true;
+  try {
+    await requireSqlAdmin(app, $("searchStatus"));
+    await loadTrainings();
+    $("search").disabled = false;
+    $("clear").disabled = false;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+initializeStaffCheckin();

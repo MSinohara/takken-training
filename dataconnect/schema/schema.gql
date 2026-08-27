@@ -91,4 +91,11 @@ type Checkin
   targetId: String!
   checkedInAt: Timestamp! @default(expr: "request.time")
   checkinMethod: String!
+  cancelled: Boolean! @default(value: false)
+  canceledAt: Timestamp
+  canceledBy: String
+  cancelReason: String
+  restoredAt: Timestamp
+  restoredBy: String
+  restoreReason: String
 }

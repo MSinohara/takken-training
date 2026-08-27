@@ -18,7 +18,7 @@ export const listTrainingsRef = (dcOrVars, vars) => {
 listTrainingsRef.operationName = 'ListTrainings';
 
 export function listTrainings(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listTrainingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -31,7 +31,7 @@ export const searchMemberCompaniesRef = (dcOrVars, vars) => {
 searchMemberCompaniesRef.operationName = 'SearchMemberCompanies';
 
 export function searchMemberCompanies(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(searchMemberCompaniesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -44,7 +44,7 @@ export const getPersonForCheckinRef = (dcOrVars, vars) => {
 getPersonForCheckinRef.operationName = 'GetPersonForCheckin';
 
 export function getPersonForCheckin(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getPersonForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -57,6 +57,7 @@ export const getTrainingTargetForCheckinRef = (dcOrVars, vars) => {
 getTrainingTargetForCheckinRef.operationName = 'GetTrainingTargetForCheckin';
 
 export function getTrainingTargetForCheckin(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getTrainingTargetForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -93,22 +94,9 @@ export const recentCheckinsRef = (dcOrVars, vars) => {
 recentCheckinsRef.operationName = 'RecentCheckins';
 
 export function recentCheckins(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(recentCheckinsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
-}
-
-export const searchUncheckedTargetsRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SearchUncheckedTargets', inputVars);
-}
-searchUncheckedTargetsRef.operationName = 'SearchUncheckedTargets';
-
-export function searchUncheckedTargets(dcOrVars, varsOrOptions, options) {
-
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  return executeQuery(searchUncheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const trainingCheckinSummaryRef = (dcOrVars, vars) => {
@@ -119,6 +107,7 @@ export const trainingCheckinSummaryRef = (dcOrVars, vars) => {
 trainingCheckinSummaryRef.operationName = 'TrainingCheckinSummary';
 
 export function trainingCheckinSummary(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(trainingCheckinSummaryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -131,6 +120,7 @@ export const searchTrainingTargetsRef = (dcOrVars, vars) => {
 searchTrainingTargetsRef.operationName = 'SearchTrainingTargets';
 
 export function searchTrainingTargets(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchTrainingTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -143,6 +133,7 @@ export const searchCheckedTargetsRef = (dcOrVars, vars) => {
 searchCheckedTargetsRef.operationName = 'SearchCheckedTargets';
 
 export function searchCheckedTargets(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchCheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -155,6 +146,7 @@ export const searchCheckedCompanyTargetsRef = (dcOrVars, vars) => {
 searchCheckedCompanyTargetsRef.operationName = 'SearchCheckedCompanyTargets';
 
 export function searchCheckedCompanyTargets(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchCheckedCompanyTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -167,8 +159,22 @@ export const trainingCheckinsByBranchDistrictRef = (dcOrVars, vars) => {
 trainingCheckinsByBranchDistrictRef.operationName = 'TrainingCheckinsByBranchDistrict';
 
 export function trainingCheckinsByBranchDistrict(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(trainingCheckinsByBranchDistrictRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const searchUncheckedTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchUncheckedTargets', inputVars);
+}
+searchUncheckedTargetsRef.operationName = 'SearchUncheckedTargets';
+
+export function searchUncheckedTargets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(searchUncheckedTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const searchUncheckedCompanyTargetsRef = (dcOrVars, vars) => {
@@ -179,6 +185,7 @@ export const searchUncheckedCompanyTargetsRef = (dcOrVars, vars) => {
 searchUncheckedCompanyTargetsRef.operationName = 'SearchUncheckedCompanyTargets';
 
 export function searchUncheckedCompanyTargets(dcOrVars, varsOrOptions, options) {
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(searchUncheckedCompanyTargetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -191,8 +198,45 @@ export const getCheckinRef = (dcOrVars, vars) => {
 getCheckinRef.operationName = 'GetCheckin';
 
 export function getCheckin(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listCheckinHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCheckinHistory', inputVars);
+}
+listCheckinHistoryRef.operationName = 'ListCheckinHistory';
+
+export function listCheckinHistory(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listCheckinHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const cancelCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CancelCheckin', inputVars);
+}
+cancelCheckinRef.operationName = 'CancelCheckin';
+
+export function cancelCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(cancelCheckinRef(dcInstance, inputVars));
+}
+
+export const restoreCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RestoreCheckin', inputVars);
+}
+restoreCheckinRef.operationName = 'RestoreCheckin';
+
+export function restoreCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(restoreCheckinRef(dcInstance, inputVars));
 }
 

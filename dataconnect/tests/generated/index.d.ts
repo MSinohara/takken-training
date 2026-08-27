@@ -11,6 +11,17 @@ export type DateString = string;
 
 
 
+export interface CancelCheckinData {
+  checkin_update?: Checkin_Key | null;
+}
+
+export interface CancelCheckinVariables {
+  checkinId: string;
+  changedAt: TimestampString;
+  operator?: string | null;
+  reason?: string | null;
+}
+
 export interface Checkin_Key {
   checkinId: string;
   __typename?: 'Checkin_Key';
@@ -23,6 +34,7 @@ export interface GetCheckinData {
     attendanceUnit: string;
     targetId: string;
     checkedInAt: TimestampString;
+    cancelled: boolean;
   } & Checkin_Key;
 }
 
@@ -65,6 +77,46 @@ export interface GetTrainingTargetForCheckinVariables {
   trainingId: string;
   targetType: string;
   targetId: string;
+}
+
+export interface ListCheckinHistoryData {
+  checkins: ({
+    checkinId: string;
+    trainingId: string;
+    checkedInAt: TimestampString;
+    checkinMethod: string;
+    attendanceUnit: string;
+    cancelled: boolean;
+    canceledAt?: TimestampString | null;
+    canceledBy?: string | null;
+    cancelReason?: string | null;
+    restoredAt?: TimestampString | null;
+    restoredBy?: string | null;
+    restoreReason?: string | null;
+    training: {
+      title: string;
+      eventDate: DateString;
+    };
+    company: {
+      memberNo: string;
+      companyName: string;
+      block: string;
+      branch: string;
+      district?: string | null;
+      email?: string | null;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+      email?: string | null;
+    } & Person_Key;
+  } & Checkin_Key)[];
+}
+
+export interface ListCheckinHistoryVariables {
+  trainingId?: string | null;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface ListTrainingsData {
@@ -152,6 +204,17 @@ export interface RegisterPersonalCheckinVariables {
   memberNo: string;
   personalId: string;
   checkinMethod: string;
+}
+
+export interface RestoreCheckinData {
+  checkin_update?: Checkin_Key | null;
+}
+
+export interface RestoreCheckinVariables {
+  checkinId: string;
+  changedAt: TimestampString;
+  operator?: string | null;
+  reason?: string | null;
 }
 
 export interface SearchCheckedCompanyTargetsData {
@@ -525,4 +588,40 @@ export const getCheckinRef: GetCheckinRef;
 
 export function getCheckin(vars: GetCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetCheckinData, GetCheckinVariables>;
 export function getCheckin(dc: DataConnect, vars: GetCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetCheckinData, GetCheckinVariables>;
+
+interface ListCheckinHistoryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListCheckinHistoryVariables): QueryRef<ListCheckinHistoryData, ListCheckinHistoryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListCheckinHistoryVariables): QueryRef<ListCheckinHistoryData, ListCheckinHistoryVariables>;
+  operationName: string;
+}
+export const listCheckinHistoryRef: ListCheckinHistoryRef;
+
+export function listCheckinHistory(vars?: ListCheckinHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckinHistoryData, ListCheckinHistoryVariables>;
+export function listCheckinHistory(dc: DataConnect, vars?: ListCheckinHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListCheckinHistoryData, ListCheckinHistoryVariables>;
+
+interface CancelCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CancelCheckinVariables): MutationRef<CancelCheckinData, CancelCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CancelCheckinVariables): MutationRef<CancelCheckinData, CancelCheckinVariables>;
+  operationName: string;
+}
+export const cancelCheckinRef: CancelCheckinRef;
+
+export function cancelCheckin(vars: CancelCheckinVariables): MutationPromise<CancelCheckinData, CancelCheckinVariables>;
+export function cancelCheckin(dc: DataConnect, vars: CancelCheckinVariables): MutationPromise<CancelCheckinData, CancelCheckinVariables>;
+
+interface RestoreCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RestoreCheckinVariables): MutationRef<RestoreCheckinData, RestoreCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RestoreCheckinVariables): MutationRef<RestoreCheckinData, RestoreCheckinVariables>;
+  operationName: string;
+}
+export const restoreCheckinRef: RestoreCheckinRef;
+
+export function restoreCheckin(vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
+export function restoreCheckin(dc: DataConnect, vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
 

@@ -2,14 +2,15 @@ import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import {
   connectorConfig,
+  getCheckin,
   getPersonForCheckin,
   getTrainingTargetForCheckin,
   listTrainings,
   registerCompanyCheckin,
   registerPersonalCheckin,
   searchMemberCompanies,
-} from "./generated.js?v=12";
-import { firebaseConfig } from "./config.js?v=12";
+} from "./generated.js?v=14";
+import { firebaseConfig } from "./config.js?v=14";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 let trainingsPromise = null;
@@ -29,6 +30,11 @@ function isCompanyUnit(training) {
 
 function duplicateError(error) {
   return /unique|duplicate|already exists|ALREADY_EXISTS/i.test(String(error?.message || error));
+}
+
+async function isCancelled(checkinId) {
+  const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
+  return Boolean(response.data.checkin?.cancelled);
 }
 
 async function findTraining(trainingId) {
@@ -54,8 +60,9 @@ async function registerCompany(trainingId, memberNo, method) {
     targetId: memberNo,
   }, { fetchPolicy: "SERVER_ONLY" });
   try {
+    const checkinId = `${trainingId}:COMPANY:${memberNo}`;
     await registerCompanyCheckin(dc, {
-      checkinId: `${trainingId}:COMPANY:${memberNo}`,
+      checkinId,
       trainingId,
       memberNo,
       checkinMethod: method,
@@ -63,6 +70,9 @@ async function registerCompany(trainingId, memberNo, method) {
     return { ok: true, message: "受付完了", companyName: company.companyName, memberNo, checkedAt: new Date().toLocaleString("ja-JP"), outside: !targetResponse.data.trainingTarget };
   } catch (error) {
     if (!duplicateError(error)) throw error;
+    if (await isCancelled(`${trainingId}:COMPANY:${memberNo}`)) {
+      throw new Error("この受付は取消済みです。受付係員にお申し出ください。");
+    }
     return { ok: true, duplicate: true, message: "既に受付済みです", companyName: company.companyName, memberNo };
   }
 }
@@ -88,6 +98,9 @@ async function registerPerson(trainingId, personalId, method) {
     return { ok: true, message: "受付完了", companyName: company.companyName, participantName: person.name, memberNo: company.memberNo, personalId, checkedAt: new Date().toLocaleString("ja-JP"), outside: !targetResponse.data.trainingTarget };
   } catch (error) {
     if (!duplicateError(error)) throw error;
+    if (await isCancelled(`${trainingId}:PERSONAL:${personalId}`)) {
+      throw new Error("この受付は取消済みです。受付係員にお申し出ください。");
+    }
     return { ok: true, duplicate: true, message: "既に受付済みです", companyName: company.companyName, participantName: person.name, memberNo: company.memberNo, personalId };
   }
 }

@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+  {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -154,7 +157,7 @@ main{
 </div>
 </main>
 
-<script>
+<script type="text/plain" data-legacy-sql-migration>
 const params =
   new URLSearchParams(location.search);
 
@@ -535,6 +538,7 @@ setupBackLink();
 loadTraining();
 loadHistory();
 </script>
+<script type="module" src="sql/js/checkin-manage.js?v=14"></script>
 
 </body>
 </html>

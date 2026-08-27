@@ -145,7 +145,7 @@ mutation RegisterCompanyCheckin(
 query RecentCheckins($trainingId: String!, $limit: Int = 10)
   @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の受付モニターに限定して使用するため。") {
   checkins(
-    where: { trainingId: { eq: $trainingId } }
+    where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }
     orderBy: [{ checkedInAt: DESC }]
     limit: $limit
   ) {
@@ -176,7 +176,7 @@ query TrainingCheckinSummary(
     _count
   }
   received: checkins(
-    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit } }
+    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit }, cancelled: { eq: false } }
   ) {
     _count
   }
@@ -184,7 +184,7 @@ query TrainingCheckinSummary(
     where: {
       _and: [
         { trainingId: { eq: $trainingId }, targetType: { eq: "PERSONAL" } }
-        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } } } } }
+        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" }, cancelled: { eq: false } } } } }
       ]
     }
   ) {
@@ -194,7 +194,7 @@ query TrainingCheckinSummary(
     where: {
       _and: [
         { trainingId: { eq: $trainingId }, targetType: { eq: "COMPANY" } }
-        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } } } } }
+        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" }, cancelled: { eq: false } } } } }
       ]
     }
   ) {
@@ -247,7 +247,7 @@ query SearchCheckedTargets(
           branch: { eq: $branch }
           district: { eq: $district }
         }
-        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } } } } }
+        { person: { checkins_on_person: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" }, cancelled: { eq: false } } } } }
       ]
     }
     orderBy: [{ targetId: ASC }]
@@ -278,7 +278,7 @@ query SearchCheckedCompanyTargets(
           branch: { eq: $branch }
           district: { eq: $district }
         }
-        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } } } } }
+        { company: { checkins_on_company: { exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" }, cancelled: { eq: false } } } } }
       ]
     }
     orderBy: [{ targetId: ASC }]
@@ -298,7 +298,7 @@ query TrainingCheckinsByBranchDistrict(
   $attendanceUnit: String!
 ) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の支部地区別集計に限定して使用するため。") {
   checkins(
-    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit } }
+    where: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: $attendanceUnit }, cancelled: { eq: false } }
   ) {
     company {
       branch
@@ -330,7 +330,7 @@ query SearchUncheckedTargets(
           _not: {
             person: {
               checkins_on_person: {
-                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" } }
+                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "PERSONAL" }, cancelled: { eq: false } }
               }
             }
           }
@@ -377,7 +377,7 @@ query SearchUncheckedCompanyTargets(
           _not: {
             company: {
               checkins_on_company: {
-                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" } }
+                exist: { trainingId: { eq: $trainingId }, attendanceUnit: { eq: "COMPANY" }, cancelled: { eq: false } }
               }
             }
           }
@@ -408,5 +408,70 @@ query GetCheckin($checkinId: String!)
     attendanceUnit
     targetId
     checkedInAt
+    cancelled
   }
+}
+
+# 参加履歴画面と受付取消・復活画面で使用する。全件走査せず新しい順に取得する。
+query ListCheckinHistory(
+  $trainingId: String
+  $limit: Int = 50
+  $offset: Int = 0
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  checkins(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ checkedInAt: DESC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    checkinId
+    trainingId
+    checkedInAt
+    checkinMethod
+    attendanceUnit
+    cancelled
+    canceledAt
+    canceledBy
+    cancelReason
+    restoredAt
+    restoredBy
+    restoreReason
+    training { title eventDate }
+    company { memberNo companyName block branch district email }
+    person { personalId name email }
+  }
+}
+
+mutation CancelCheckin(
+  $checkinId: String!
+  $changedAt: Timestamp!
+  $operator: String
+  $reason: String
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  checkin_update(
+    key: { checkinId: $checkinId }
+    data: {
+      cancelled: true
+      canceledAt: $changedAt
+      canceledBy: $operator
+      cancelReason: $reason
+    }
+  )
+}
+
+mutation RestoreCheckin(
+  $checkinId: String!
+  $changedAt: Timestamp!
+  $operator: String
+  $reason: String
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  checkin_update(
+    key: { checkinId: $checkinId }
+    data: {
+      cancelled: false
+      restoredAt: $changedAt
+      restoredBy: $operator
+      restoreReason: $reason
+    }
+  )
 }

@@ -235,3 +235,46 @@ exports.getCheckin = function getCheckin(dcOrVars, varsOrOptions, options) {
   return executeQuery(getCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
+
+const listCheckinHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCheckinHistory', inputVars);
+}
+listCheckinHistoryRef.operationName = 'ListCheckinHistory';
+exports.listCheckinHistoryRef = listCheckinHistoryRef;
+
+exports.listCheckinHistory = function listCheckinHistory(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listCheckinHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const cancelCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CancelCheckin', inputVars);
+}
+cancelCheckinRef.operationName = 'CancelCheckin';
+exports.cancelCheckinRef = cancelCheckinRef;
+
+exports.cancelCheckin = function cancelCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(cancelCheckinRef(dcInstance, inputVars));
+}
+;
+
+const restoreCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RestoreCheckin', inputVars);
+}
+restoreCheckinRef.operationName = 'RestoreCheckin';
+exports.restoreCheckinRef = restoreCheckinRef;
+
+exports.restoreCheckin = function restoreCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(restoreCheckinRef(dcInstance, inputVars));
+}
+;
