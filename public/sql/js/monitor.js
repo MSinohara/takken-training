@@ -9,7 +9,7 @@ import {
   searchUncheckedTargets,
   searchUncheckedCompanyTargets,
 } from "./generated.js?v=11";
-import { firebaseConfig } from "./config.js?v=11";
+import { firebaseConfig } from "./config.js?v=16";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);

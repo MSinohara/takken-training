@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import { connectorConfig, registerPersonalCheckin } from "./generated.js?v=6";
-import { firebaseConfig } from "./config.js?v=6";
+import { firebaseConfig } from "./config.js?v=16";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);

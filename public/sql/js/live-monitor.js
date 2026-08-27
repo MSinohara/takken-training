@@ -12,7 +12,7 @@ import {
   searchUncheckedTargets,
   searchUncheckedCompanyTargets,
 } from "./generated.js?v=13";
-import { firebaseConfig } from "./config.js?v=13";
+import { firebaseConfig } from "./config.js?v=16";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const params = new URLSearchParams(location.search);

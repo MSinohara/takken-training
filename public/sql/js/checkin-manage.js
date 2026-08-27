@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import { connectorConfig, listTrainings, listCheckinHistory, cancelCheckin, restoreCheckin } from "./generated.js?v=14";
-import { firebaseConfig } from "./config.js?v=14";
+import { firebaseConfig } from "./config.js?v=16";
 import { requireSqlAdmin } from "./admin-auth.js?v=14";
 
 const app = initializeApp(firebaseConfig);
