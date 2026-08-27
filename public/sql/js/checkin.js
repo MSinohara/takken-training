@@ -137,9 +137,7 @@ function renderCompanies(rows) {
   rows.forEach((company) => {
     const button = document.createElement("button");
     button.className = "company";
-    button.innerHTML = `<strong></strong><br><span class="muted"></span>`;
-    button.querySelector("strong").textContent = company.companyName;
-    button.querySelector("span").textContent = `業者番号 ${company.memberNo} / ${company.branch}${company.district ? ` / ${company.district}` : ""}`;
+    button.textContent = company.companyName;
     button.addEventListener("click", () => {
       document.querySelectorAll(".company").forEach((node) => node.classList.remove("selected"));
       button.classList.add("selected");

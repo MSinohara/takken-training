@@ -24,7 +24,19 @@ button:disabled { background: #a9b0b7; cursor: wait; }
 .status { min-height: 24px; margin: 12px 0 0; color: #555; }
 .status.ok { color: #08752e; font-weight: 700; }
 .status.error { color: #b00020; font-weight: 700; }
-.company { width: 100%; text-align: left; background: #f8fafb; color: #20242a; border: 1px solid #cbd5dd; margin-bottom: 8px; }
+.company {
+  width: 100%;
+  min-height: 58px;
+  text-align: left;
+  background: #f8fafb;
+  color: #20242a;
+  border: 1px solid #cbd5dd;
+  margin-bottom: 8px;
+  padding: 13px 15px;
+  font-size: 18px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 .company.selected { border: 2px solid #173b63; background: #edf4fb; }
 .people { display: grid; gap: 8px; margin-top: 12px; }
 .person { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #e1e5e8; }
