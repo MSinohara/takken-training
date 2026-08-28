@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>会場受付</title>
-  <link rel="stylesheet" href="css/app.css?v=2">
+  <link rel="stylesheet" href="css/app.css?v=3">
   <script type="importmap">
     {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
   </script>
@@ -12,7 +12,14 @@
 <body>
   <header><h1>会場受付</h1></header>
   <main>
-    <section class="panel">
+    <section class="panel reception-mode-panel">
+      <h2>参加者の区分を選択</h2>
+      <div class="reception-mode" role="group" aria-label="参加者の区分">
+        <button id="showMemberMode" class="mode-button active" aria-pressed="true">宅建協会の会員</button>
+        <button id="showGuestMode" class="mode-button" aria-pressed="false">会員以外の一般参加者</button>
+      </div>
+    </section>
+    <section id="memberSearchPanel" class="panel">
       <h2>受付対象を検索</h2>
       <p id="trainingName" class="status">研修会を確認中...</p>
       <div class="grid">
@@ -34,18 +41,17 @@
       <div id="selectedCompany" class="status"></div>
       <div id="people" class="people"></div>
     </section>
-    <section class="panel">
+    <section id="guestPanel" class="panel guest-panel" hidden>
       <h2>会員以外の一般参加者</h2>
-      <p class="muted">会員会社に該当しない方はこちらから受付してください。</p>
-      <button id="showGuest" class="secondary">一般参加者として受付する</button>
-      <div id="guestForm" hidden>
+      <p class="guest-guidance">宅建協会の会員会社に所属していない方はこちらへ入力してください。</p>
+      <div id="guestForm">
         <div class="grid guest-grid">
           <label>参加者名<input id="guestName" autocomplete="name" placeholder="例：山田 太郎"></label>
           <label>会社・団体名（任意）<input id="guestOrganization" placeholder="例：株式会社サンプル"></label>
           <label>メール（任意）<input id="guestEmail" type="email" autocomplete="email" placeholder="例：sample@example.com"></label>
           <label>電話（任意）<input id="guestPhone" type="tel" autocomplete="tel" placeholder="例：03-0000-0000"></label>
         </div>
-        <div class="actions"><button id="registerGuest">この内容で受付する</button><button id="hideGuest" class="secondary">閉じる</button></div>
+        <div class="actions"><button id="registerGuest">この内容で受付する</button><button id="hideGuest" class="secondary">会員検索へ戻る</button></div>
         <p id="guestStatus" class="status"></p>
       </div>
     </section>
@@ -55,6 +61,6 @@
       <div class="actions"><button id="next">次の受付へ</button></div>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=20"></script>
+  <script type="module" src="js/checkin.js?v=21"></script>
 </body>
 </html>

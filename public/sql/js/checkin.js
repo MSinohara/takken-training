@@ -293,15 +293,22 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
-$("showGuest").addEventListener("click", () => {
-  $("guestForm").hidden = false;
-  $("showGuest").hidden = true;
-  $("guestName").focus();
-});
-$("hideGuest").addEventListener("click", () => {
-  $("guestForm").hidden = true;
-  $("showGuest").hidden = false;
-});
+function setReceptionMode(mode) {
+  const guestMode = mode === "guest";
+  $("memberSearchPanel").hidden = guestMode;
+  $("companiesPanel").hidden = true;
+  $("peoplePanel").hidden = true;
+  $("guestPanel").hidden = !guestMode;
+  $("showMemberMode").classList.toggle("active", !guestMode);
+  $("showGuestMode").classList.toggle("active", guestMode);
+  $("showMemberMode").setAttribute("aria-pressed", String(!guestMode));
+  $("showGuestMode").setAttribute("aria-pressed", String(guestMode));
+  (guestMode ? $("guestName") : $("companyName")).focus();
+}
+
+$("showMemberMode").addEventListener("click", () => setReceptionMode("member"));
+$("showGuestMode").addEventListener("click", () => setReceptionMode("guest"));
+$("hideGuest").addEventListener("click", () => setReceptionMode("member"));
 $("registerGuest").addEventListener("click", checkinGuest);
 async function initializePublicCheckin() {
   $("search").disabled = true;
