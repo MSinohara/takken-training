@@ -133,15 +133,20 @@ async function checkinGuest() {
 }
 
 async function restoreIfCancelled(checkinId) {
-  const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
-  if (!response.data.checkin?.cancelled) return false;
-  await restoreCheckin(dc, {
-    checkinId,
-    changedAt: new Date().toISOString(),
-    operator: "係員受付",
-    reason: "再受付",
-  });
-  return true;
+  try {
+    const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
+    if (!response.data.checkin?.cancelled) return false;
+    await restoreCheckin(dc, {
+      checkinId,
+      changedAt: new Date().toISOString(),
+      operator: "係員受付",
+      reason: "再受付",
+    });
+    return true;
+  } catch (error) {
+    console.error("取消済み受付の確認に失敗しました。", error);
+    return false;
+  }
 }
 
 function selectedTraining() {
@@ -199,6 +204,8 @@ function restoreCompletedReceipt() {
 
 function renderPeople(company) {
   selectedCompany = company;
+  $("checkinStatus").textContent = "";
+  $("checkinStatus").className = "status";
   $("selectedCompany").textContent = `${company.companyName} / 業者番号 ${company.memberNo}`;
   $("people").replaceChildren();
   if (isCompanyUnit()) {
@@ -290,6 +297,8 @@ async function search() {
 async function checkin(person, button) {
   button.disabled = true;
   button.textContent = "受付中...";
+  $("checkinStatus").textContent = "受付処理中です。しばらくお待ちください。";
+  $("checkinStatus").className = "status";
   const trainingId = $("training").value;
   try {
     const target = await lookupTarget("PERSONAL", person.personalId);
@@ -311,6 +320,7 @@ async function checkin(person, button) {
       duplicateError(error) ? `${selectedCompany.companyName} ${person.name} 様` : String(error?.message || error)
     );
   } finally {
+    $("checkinStatus").textContent = "";
     button.disabled = false;
     button.textContent = "この人を受付";
   }
@@ -319,6 +329,8 @@ async function checkin(person, button) {
 async function checkinCompany(button) {
   button.disabled = true;
   button.textContent = "受付中...";
+  $("checkinStatus").textContent = "受付処理中です。しばらくお待ちください。";
+  $("checkinStatus").className = "status";
   const trainingId = $("training").value;
   try {
     const target = await lookupTarget("COMPANY", selectedCompany.memberNo);
@@ -339,6 +351,7 @@ async function checkinCompany(button) {
       duplicateError(error) ? selectedCompany.companyName : String(error?.message || error)
     );
   } finally {
+    $("checkinStatus").textContent = "";
     button.disabled = false;
     button.textContent = "この会社を受付";
   }
