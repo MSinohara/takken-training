@@ -18,7 +18,7 @@ main { max-width: 1040px; margin: 24px auto; padding: 0 18px 36px; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 label { display: block; font-weight: 700; font-size: 14px; }
 input, select { width: 100%; margin-top: 6px; padding: 11px; border: 1px solid #9eaab5; font-size: 16px; background: #fff; }
-button, .button-link { min-height: 42px; border: 0; border-radius: 6px; padding: 9px 16px; background: #173b63; color: #fff; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+button, .button-link { min-height: 42px; border: 0; border-radius: 6px; padding: 9px 16px; background: #173b63; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
 button.secondary, .button-link.secondary { background: #666; }
 button:disabled { background: #a9b0b7; cursor: wait; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
@@ -65,7 +65,7 @@ th { background: #eef2f5; font-size: 13px; }
   background: #fff;
   color: #173b63;
   border: 2px solid #b9c7d3;
-  font-size: 16px;
+  font-size: 18px;
 }
 .mode-button.active { background: #173b63; color: #fff; border-color: #173b63; }
 .guest-panel { border-top: 4px solid #173b63; }

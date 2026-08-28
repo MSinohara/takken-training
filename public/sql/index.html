@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>会場受付</title>
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
   <script type="importmap">
     {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
   </script>
@@ -12,7 +12,7 @@
 <body>
   <header><h1>会場受付</h1></header>
   <main>
-    <section class="panel reception-mode-panel">
+    <section id="receptionModePanel" class="panel reception-mode-panel">
       <h2>参加者の区分を選択</h2>
       <div class="reception-mode" role="group" aria-label="参加者の区分">
         <button id="showMemberMode" class="mode-button active" aria-pressed="true">宅建協会の会員</button>
@@ -66,6 +66,6 @@
       <div class="actions"><button id="next">次の受付へ</button></div>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=22"></script>
+  <script type="module" src="js/checkin.js?v=23"></script>
 </body>
 </html>

@@ -348,7 +348,10 @@ function setReceptionMode(mode) {
 $("showMemberMode").addEventListener("click", () => setReceptionMode("member"));
 $("showOtherBlockMode").addEventListener("click", () => setReceptionMode("otherBlock"));
 $("showGuestMode").addEventListener("click", () => setReceptionMode("guest"));
-$("hideGuest").addEventListener("click", () => setReceptionMode("member"));
+$("hideGuest").addEventListener("click", () => {
+  setReceptionMode("member");
+  $("receptionModePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 $("guestBlock").addEventListener("change", renderGuestBranches);
 $("registerGuest").addEventListener("click", checkinGuest);
 async function initializePublicCheckin() {
