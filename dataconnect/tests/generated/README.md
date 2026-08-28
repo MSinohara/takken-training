@@ -32,6 +32,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListCheckedPlannedPersonal*](#listcheckedplannedpersonal)
   - [*ListCheckedPlannedCompany*](#listcheckedplannedcompany)
 - [**Mutations**](#mutations)
+  - [*SaveTraining*](#savetraining)
   - [*RegisterPersonalCheckin*](#registerpersonalcheckin)
   - [*RegisterNewPersonalCheckin*](#registernewpersonalcheckin)
   - [*RegisterCompanyCheckin*](#registercompanycheckin)
@@ -3080,6 +3081,181 @@ The following is true for both the action shortcut function and the `MutationRef
 - Both functions can be called with or without passing in a `DataConnect` instance as an argument. If no `DataConnect` argument is passed in, then the generated SDK will call `getDataConnect(connectorConfig)` behind the scenes for you.
 
 Below are examples of how to use the `example` connector's generated functions to execute each mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-mutations).
+
+## SaveTraining
+You can execute the `SaveTraining` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+saveTraining(vars: SaveTrainingVariables): MutationPromise<SaveTrainingData, SaveTrainingVariables>;
+
+interface SaveTrainingRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SaveTrainingVariables): MutationRef<SaveTrainingData, SaveTrainingVariables>;
+}
+export const saveTrainingRef: SaveTrainingRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+saveTraining(dc: DataConnect, vars: SaveTrainingVariables): MutationPromise<SaveTrainingData, SaveTrainingVariables>;
+
+interface SaveTrainingRef {
+  ...
+  (dc: DataConnect, vars: SaveTrainingVariables): MutationRef<SaveTrainingData, SaveTrainingVariables>;
+}
+export const saveTrainingRef: SaveTrainingRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the saveTrainingRef:
+```typescript
+const name = saveTrainingRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SaveTraining` mutation requires an argument of type `SaveTrainingVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SaveTrainingVariables {
+  trainingId: string;
+  title: string;
+  eventDate: DateString;
+  hostType?: string | null;
+  receptionType?: string | null;
+  attendanceUnit?: string | null;
+  checkinTargetMode?: string | null;
+  eventType?: string | null;
+  venueId?: string | null;
+  targetBlock?: string | null;
+  targetBranch?: string | null;
+  targetDistrict?: string | null;
+  targetOrgIdsNew?: string | null;
+  senderOrganizationId?: string | null;
+  certificateEnabled?: boolean | null;
+  active?: boolean | null;
+  locationCheckEnabled?: boolean | null;
+  locationCheckinStart?: string | null;
+  locationCheckinEnd?: string | null;
+  attendanceConfirmEnabled?: boolean | null;
+  attendanceStatusPublic?: boolean | null;
+  subject?: string | null;
+  body?: string | null;
+}
+```
+### Return Type
+Recall that executing the `SaveTraining` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SaveTrainingData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SaveTrainingData {
+  training_upsert: Training_Key;
+}
+```
+### Using `SaveTraining`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, saveTraining, SaveTrainingVariables } from '@takken-training/sql-dataconnect';
+
+// The `SaveTraining` mutation requires an argument of type `SaveTrainingVariables`:
+const saveTrainingVars: SaveTrainingVariables = {
+  trainingId: ..., 
+  title: ..., 
+  eventDate: ..., 
+  hostType: ..., // optional
+  receptionType: ..., // optional
+  attendanceUnit: ..., // optional
+  checkinTargetMode: ..., // optional
+  eventType: ..., // optional
+  venueId: ..., // optional
+  targetBlock: ..., // optional
+  targetBranch: ..., // optional
+  targetDistrict: ..., // optional
+  targetOrgIdsNew: ..., // optional
+  senderOrganizationId: ..., // optional
+  certificateEnabled: ..., // optional
+  active: ..., // optional
+  locationCheckEnabled: ..., // optional
+  locationCheckinStart: ..., // optional
+  locationCheckinEnd: ..., // optional
+  attendanceConfirmEnabled: ..., // optional
+  attendanceStatusPublic: ..., // optional
+  subject: ..., // optional
+  body: ..., // optional
+};
+
+// Call the `saveTraining()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await saveTraining(saveTrainingVars);
+// Variables can be defined inline as well.
+const { data } = await saveTraining({ trainingId: ..., title: ..., eventDate: ..., hostType: ..., receptionType: ..., attendanceUnit: ..., checkinTargetMode: ..., eventType: ..., venueId: ..., targetBlock: ..., targetBranch: ..., targetDistrict: ..., targetOrgIdsNew: ..., senderOrganizationId: ..., certificateEnabled: ..., active: ..., locationCheckEnabled: ..., locationCheckinStart: ..., locationCheckinEnd: ..., attendanceConfirmEnabled: ..., attendanceStatusPublic: ..., subject: ..., body: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await saveTraining(dataConnect, saveTrainingVars);
+
+console.log(data.training_upsert);
+
+// Or, you can use the `Promise` API.
+saveTraining(saveTrainingVars).then((response) => {
+  const data = response.data;
+  console.log(data.training_upsert);
+});
+```
+
+### Using `SaveTraining`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, saveTrainingRef, SaveTrainingVariables } from '@takken-training/sql-dataconnect';
+
+// The `SaveTraining` mutation requires an argument of type `SaveTrainingVariables`:
+const saveTrainingVars: SaveTrainingVariables = {
+  trainingId: ..., 
+  title: ..., 
+  eventDate: ..., 
+  hostType: ..., // optional
+  receptionType: ..., // optional
+  attendanceUnit: ..., // optional
+  checkinTargetMode: ..., // optional
+  eventType: ..., // optional
+  venueId: ..., // optional
+  targetBlock: ..., // optional
+  targetBranch: ..., // optional
+  targetDistrict: ..., // optional
+  targetOrgIdsNew: ..., // optional
+  senderOrganizationId: ..., // optional
+  certificateEnabled: ..., // optional
+  active: ..., // optional
+  locationCheckEnabled: ..., // optional
+  locationCheckinStart: ..., // optional
+  locationCheckinEnd: ..., // optional
+  attendanceConfirmEnabled: ..., // optional
+  attendanceStatusPublic: ..., // optional
+  subject: ..., // optional
+  body: ..., // optional
+};
+
+// Call the `saveTrainingRef()` function to get a reference to the mutation.
+const ref = saveTrainingRef(saveTrainingVars);
+// Variables can be defined inline as well.
+const ref = saveTrainingRef({ trainingId: ..., title: ..., eventDate: ..., hostType: ..., receptionType: ..., attendanceUnit: ..., checkinTargetMode: ..., eventType: ..., venueId: ..., targetBlock: ..., targetBranch: ..., targetDistrict: ..., targetOrgIdsNew: ..., senderOrganizationId: ..., certificateEnabled: ..., active: ..., locationCheckEnabled: ..., locationCheckinStart: ..., locationCheckinEnd: ..., attendanceConfirmEnabled: ..., attendanceStatusPublic: ..., subject: ..., body: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = saveTrainingRef(dataConnect, saveTrainingVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.training_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.training_upsert);
+});
+```
 
 ## RegisterPersonalCheckin
 You can execute the `RegisterPersonalCheckin` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):

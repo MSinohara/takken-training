@@ -14,11 +14,14 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listTrainings, searchMemberCompanies, getPersonForCheckin, searchPeopleForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerNewPersonalCheckin, registerCompanyCheckin, registerGuestCheckin, recentGuestCheckins } from '@takken-training/sql-dataconnect';
+import { listTrainings, saveTraining, searchMemberCompanies, getPersonForCheckin, searchPeopleForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerNewPersonalCheckin, registerCompanyCheckin, registerGuestCheckin } from '@takken-training/sql-dataconnect';
 
 
 // Operation ListTrainings:  For variables, look at type ListTrainingsVars in ../index.d.ts
 const { data } = await ListTrainings(dataConnect, listTrainingsVars);
+
+// Operation SaveTraining:  For variables, look at type SaveTrainingVars in ../index.d.ts
+const { data } = await SaveTraining(dataConnect, saveTrainingVars);
 
 // Operation SearchMemberCompanies:  For variables, look at type SearchMemberCompaniesVars in ../index.d.ts
 const { data } = await SearchMemberCompanies(dataConnect, searchMemberCompaniesVars);
@@ -43,9 +46,6 @@ const { data } = await RegisterCompanyCheckin(dataConnect, registerCompanyChecki
 
 // Operation RegisterGuestCheckin:  For variables, look at type RegisterGuestCheckinVars in ../index.d.ts
 const { data } = await RegisterGuestCheckin(dataConnect, registerGuestCheckinVars);
-
-// Operation RecentGuestCheckins:  For variables, look at type RecentGuestCheckinsVars in ../index.d.ts
-const { data } = await RecentGuestCheckins(dataConnect, recentGuestCheckinsVars);
 
 
 ```

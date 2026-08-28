@@ -28,6 +28,20 @@ exports.listTrainings = function listTrainings(dcOrVars, varsOrOptions, options)
 }
 ;
 
+const saveTrainingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SaveTraining', inputVars);
+}
+saveTrainingRef.operationName = 'SaveTraining';
+exports.saveTrainingRef = saveTrainingRef;
+
+exports.saveTraining = function saveTraining(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(saveTrainingRef(dcInstance, inputVars));
+}
+;
+
 const searchMemberCompaniesRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();

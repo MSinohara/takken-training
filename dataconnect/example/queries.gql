@@ -30,6 +30,60 @@ query ListTrainings($limit: Int = 200)
   }
 }
 
+mutation SaveTraining(
+  $trainingId: String!
+  $title: String!
+  $eventDate: Date!
+  $hostType: String
+  $receptionType: String
+  $attendanceUnit: String
+  $checkinTargetMode: String
+  $eventType: String
+  $venueId: String
+  $targetBlock: String
+  $targetBranch: String
+  $targetDistrict: String
+  $targetOrgIdsNew: String
+  $senderOrganizationId: String
+  $certificateEnabled: Boolean
+  $active: Boolean
+  $locationCheckEnabled: Boolean
+  $locationCheckinStart: String
+  $locationCheckinEnd: String
+  $attendanceConfirmEnabled: Boolean
+  $attendanceStatusPublic: Boolean
+  $subject: String
+  $body: String
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  training_upsert(
+    data: {
+      trainingId: $trainingId
+      title: $title
+      eventDate: $eventDate
+      hostType: $hostType
+      receptionType: $receptionType
+      attendanceUnit: $attendanceUnit
+      checkinTargetMode: $checkinTargetMode
+      eventType: $eventType
+      venueId: $venueId
+      targetBlock: $targetBlock
+      targetBranch: $targetBranch
+      targetDistrict: $targetDistrict
+      targetOrgIdsNew: $targetOrgIdsNew
+      senderOrganizationId: $senderOrganizationId
+      certificateEnabled: $certificateEnabled
+      active: $active
+      locationCheckEnabled: $locationCheckEnabled
+      locationCheckinStart: $locationCheckinStart
+      locationCheckinEnd: $locationCheckinEnd
+      attendanceConfirmEnabled: $attendanceConfirmEnabled
+      attendanceStatusPublic: $attendanceStatusPublic
+      subject: $subject
+      body: $body
+    }
+  )
+}
+
 query SearchMemberCompanies(
   $memberNo: String! = ""
   $companyName: String! = ""

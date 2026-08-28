@@ -473,6 +473,36 @@ export interface RestoreCheckinVariables {
   reason?: string | null;
 }
 
+export interface SaveTrainingData {
+  training_upsert: Training_Key;
+}
+
+export interface SaveTrainingVariables {
+  trainingId: string;
+  title: string;
+  eventDate: DateString;
+  hostType?: string | null;
+  receptionType?: string | null;
+  attendanceUnit?: string | null;
+  checkinTargetMode?: string | null;
+  eventType?: string | null;
+  venueId?: string | null;
+  targetBlock?: string | null;
+  targetBranch?: string | null;
+  targetDistrict?: string | null;
+  targetOrgIdsNew?: string | null;
+  senderOrganizationId?: string | null;
+  certificateEnabled?: boolean | null;
+  active?: boolean | null;
+  locationCheckEnabled?: boolean | null;
+  locationCheckinStart?: string | null;
+  locationCheckinEnd?: string | null;
+  attendanceConfirmEnabled?: boolean | null;
+  attendanceStatusPublic?: boolean | null;
+  subject?: string | null;
+  body?: string | null;
+}
+
 export interface SearchCheckedCompanyTargetsData {
   trainingTargets: ({
     targetId: string;
@@ -697,6 +727,18 @@ export const listTrainingsRef: ListTrainingsRef;
 
 export function listTrainings(vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
 export function listTrainings(dc: DataConnect, vars?: ListTrainingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListTrainingsData, ListTrainingsVariables>;
+
+interface SaveTrainingRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SaveTrainingVariables): MutationRef<SaveTrainingData, SaveTrainingVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SaveTrainingVariables): MutationRef<SaveTrainingData, SaveTrainingVariables>;
+  operationName: string;
+}
+export const saveTrainingRef: SaveTrainingRef;
+
+export function saveTraining(vars: SaveTrainingVariables): MutationPromise<SaveTrainingData, SaveTrainingVariables>;
+export function saveTraining(dc: DataConnect, vars: SaveTrainingVariables): MutationPromise<SaveTrainingData, SaveTrainingVariables>;
 
 interface SearchMemberCompaniesRef {
   /* Allow users to create refs without passing in DataConnect */

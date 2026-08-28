@@ -8,6 +8,15 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module">
+import("./sql/js/training-form.js?v=4").catch(function(error){
+  window.sqlTrainingFormLoadError = error;
+  console.error("研修会SQL保存機能を読み込めませんでした。", error);
+});
+</script>
 
 <style>
 main{
@@ -402,7 +411,7 @@ function setNextTrainingId(){
   );
 }
 
-function saveTraining(){
+async function saveTraining(){
 
   const data = {
     eventId: document.getElementById("eventId").value.trim(),
@@ -447,8 +456,8 @@ function saveTraining(){
         : "FALSE"
   };
 
-  if(!data.eventId || !data.title || !data.subject){
-    alert("研修ID、研修名、メール件名は必須です。");
+  if(!data.eventId || !data.title || !data.eventDate || !data.subject){
+    alert("研修ID、研修名、開催日、メール件名は必須です。");
     return;
   }
 
@@ -461,6 +470,17 @@ function saveTraining(){
   result.textContent =
     "保存中...";
 
+  try {
+    const sqlApi = await waitForSqlTrainingForm();
+    await sqlApi.save(data);
+  } catch(error) {
+    result.innerHTML =
+      '<span class="ng">SQLへ保存できませんでした。' +
+      escapeHtml(error.message || String(error)) +
+      '</span>';
+    return;
+  }
+
 	jsonpWithLongBody(
 	  "saveTrainingJsonp",
 	  data,
@@ -468,30 +488,14 @@ function saveTraining(){
 
       if(!res || !res.ok){
         result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
-          '</span>';
+          '<span class="ok">研修会の基本情報はSQLへ保存しました。</span><br>' +
+          '<span class="ng">メール・Drive用のGoogle連携情報は保存できませんでした。時間をおいて再度保存してください。</span><br>' +
+          escapeHtml(res && res.message ? res.message : "Google連携情報の保存に失敗しました。");
+        setupSavedTrainingActions(data);
         return;
       }
 
-      const detailAction =
-        document.getElementById("detailAction");
-
-      detailAction.href =
-        "training-detail.html?event=" +
-        encodeURIComponent(data.eventId);
-
-      detailAction.textContent =
-        editEventId
-          ? "研修会詳細へ戻る"
-          : "研修会詳細を開く";
-
-      detailAction.style.display =
-        "inline-block";
-
-      updateAttendanceSettingLinks(
-        data.eventId
-      );
+      setupSavedTrainingActions(data);
 
       result.innerHTML =
         '<span class="ok">' +
@@ -499,6 +503,36 @@ function saveTraining(){
         '</span>';
     }
   );
+}
+
+function setupSavedTrainingActions(data){
+  const detailAction = document.getElementById("detailAction");
+  detailAction.href = "training-detail.html?event=" + encodeURIComponent(data.eventId);
+  detailAction.textContent = editEventId ? "研修会詳細へ戻る" : "研修会詳細を開く";
+  detailAction.style.display = "inline-block";
+  updateAttendanceSettingLinks(data.eventId);
+}
+
+function waitForSqlTrainingForm(){
+  return new Promise(function(resolve, reject){
+    const startedAt = Date.now();
+    const timer = setInterval(function(){
+      if(window.sqlTrainingForm){
+        clearInterval(timer);
+        resolve(window.sqlTrainingForm);
+        return;
+      }
+      if(window.sqlTrainingFormLoadError){
+        clearInterval(timer);
+        reject(window.sqlTrainingFormLoadError);
+        return;
+      }
+      if(Date.now() - startedAt > 15000){
+        clearInterval(timer);
+        reject(new Error("SQL保存機能を読み込めませんでした。画面を再読み込みしてください。"));
+      }
+    }, 100);
+  });
 }
 
 function setupDetailAction(){
