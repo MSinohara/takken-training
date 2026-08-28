@@ -162,6 +162,9 @@ const params =
 const eventId =
   params.get("event") || "";
 
+const CHECKIN_WEB_ORIGIN =
+  "https://dev-takken10b-checkin.web.app";
+
 function jsonp(action, params, callback){
 
   const callbackName =
@@ -203,7 +206,7 @@ function loadPoster(){
   }
 
 	const checkinUrl =
-	  location.origin + "/sql/index.html?event=" +
+	  CHECKIN_WEB_ORIGIN + "/sql/index.html?event=" +
 	  encodeURIComponent(eventId) +
 	  "&reset=1&v=2";
 

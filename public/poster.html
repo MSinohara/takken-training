@@ -159,6 +159,9 @@ const params =
 const eventId =
   params.get("event") || "";
 
+const CHECKIN_WEB_ORIGIN =
+  "https://dev-takken10b-checkin.web.app";
+
 function jsonp(action, params, callback){
 
   const callbackName =
@@ -218,7 +221,7 @@ function loadPoster(){
       if (t.receptionType === "スマホ登録") {
 
         checkinUrl =
-          location.origin + "/self-checkin.html?event=" +
+          CHECKIN_WEB_ORIGIN + "/self-checkin.html?event=" +
           encodeURIComponent(eventId);
 
         document.querySelector(".qr-title").textContent =
@@ -232,7 +235,7 @@ function loadPoster(){
       } else if (t.receptionType === "手入力") {
 
         checkinUrl =
-          location.origin + "/sql/index.html?event=" +
+          CHECKIN_WEB_ORIGIN + "/sql/index.html?event=" +
           encodeURIComponent(eventId);
 
         document.querySelector(".qr-title").textContent =
