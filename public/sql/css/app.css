@@ -6,6 +6,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: #f2f5f7; }
 header { background: #173b63; color: #fff; padding: 18px 24px; }
 header h1 { margin: 0; font-size: 22px; }
