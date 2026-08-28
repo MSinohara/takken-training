@@ -123,7 +123,7 @@ function listQuery(type) {
 
 function listVariables() {
   const variables = { trainingId: eventId, limit: pageSize, offset: listState.offset };
-  if (["target", "checked"].includes(listState.type)) variables.targetType = sqlUnit();
+  if (listState.type === "target") variables.targetType = sqlUnit();
   if (listState.branch) variables.branch = listState.branch;
   if (listState.district) variables.district = listState.district;
   return variables;
