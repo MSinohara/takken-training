@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, replaceTrainingTargets, saveTraining } from "./generated.js?v=26";
+import { connectorConfig, replaceTrainingTargets, saveTraining } from "./generated.js?v=27";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 

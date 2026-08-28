@@ -336,7 +336,7 @@ function saveTraining(data) {
 
       return {
         ok: true,
-        message: "研修会を更新しました。受付対象を反映する場合は、研修会詳細の「受付索引を更新」を押してください。"
+        message: "研修会を更新しました。"
       };
     }
   }
@@ -401,7 +401,7 @@ function saveTraining(data) {
 
   return {
     ok: true,
-    message: "研修会を登録しました。受付対象を反映する場合は、研修会詳細の「受付索引を更新」を押してください。"
+    message: "研修会を登録しました。"
   };
 }
 
@@ -1032,10 +1032,17 @@ function saveTrainingJsonp_(e) {
       const savedTraining =
         findTrainingById_(data.eventId);
 
-      result.targetMembers =
-        savedTraining && typeof getTrainingTargetMembers_ === "function"
-          ? getTrainingTargetMembers_(savedTraining)
+      const masterMembers =
+        typeof getMemberRowsForFastRead_ === "function"
+          ? getMemberRowsForFastRead_()
           : [];
+
+      result.targetMembers =
+        savedTraining && typeof getCheckinIndexTargetMembers_ === "function"
+          ? getCheckinIndexTargetMembers_(savedTraining, masterMembers)
+          : savedTraining && typeof getTrainingTargetMembers_ === "function"
+            ? getTrainingTargetMembers_(savedTraining)
+            : [];
     }
 
   } catch (err) {
