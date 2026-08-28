@@ -8,6 +8,10 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module" src="sql/js/qr-checkin.js?v=19"></script>
 
 <style>
 main{
@@ -531,8 +535,46 @@ function renderOtherBlockBranches(){
 }
 
 function searchMembers(){
+  searchMembersFromSql();
+}
 
-  searchMembersFromIndex();
+async function searchMembersFromSql(){
+  const keyword = document.getElementById("keyword").value.trim();
+  const branch = document.getElementById("branch").value;
+  const status = document.getElementById("status");
+  status.style.display = "block";
+  status.textContent = "SQL会員マスタを検索中...";
+  try {
+    const api = await waitForSqlQr();
+    const companies = await api.searchCompanies(keyword, branch, 50);
+    const members = [];
+    companies.forEach(function(company){
+      const people = company.people_on_company || [];
+      if(isPersonalAttendanceTraining() && people.length){
+        people.forEach(function(person){
+          members.push({
+            memberNo: company.memberNo,
+            companyName: company.companyName,
+            personalId: person.personalId,
+            participantName: person.name,
+            branch: company.branch,
+            mail: person.email || company.email || ""
+          });
+        });
+      } else {
+        members.push({
+          memberNo: company.memberNo,
+          companyName: company.companyName,
+          branch: company.branch,
+          mail: company.email || ""
+        });
+      }
+    });
+    renderMemberSearchResults(members);
+    status.textContent = members.length ? members.length + "件表示中（SQL会員マスタ）" : "該当する会員が見つかりませんでした。";
+  } catch(error) {
+    status.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
 function searchMembersFromIndex(){
@@ -979,7 +1021,21 @@ function showQr(memberNo, companyName){
     '</div>';
 }
 
-function staffCheckin(memberNo, companyName){
+function waitForSqlQr(){
+  if(window.sqlQrCheckin){ return Promise.resolve(window.sqlQrCheckin); }
+  return new Promise(function(resolve, reject){
+    const startedAt = Date.now();
+    const timer = setInterval(function(){
+      if(window.sqlQrCheckin){ clearInterval(timer); resolve(window.sqlQrCheckin); }
+      else if(Date.now() - startedAt >= 10000){
+        clearInterval(timer);
+        reject(new Error("SQL受付機能を読み込めませんでした。画面を再読み込みしてください。"));
+      }
+    }, 50);
+  });
+}
+
+async function staffCheckin(memberNo, companyName){
 
   if(!eventId){
     alert("研修IDがありません。");
@@ -999,25 +1055,9 @@ function staffCheckin(memberNo, companyName){
   result.textContent =
     "読み取り済みです。受付登録中...";
 
-	jsonp(
-	  "registerCheckinJsonp",
-	  {
-	    event: eventId,
-	    code: "MEMBER:" + memberNo,
-	    method: "係員受付",
-      receptionCategory: "第十ブロック会員",
-      verificationStatus: "会員マスタ照合済み"
-	  },
-	  function(res){
-
-      if(!res || !res.ok){
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, "MEMBER:" + memberNo, "係員受付");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1025,11 +1065,12 @@ function staffCheckin(memberNo, companyName){
         escapeHtml(res.companyName || companyName) + ' 様<br>' +
         '業者番号：' + escapeHtml(res.memberNo || memberNo) + '<br>' +
         '受付日時：' + escapeHtml(res.checkedAt || formatNow());
-    }
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
-function staffPersonalCheckin(personalId, personName, companyName){
+async function staffPersonalCheckin(personalId, personName, companyName){
 
   if(!eventId){
     alert("研修IDがありません。");
@@ -1049,25 +1090,9 @@ function staffPersonalCheckin(personalId, personName, companyName){
   result.textContent =
     "個人受付を登録中...";
 
-  jsonp(
-    "registerCheckinJsonp",
-    {
-      event: eventId,
-      code: "PERSONAL:" + personalId,
-      method: "係員受付",
-      receptionCategory: "第十ブロック会員",
-      verificationStatus: "個人会員マスタ照合済み"
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, "PERSONAL:" + personalId, "係員受付");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1077,12 +1102,12 @@ function staffPersonalCheckin(personalId, personName, companyName){
         '業者番号：' + escapeHtml(res.memberNo || "") + '<br>' +
         '個人ID：' + escapeHtml(res.personalId || personalId) + '<br>' +
         '受付日時：' + escapeHtml(res.checkedAt || formatNow());
-    },
-    30000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
-function checkinPlannedFromStaff(plannedId, displayName){
+async function checkinPlannedFromStaff(plannedId, displayName){
 
   if(!eventId){
     alert("研修IDがありません。");
@@ -1102,27 +1127,14 @@ function checkinPlannedFromStaff(plannedId, displayName){
   result.textContent =
     "予定者を受付登録中...";
 
-  jsonp(
-    "checkinPlannedAttendeeJsonp",
-    {
-      event: eventId,
-      plannedId: plannedId
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.registerPlanned(eventId, plannedId, "係員受付");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
         '</span><br>' +
-        '受付区分：' + escapeHtml(res.receptionCategory || "") + '<br>' +
+        '受付区分：係員受付<br>' +
         (
           res.companyName
             ? '会社・団体名：' + escapeHtml(res.companyName) + '<br>'
@@ -1138,9 +1150,9 @@ function checkinPlannedFromStaff(plannedId, displayName){
           searchMembers();
         }
       });
-    },
-    60000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
 function registerOtherBlockGuest(){
@@ -1183,7 +1195,7 @@ function registerGeneralGuest(){
   registerManualGuest(data);
 }
 
-function registerManualGuest(data){
+async function registerManualGuest(data){
 
   if(manualGuestSubmitting){
     return;
@@ -1219,32 +1231,9 @@ function registerManualGuest(data){
   result.textContent =
     "受付登録中...";
 
-  jsonp(
-    "registerManualGuestCheckinJsonp",
-    {
-      event: eventId,
-      receptionCategory: data.receptionCategory,
-      block: data.block,
-      branch: data.branch,
-      companyName: data.companyName,
-      participantName: data.participantName,
-      mail: data.mail,
-      phone: data.phone,
-      method: "係員受付"
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        manualGuestSubmitting =
-          false;
-
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.registerGuest(eventId, data, "係員受付");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1258,11 +1247,11 @@ function registerManualGuest(data){
         '参加者名：' + escapeHtml(res.participantName || data.participantName) + '<br>' +
         '受付日時：' + escapeHtml(res.checkedAt || formatNow());
 
-      manualGuestSubmitting =
-        false;
-    },
-    60000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  } finally {
+      manualGuestSubmitting = false;
+  }
 }
 
 function resendMail(memberNo, companyName, mail){

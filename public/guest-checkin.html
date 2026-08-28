@@ -8,6 +8,10 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module" src="sql/js/qr-checkin.js?v=20"></script>
 
 <style>
 main{
@@ -345,6 +349,23 @@ let receptionMode =
 
 let manualGuestSubmitting =
   false;
+
+function waitForSqlQr(){
+  return new Promise(function(resolve, reject){
+    const started = Date.now();
+    (function poll(){
+      if(window.sqlQrCheckin){
+        resolve(window.sqlQrCheckin);
+        return;
+      }
+      if(Date.now() - started > 15000){
+        reject(new Error("SQL受付の準備が完了しませんでした。画面を再読み込みしてください。"));
+        return;
+      }
+      setTimeout(poll, 100);
+    })();
+  });
+}
 
 let selectedMember =
   null;
@@ -1769,7 +1790,7 @@ function registerGeneralGuest(){
   registerManualGuest(data);
 }
 
-function registerManualGuest(data){
+async function registerManualGuest(data){
 
   if(manualGuestSubmitting){
     return;
@@ -1800,31 +1821,9 @@ function registerManualGuest(data){
   result.textContent =
     "受付処理中...";
 
-  jsonp(
-    "registerManualGuestCheckinJsonp",
-    {
-      event: eventId,
-      receptionCategory: data.receptionCategory,
-      block: data.block,
-      branch: data.branch,
-      companyName: data.companyName,
-      participantName: data.participantName,
-      mail: data.mail,
-      phone: data.phone
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        manualGuestSubmitting =
-          false;
-
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.registerGuest(eventId, data, "会場QR＋WEB検索");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1852,11 +1851,11 @@ function registerManualGuest(data){
 
         'この画面を受付担当者にご提示ください。';
 
-      manualGuestSubmitting =
-        false;
-    },
-    60000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  } finally {
+      manualGuestSubmitting = false;
+  }
 }
 
 document.getElementById("keyword").addEventListener("keydown",function(e){

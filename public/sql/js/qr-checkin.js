@@ -8,6 +8,7 @@ import {
   getTrainingTargetForCheckin,
   listTrainings,
   registerCompanyCheckin,
+  registerGuestCheckin,
   registerPersonalCheckin,
   restoreCancelledCheckinPublic,
   searchMemberCompanies,
@@ -64,7 +65,78 @@ async function findCompany(memberNo) {
   return company;
 }
 
-async function registerPlanned(trainingId, plannedId) {
+async function searchCompanies(keyword, branch = "", limit = 50) {
+  const value = String(keyword || "").trim();
+  const numeric = /^\d+$/.test(value);
+  const variables = { limit, offset: 0 };
+  if (numeric) variables.memberNo = value;
+  if (!numeric && value) variables.companyName = value;
+  if (branch) variables.branch = branch;
+  const response = await searchMemberCompanies(dc, variables, { fetchPolicy: "SERVER_ONLY" });
+  return response.data.memberCompanies || [];
+}
+
+async function makeGuestKey(values) {
+  const source = [values.participantName, values.companyName, values.mail, values.phone]
+    .map((value) => String(value || "").normalize("NFKC").replace(/\s+/g, "").toLowerCase())
+    .join("|");
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  return Array.from(new Uint8Array(bytes))
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function registerGuest(trainingId, data, method = CHECKIN_METHODS.WEB_SEARCH) {
+  await findTraining(trainingId);
+  const key = await makeGuestKey(data);
+  const checkinId = `${trainingId}:GUEST:${key}`;
+  try {
+    await registerGuestCheckin(dc, {
+      checkinId,
+      trainingId,
+      guestKey: key,
+      participantName: data.participantName,
+      organizationName: data.companyName || null,
+      block: data.block || null,
+      branch: data.branch || null,
+      email: data.mail || null,
+      phone: data.phone || null,
+      receptionCategory: data.receptionCategory || "一般参加",
+      checkinMethod: method,
+    });
+    return {
+      ok: true,
+      message: "受付完了",
+      receptionCategory: data.receptionCategory || "一般参加",
+      companyName: data.companyName || "",
+      participantName: data.participantName,
+      checkedAt: new Date().toLocaleString("ja-JP"),
+    };
+  } catch (error) {
+    if (!duplicateError(error)) throw error;
+    if (await restoreCancelled(checkinId)) {
+      return {
+        ok: true,
+        message: "受付完了",
+        receptionCategory: data.receptionCategory || "一般参加",
+        companyName: data.companyName || "",
+        participantName: data.participantName,
+        checkedAt: new Date().toLocaleString("ja-JP"),
+        restored: true,
+      };
+    }
+    return {
+      ok: true,
+      duplicate: true,
+      message: "既に受付済みです",
+      receptionCategory: data.receptionCategory || "一般参加",
+      companyName: data.companyName || "",
+      participantName: data.participantName,
+    };
+  }
+}
+
+async function registerPlanned(trainingId, plannedId, method = CHECKIN_METHODS.PLANNED_QR) {
   const response = await getPlannedAttendeeForCheckin(dc, {
     plannedId,
     trainingId,
@@ -76,12 +148,12 @@ async function registerPlanned(trainingId, plannedId) {
   if (type === "COMPANY") {
     const memberNo = planned.memberNo || planned.company?.memberNo || planned.targetId;
     if (!memberNo) throw new Error("事前登録者の業者番号が登録されていません。");
-    return registerCompany(trainingId, memberNo, CHECKIN_METHODS.PLANNED_QR);
+    return registerCompany(trainingId, memberNo, method);
   }
   if (type === "PERSONAL") {
     const personalId = planned.personalId || planned.person?.personalId || planned.targetId;
     if (!personalId) throw new Error("事前登録者の個人IDが登録されていません。");
-    return registerPerson(trainingId, personalId, CHECKIN_METHODS.PLANNED_QR);
+    return registerPerson(trainingId, personalId, method);
   }
   throw new Error("この事前登録QRの受付区分には対応していません。");
 }
@@ -155,9 +227,15 @@ export async function registerSqlQrCheckin(trainingId, rawCode, method = CHECKIN
     return registerPerson(trainingId, code.slice(9).trim(), method);
   }
   if (code.startsWith("PLANNED:")) {
-    return registerPlanned(trainingId, code.slice(8).trim());
+    return registerPlanned(trainingId, code.slice(8).trim(), CHECKIN_METHODS.PLANNED_QR);
   }
   throw new Error("対応している受付QRではありません。");
 }
 
-window.sqlQrCheckin = { getTraining: getSqlTraining, register: registerSqlQrCheckin };
+window.sqlQrCheckin = {
+  getTraining: getSqlTraining,
+  register: registerSqlQrCheckin,
+  registerPlanned,
+  registerGuest,
+  searchCompanies,
+};

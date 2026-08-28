@@ -31,10 +31,10 @@ query ListTrainings($limit: Int = 200)
 }
 
 query SearchMemberCompanies(
-  $memberNo: String
-  $companyName: String
-  $branch: String
-  $district: String
+  $memberNo: String! = ""
+  $companyName: String! = ""
+  $branch: String! = ""
+  $district: String! = ""
   $limit: Int = 50
   $offset: Int = 0
 ) @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の会員検索に限定して使用するため。") {
@@ -42,8 +42,8 @@ query SearchMemberCompanies(
     where: {
       memberNo: { startsWith: $memberNo }
       companyName: { contains: $companyName }
-      branch: { eq: $branch }
-      district: { eq: $district }
+      branch: { contains: $branch }
+      district: { contains: $district }
     }
     orderBy: [{ memberNo: ASC }]
     limit: $limit

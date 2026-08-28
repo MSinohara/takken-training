@@ -102,15 +102,7 @@ main{
 
     <div class="actions">
       <button class="btn" type="button" onclick="runCheck()">接続状態を確認</button>
-      <button class="btn sub" type="button" onclick="syncMembersToFirestore()">会員マスタをFirestoreへ同期</button>
-      <button class="btn sub" type="button" onclick="loadMemberSyncStatus()">会員マスタ同期状態を確認</button>
-      <button class="btn sub" type="button" onclick="syncCheckinsToFirestore()">受付データをFirestoreへ再同期</button>
-      <button class="btn sub" type="button" onclick="syncPendingCheckinsToSheet()">未同期受付をシートへ反映</button>
-      <button class="btn sub" type="button" onclick="loadCheckinSyncStatus()">受付データ同期状態を確認</button>
     </div>
-
-    <div id="memberSyncStatus" class="sync-status">会員マスタ同期状態を確認できます。</div>
-    <div id="checkinSyncStatus" class="sync-status">受付データ同期状態を確認できます。</div>
     <div id="status" class="status"></div>
     <div id="summary" class="summary"></div>
     <div id="result"></div>
@@ -456,10 +448,6 @@ function escapeHtml(value){
     .replace(/'/g, "&#039;");
 }
 
-document.addEventListener("DOMContentLoaded", function(){
-  loadMemberSyncStatus();
-  loadCheckinSyncStatus();
-});
 </script>
 
 </body>
