@@ -440,6 +440,11 @@ function loadPage(){
             : ""
         );
 
+      if(resetMode){
+        showResetAreaIfNeeded();
+        return;
+      }
+
       showMode();
       initializeOtherBlockOptions();
     }

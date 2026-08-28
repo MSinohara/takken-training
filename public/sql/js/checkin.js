@@ -443,6 +443,7 @@ $("clearReceipt").addEventListener("click", clearReceipt);
 async function initializePublicCheckin() {
   $("search").disabled = true;
   $("clear").disabled = true;
+  if (resetMode) showResetPanel();
   try {
     const ready = await loadTrainings();
     if (ready && resetMode) {
