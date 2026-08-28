@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listTrainings, searchMemberCompanies, getPersonForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerCompanyCheckin, recentCheckins, trainingCheckinSummary, searchTrainingTargets, searchCheckedTargets } from '@takken-training/sql-dataconnect';
+import { listTrainings, searchMemberCompanies, getPersonForCheckin, searchPeopleForCheckin, getTrainingTargetForCheckin, registerPersonalCheckin, registerNewPersonalCheckin, registerCompanyCheckin, registerGuestCheckin, recentGuestCheckins } from '@takken-training/sql-dataconnect';
 
 
 // Operation ListTrainings:  For variables, look at type ListTrainingsVars in ../index.d.ts
@@ -26,26 +26,26 @@ const { data } = await SearchMemberCompanies(dataConnect, searchMemberCompaniesV
 // Operation GetPersonForCheckin:  For variables, look at type GetPersonForCheckinVars in ../index.d.ts
 const { data } = await GetPersonForCheckin(dataConnect, getPersonForCheckinVars);
 
+// Operation SearchPeopleForCheckin:  For variables, look at type SearchPeopleForCheckinVars in ../index.d.ts
+const { data } = await SearchPeopleForCheckin(dataConnect, searchPeopleForCheckinVars);
+
 // Operation GetTrainingTargetForCheckin:  For variables, look at type GetTrainingTargetForCheckinVars in ../index.d.ts
 const { data } = await GetTrainingTargetForCheckin(dataConnect, getTrainingTargetForCheckinVars);
 
 // Operation RegisterPersonalCheckin:  For variables, look at type RegisterPersonalCheckinVars in ../index.d.ts
 const { data } = await RegisterPersonalCheckin(dataConnect, registerPersonalCheckinVars);
 
+// Operation RegisterNewPersonalCheckin:  For variables, look at type RegisterNewPersonalCheckinVars in ../index.d.ts
+const { data } = await RegisterNewPersonalCheckin(dataConnect, registerNewPersonalCheckinVars);
+
 // Operation RegisterCompanyCheckin:  For variables, look at type RegisterCompanyCheckinVars in ../index.d.ts
 const { data } = await RegisterCompanyCheckin(dataConnect, registerCompanyCheckinVars);
 
-// Operation RecentCheckins:  For variables, look at type RecentCheckinsVars in ../index.d.ts
-const { data } = await RecentCheckins(dataConnect, recentCheckinsVars);
+// Operation RegisterGuestCheckin:  For variables, look at type RegisterGuestCheckinVars in ../index.d.ts
+const { data } = await RegisterGuestCheckin(dataConnect, registerGuestCheckinVars);
 
-// Operation TrainingCheckinSummary:  For variables, look at type TrainingCheckinSummaryVars in ../index.d.ts
-const { data } = await TrainingCheckinSummary(dataConnect, trainingCheckinSummaryVars);
-
-// Operation SearchTrainingTargets:  For variables, look at type SearchTrainingTargetsVars in ../index.d.ts
-const { data } = await SearchTrainingTargets(dataConnect, searchTrainingTargetsVars);
-
-// Operation SearchCheckedTargets:  For variables, look at type SearchCheckedTargetsVars in ../index.d.ts
-const { data } = await SearchCheckedTargets(dataConnect, searchCheckedTargetsVars);
+// Operation RecentGuestCheckins:  For variables, look at type RecentGuestCheckinsVars in ../index.d.ts
+const { data } = await RecentGuestCheckins(dataConnect, recentGuestCheckinsVars);
 
 
 ```

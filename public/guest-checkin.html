@@ -11,7 +11,7 @@
 <script type="importmap">
 {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
 </script>
-<script type="module" src="sql/js/qr-checkin.js?v=20"></script>
+<script type="module" src="sql/js/qr-checkin.js?v=23"></script>
 
 <style>
 main{
@@ -711,151 +711,52 @@ function searchMembers(){
       ? normalizedKeyword
       : "";
 
-  searchMembersFromIndex(
-    branch,
-    keyword,
-    [requestKeyword, fallbackKeyword].filter(function(v, index, list){
-      return v && list.indexOf(v) === index;
-    }),
-    0
-  );
+  searchMembersFromSql(branch, keyword, requestKeyword, fallbackKeyword);
 }
 
-function searchMembersFromIndex(branch, originalKeyword, keywords, index){
-
-  const searchKeyword =
-    keywords[index] || "";
-
-  jsonp(
-    "searchCheckinIndexMembersJsonp",
-    {
-      event: eventId,
-      branch: branch,
-      keyword: searchKeyword
-    },
-    function(res){
-
-      if(
-        res &&
-        res.ok &&
-        res.members &&
-        res.members.length > 0
-      ){
-        searchMembersFromMaster(
-          branch,
-          originalKeyword,
-          keywords,
-          0,
-          res
-        );
-        return;
-      }
-
-      if(index + 1 < keywords.length){
-        searchMembersFromIndex(
-          branch,
-          originalKeyword,
-          keywords,
-          index + 1
-        );
-        return;
-      }
-
-      searchMembersFromMaster(
-        branch,
-        originalKeyword,
-        keywords,
-        0
-      );
+async function searchMembersFromSql(branch, originalKeyword, requestKeyword, fallbackKeyword){
+  try {
+    const api = await waitForSqlQr();
+    let companies = await api.searchMembers(requestKeyword, branch, 50);
+    if(!companies.length && fallbackKeyword){
+      companies = await api.searchMembers(fallbackKeyword, branch, 50);
     }
-  );
-}
-
-function searchMembersFromMaster(branch, originalKeyword, keywords, index, baseResult){
-
-  const searchKeyword =
-    keywords[index] || "";
-
-  document.getElementById("searchStatus").textContent =
-    "会員マスタから検索中...";
-
-  jsonp(
-    "searchMembersJsonp",
-    {
-      branch: branch,
-      keyword: searchKeyword
-    },
-    function(res){
-
-      if(
-        res &&
-        res.ok &&
-        (!res.members || res.members.length === 0) &&
-        index + 1 < keywords.length
-      ){
-        searchMembersFromMaster(
-          branch,
-          originalKeyword,
-          keywords,
-          index + 1,
-          baseResult
-        );
-        return;
+    const members = [];
+    companies.forEach(function(company){
+      const persons = company.people_on_company || [];
+      if(isPersonalAttendanceTraining() && persons.length){
+        persons.forEach(function(person){
+          members.push({
+            memberNo: company.memberNo,
+            companyName: company.companyName,
+            branch: company.branch,
+            district: company.district,
+            mail: person.email || company.email || "",
+            personalId: person.personalId,
+            participantName: person.name,
+            personName: person.name,
+            representativeName: isRepresentativePersonalId(person.personalId) ? person.name : ""
+          });
+        });
+      } else {
+        const representative = persons.find(function(person){
+          return isRepresentativePersonalId(person.personalId);
+        });
+        members.push({
+          memberNo: company.memberNo,
+          companyName: company.companyName,
+          branch: company.branch,
+          district: company.district,
+          mail: company.email || "",
+          representativeName: representative ? representative.name : ""
+        });
       }
-
-      if(baseResult){
-        renderMemberSearchResult(
-          mergeMemberSearchResults(baseResult, res),
-          originalKeyword
-        );
-        return;
-      }
-
-      renderMemberSearchResult(res, originalKeyword);
-    }
-  );
-}
-
-function mergeMemberSearchResults(baseResult, extraResult){
-
-  if(!baseResult || !baseResult.ok){
-    return extraResult;
-  }
-
-  if(!extraResult || !extraResult.ok){
-    return baseResult;
-  }
-
-  const seen = {};
-  const members = [];
-
-  function add(list){
-    (list || []).forEach(function(member){
-      const key =
-        String(member.personalId || "").trim()
-          ? "P:" + String(member.personalId || "").trim()
-          : "M:" + (
-              normalizeMemberNo(member.memberNo || "") ||
-              normalizeGuestSearchText(member.companyName || "")
-            );
-
-      if(!key || seen[key]){
-        return;
-      }
-
-      seen[key] = true;
-      members.push(member);
     });
+    renderMemberSearchResult({ ok: true, members: members, source: "SQL" }, originalKeyword);
+  } catch(error) {
+    document.getElementById("searchStatus").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
   }
-
-  add(baseResult.members);
-  add(extraResult.members);
-
-  return {
-    ok: true,
-    members: members,
-    source: String(baseResult.source || "") + "+会員マスタ"
-  };
 }
 
 function renderMemberSearchResult(res, keyword){
@@ -1398,63 +1299,35 @@ function registerEnteredPersonal(){
   const personName =
     normalizePersonDisplayName(familyName + "　" + givenName);
 
-  jsonp(
-    "getGuestPersonalCandidatesJsonp",
-    {
-      memberNo: selectedMember.memberNo,
-      personName: personName
-    },
-    function(res){
+  const candidate = (selectedMember.persons || []).find(function(person){
+    return normalizeGuestSearchText(getMemberParticipantName(person)) ===
+      normalizeGuestSearchText(personName);
+  });
 
-      if(!res || !res.ok){
-        alert(res && res.message ? res.message : "個人候補を確認できませんでした。");
-        return;
-      }
+  if(candidate && confirm(
+    "同じ氏名の登録済み参加者がいます。\n\n" +
+    getMemberParticipantName(candidate) + " 様\n\nこの方として受付しますか？"
+  )){
+    registerGuestPersonal({
+      representative: "FALSE",
+      personalId: candidate.personalId,
+      familyName: "",
+      givenName: "",
+      mail: mail
+    });
+    return;
+  }
 
-      const candidates =
-        res.candidates || [];
-
-      if(candidates.length > 0){
-        const candidate =
-          candidates[0];
-
-        const useExisting =
-          confirm(
-            "登録済みの参加者に近い名前があります。\n\n" +
-            candidate.personName + " 様" +
-            (candidate.personType ? "（" + candidate.personType + "）" : "") +
-            "\n\nこの方として受付しますか？"
-          );
-
-        if(useExisting){
-          registerGuestPersonal({
-            representative: "FALSE",
-            personalId: candidate.personalId,
-            familyName: "",
-            givenName: "",
-            mail: mail
-          });
-          return;
-        }
-
-        if(!confirm("別人として新しく登録して受付しますか？")){
-          return;
-        }
-      }
-
-      registerGuestPersonal({
-        representative: "FALSE",
-        personalId: "",
-        familyName: familyName,
-        givenName: givenName,
-        mail: mail
-      });
-    },
-    30000
-  );
+  registerGuestPersonal({
+    representative: "FALSE",
+    personalId: "",
+    familyName: familyName,
+    givenName: givenName,
+    mail: mail
+  });
 }
 
-function registerGuestPersonal(data){
+async function registerGuestPersonal(data){
 
   if(manualGuestSubmitting){
     return;
@@ -1472,30 +1345,26 @@ function registerGuestPersonal(data){
   result.textContent =
     "受付処理中...";
 
-  jsonp(
-    "registerGuestPersonalCheckinJsonp",
-    {
-      event: eventId,
-      memberNo: selectedMember.memberNo,
-      representative: data.representative,
-      personalId: data.personalId,
-      familyName: data.familyName,
-      givenName: data.givenName,
-      mail: data.mail
-    },
-    function(res){
-
-      manualGuestSubmitting =
-        false;
-
-      if(!res || !res.ok){
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
+  try {
+      const api = await waitForSqlQr();
+      let personalId = data.personalId || "";
+      if(data.representative === "TRUE" && !personalId){
+        const representative = (selectedMember.persons || []).find(function(person){
+          return isRepresentativePersonalId(person.personalId);
+        });
+        personalId = representative ? representative.personalId : selectedMember.memberNo + "-001";
       }
-
+      const participantName = data.familyName || data.givenName
+        ? normalizePersonDisplayName(data.familyName + "　" + data.givenName)
+        : "";
+      const res = personalId
+        ? await api.register(eventId, "PERSONAL:" + personalId, "会場QR＋WEB検索")
+        : await api.registerNewPerson(eventId, {
+            memberNo: selectedMember.memberNo,
+            companyName: selectedMember.companyName,
+            participantName: participantName,
+            mail: data.mail || ""
+          }, "会場QR＋WEB検索");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1540,8 +1409,7 @@ function registerGuestPersonal(data){
         );
       }
 
-      selectedMember =
-        null;
+      selectedMember = null;
 
       document.getElementById("personalEntryArea").style.display =
         "none";
@@ -1549,12 +1417,14 @@ function registerGuestPersonal(data){
       showMode();
 
       scrollToResult();
-    },
-    60000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  } finally {
+      manualGuestSubmitting = false;
+  }
 }
 
-function showRegisteredPersonalEntry(memberNo, companyName){
+async function showRegisteredPersonalEntry(memberNo, companyName){
 
   const result =
     document.getElementById("result");
@@ -1565,103 +1435,35 @@ function showRegisteredPersonalEntry(memberNo, companyName){
   result.textContent =
     "登録済み参加者を確認中...";
 
-  jsonp(
-    "searchCheckinIndexMembersJsonp",
-    {
-      event: eventId,
-      branch: "",
-      keyword: memberNo
-    },
-    function(indexResult){
-      loadRegisteredPersonalMembersFromMaster(
-        memberNo,
-        companyName,
-        indexResult
-      );
-    },
-    30000
-  );
-}
-
-function loadRegisteredPersonalMembersFromMaster(memberNo, companyName, baseResult){
-
-  jsonp(
-    "searchMembersJsonp",
-    {
-      event: eventId,
-      branch: "",
-      keyword: memberNo
-    },
-    function(masterResult){
-
-      const mergedResult =
-        baseResult
-          ? mergeMemberSearchResults(baseResult, masterResult)
-          : masterResult;
-
-      renderRegisteredPersonalEntryFromResult(
-        memberNo,
-        companyName,
-        mergedResult
-      );
-    },
-    30000
-  );
-}
-
-function renderRegisteredPersonalEntryFromResult(memberNo, companyName, res){
-
-  const normalizedMemberNo =
-    normalizeMemberNo(memberNo);
-
-  const members =
-    (
-      res &&
-      res.ok &&
-      res.members
-        ? res.members
-        : []
-    ).filter(function(member){
-      return normalizeMemberNo(member.memberNo || "") === normalizedMemberNo;
+  try {
+    const api = await waitForSqlQr();
+    const companies = await api.searchMembers(memberNo, "", 5);
+    const company = companies.find(function(item){
+      return normalizeMemberNo(item.memberNo) === normalizeMemberNo(memberNo);
     });
-
-  const group = {
-    memberNo: memberNo,
-    companyName: companyName,
-    representativeName: "",
-    mail: "",
-    persons: []
-  };
-
-  members.forEach(function(member){
-
-    if(member.companyName && !group.companyName){
-      group.companyName =
-        member.companyName;
+    if(!company){
+      throw new Error("登録済み会社を確認できませんでした。");
     }
-
-    if(member.mail && !group.mail){
-      group.mail =
-        member.mail;
-    }
-
-    if(member.representativeName && !group.representativeName){
-      group.representativeName =
-        member.representativeName;
-    }
-
-    if(member.personalId){
-      group.persons.push(member);
-    }
-  });
-
-  showPersonalEntry(
-    group.memberNo,
-    group.companyName,
-    group.representativeName || getRepresentativeNameFromPersons(group.persons),
-    group.mail,
-    group.persons
-  );
+    const persons = (company.people_on_company || []).map(function(person){
+      return {
+        memberNo: company.memberNo,
+        companyName: company.companyName,
+        personalId: person.personalId,
+        participantName: person.name,
+        personName: person.name,
+        mail: person.email || company.email || ""
+      };
+    });
+    showPersonalEntry(
+      company.memberNo,
+      company.companyName || companyName,
+      getRepresentativeNameFromPersons(persons),
+      company.email || "",
+      persons
+    );
+  } catch(error) {
+    result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
 function checkinRegisteredMember(){
@@ -1689,7 +1491,7 @@ function checkinRegisteredMember(){
   doCheckin(memberNo, companyName, "");
 }
 
-function doCheckin(memberNo, companyName, registeredParticipantName){
+async function doCheckin(memberNo, companyName, registeredParticipantName){
 
   const result =
     document.getElementById("result");
@@ -1700,25 +1502,9 @@ function doCheckin(memberNo, companyName, registeredParticipantName){
   result.textContent =
     "受付処理中...";
 
-	jsonp(
-	  "registerCheckinJsonp",
-	  {
-	    event: eventId,
-	    code: "MEMBER:" + memberNo,
-	    method: "会場QR＋検索受付",
-      receptionCategory: "第十ブロック会員",
-      verificationStatus: "会員マスタ照合済み"
-	  },
-	  function(res){
-
-      if(!res || !res.ok){
-        result.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, "MEMBER:" + memberNo, "会場QR＋WEB検索");
       result.innerHTML =
         '<span class="ok">' +
         escapeHtml(res.message || "受付完了") +
@@ -1744,10 +1530,9 @@ function doCheckin(memberNo, companyName, registeredParticipantName){
 
       showMode();
       scrollToResult();
-    }
-    ,
-    60000
-  );
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
 function registerOtherBlockGuest(){

@@ -9,10 +9,12 @@ import {
   listTrainings,
   registerCompanyCheckin,
   registerGuestCheckin,
+  registerNewPersonalCheckin,
   registerPersonalCheckin,
   restoreCancelledCheckinPublic,
   searchMemberCompanies,
-} from "./generated.js?v=21";
+  searchPeopleForCheckin,
+} from "./generated.js?v=22";
 import { firebaseConfig } from "./config.js?v=17";
 import { CHECKIN_METHODS } from "./checkin-methods.js?v=1";
 
@@ -68,12 +70,101 @@ async function findCompany(memberNo) {
 async function searchCompanies(keyword, branch = "", limit = 50) {
   const value = String(keyword || "").trim();
   const numeric = /^\d+$/.test(value);
+  const sqlBranch = String(branch || "").replace(/^(杉並|中野|世田谷)支部$/, "$1区支部");
   const variables = { limit, offset: 0 };
   if (numeric) variables.memberNo = value;
   if (!numeric && value) variables.companyName = value;
-  if (branch) variables.branch = branch;
+  if (sqlBranch) variables.branch = sqlBranch;
   const response = await searchMemberCompanies(dc, variables, { fetchPolicy: "SERVER_ONLY" });
   return response.data.memberCompanies || [];
+}
+
+async function searchMembers(keyword, branch = "", limit = 50) {
+  const value = String(keyword || "").trim();
+  const sqlBranch = String(branch || "").replace(/^(杉並|中野|世田谷)支部$/, "$1区支部");
+  const companies = await searchCompanies(value, branch, limit);
+  if (/^\d+$/.test(value)) return companies;
+
+  const byMemberNo = new Map(companies.map((company) => [company.memberNo, company]));
+  let peopleResponse;
+  try {
+    peopleResponse = await searchPeopleForCheckin(dc, {
+      name: value,
+      limit,
+    }, { fetchPolicy: "SERVER_ONLY" });
+  } catch (error) {
+    console.warn("参加者名検索を利用できないため会社検索結果を表示します。", error);
+    return companies;
+  }
+  (peopleResponse.data.people || []).forEach((person) => {
+    const company = person.company;
+    if (!company || (sqlBranch && company.branch !== sqlBranch)) return;
+    const current = byMemberNo.get(company.memberNo) || {
+      ...company,
+      people_on_company: [],
+    };
+    const people = current.people_on_company || [];
+    if (!people.some((item) => item.personalId === person.personalId)) {
+      people.push({ personalId: person.personalId, name: person.name, email: person.email });
+    }
+    current.people_on_company = people;
+    byMemberNo.set(company.memberNo, current);
+  });
+  return Array.from(byMemberNo.values()).slice(0, limit);
+}
+
+async function registerNewPerson(trainingId, data, method = CHECKIN_METHODS.WEB_SEARCH) {
+  const source = [data.memberNo, data.participantName, data.mail]
+    .map((value) => String(value || "").normalize("NFKC").replace(/\s+/g, "").toLowerCase())
+    .join("|");
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  const suffix = Array.from(new Uint8Array(bytes)).slice(0, 6)
+    .map((value) => value.toString(16).padStart(2, "0")).join("");
+  const personalId = `${data.memberNo}-WEB-${suffix}`;
+  const checkinId = `${trainingId}:PERSONAL:${personalId}`;
+  try {
+    await registerNewPersonalCheckin(dc, {
+      checkinId,
+      trainingId,
+      memberNo: data.memberNo,
+      personalId,
+      participantName: data.participantName,
+      email: data.mail || null,
+      checkinMethod: method,
+    });
+    return {
+      ok: true,
+      message: "受付完了",
+      companyName: data.companyName,
+      participantName: data.participantName,
+      memberNo: data.memberNo,
+      personalId,
+      checkedAt: new Date().toLocaleString("ja-JP"),
+    };
+  } catch (error) {
+    if (!duplicateError(error)) throw error;
+    if (await restoreCancelled(checkinId)) {
+      return {
+        ok: true,
+        message: "受付完了",
+        companyName: data.companyName,
+        participantName: data.participantName,
+        memberNo: data.memberNo,
+        personalId,
+        checkedAt: new Date().toLocaleString("ja-JP"),
+        restored: true,
+      };
+    }
+    return {
+      ok: true,
+      duplicate: true,
+      message: "既に受付済みです",
+      companyName: data.companyName,
+      participantName: data.participantName,
+      memberNo: data.memberNo,
+      personalId,
+    };
+  }
 }
 
 async function makeGuestKey(values) {
@@ -237,5 +328,7 @@ window.sqlQrCheckin = {
   register: registerSqlQrCheckin,
   registerPlanned,
   registerGuest,
+  registerNewPerson,
   searchCompanies,
+  searchMembers,
 };

@@ -87,6 +87,30 @@ export interface GetPlannedAttendeeData {
   } & PlannedAttendee_Key;
 }
 
+export interface GetPlannedAttendeeForCheckinData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    memberNo?: string | null;
+    personalId?: string | null;
+    participantName?: string | null;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+
+export interface GetPlannedAttendeeForCheckinVariables {
+  plannedId: string;
+  trainingId: string;
+}
+
 export interface GetPlannedAttendeeVariables {
   plannedId: string;
 }
@@ -352,6 +376,8 @@ export interface RecentGuestCheckinsData {
     checkinMethod: string;
     participantName: string;
     organizationName?: string | null;
+    block?: string | null;
+    branch?: string | null;
     receptionCategory: string;
   } & GuestCheckin_Key)[];
 }
@@ -382,8 +408,26 @@ export interface RegisterGuestCheckinVariables {
   guestKey: string;
   participantName: string;
   organizationName?: string | null;
+  block?: string | null;
+  branch?: string | null;
   email?: string | null;
   phone?: string | null;
+  receptionCategory?: string;
+  checkinMethod: string;
+}
+
+export interface RegisterNewPersonalCheckinData {
+  person_upsert: Person_Key;
+  checkin_insert: Checkin_Key;
+}
+
+export interface RegisterNewPersonalCheckinVariables {
+  checkinId: string;
+  trainingId: string;
+  memberNo: string;
+  personalId: string;
+  participantName: string;
+  email?: string | null;
   checkinMethod: string;
 }
 
@@ -407,6 +451,15 @@ export interface RemovePlannedAttendeeVariables {
   plannedId: string;
   changedAt: TimestampString;
   operator?: string | null;
+}
+
+export interface RestoreCancelledCheckinPublicData {
+  checkin_updateMany: number;
+}
+
+export interface RestoreCancelledCheckinPublicVariables {
+  checkinId: string;
+  changedAt: TimestampString;
 }
 
 export interface RestoreCheckinData {
@@ -483,12 +536,33 @@ export interface SearchMemberCompaniesData {
 }
 
 export interface SearchMemberCompaniesVariables {
-  memberNo?: string | null;
-  companyName?: string | null;
-  branch?: string | null;
-  district?: string | null;
+  memberNo?: string;
+  companyName?: string;
+  branch?: string;
+  district?: string;
   limit?: number | null;
   offset?: number | null;
+}
+
+export interface SearchPeopleForCheckinData {
+  people: ({
+    personalId: string;
+    name: string;
+    email?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+      branch: string;
+      district?: string | null;
+      block: string;
+      email?: string | null;
+    } & MemberCompany_Key;
+  } & Person_Key)[];
+}
+
+export interface SearchPeopleForCheckinVariables {
+  name?: string;
+  limit?: number | null;
 }
 
 export interface SearchTrainingTargetsData {
@@ -648,6 +722,18 @@ export const getPersonForCheckinRef: GetPersonForCheckinRef;
 export function getPersonForCheckin(vars: GetPersonForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPersonForCheckinData, GetPersonForCheckinVariables>;
 export function getPersonForCheckin(dc: DataConnect, vars: GetPersonForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPersonForCheckinData, GetPersonForCheckinVariables>;
 
+interface SearchPeopleForCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: SearchPeopleForCheckinVariables): QueryRef<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: SearchPeopleForCheckinVariables): QueryRef<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+  operationName: string;
+}
+export const searchPeopleForCheckinRef: SearchPeopleForCheckinRef;
+
+export function searchPeopleForCheckin(vars?: SearchPeopleForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+export function searchPeopleForCheckin(dc: DataConnect, vars?: SearchPeopleForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+
 interface GetTrainingTargetForCheckinRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: GetTrainingTargetForCheckinVariables): QueryRef<GetTrainingTargetForCheckinData, GetTrainingTargetForCheckinVariables>;
@@ -671,6 +757,18 @@ export const registerPersonalCheckinRef: RegisterPersonalCheckinRef;
 
 export function registerPersonalCheckin(vars: RegisterPersonalCheckinVariables): MutationPromise<RegisterPersonalCheckinData, RegisterPersonalCheckinVariables>;
 export function registerPersonalCheckin(dc: DataConnect, vars: RegisterPersonalCheckinVariables): MutationPromise<RegisterPersonalCheckinData, RegisterPersonalCheckinVariables>;
+
+interface RegisterNewPersonalCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RegisterNewPersonalCheckinVariables): MutationRef<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RegisterNewPersonalCheckinVariables): MutationRef<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+  operationName: string;
+}
+export const registerNewPersonalCheckinRef: RegisterNewPersonalCheckinRef;
+
+export function registerNewPersonalCheckin(vars: RegisterNewPersonalCheckinVariables): MutationPromise<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+export function registerNewPersonalCheckin(dc: DataConnect, vars: RegisterNewPersonalCheckinVariables): MutationPromise<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
 
 interface RegisterCompanyCheckinRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -864,6 +962,18 @@ export const restoreCheckinRef: RestoreCheckinRef;
 export function restoreCheckin(vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
 export function restoreCheckin(dc: DataConnect, vars: RestoreCheckinVariables): MutationPromise<RestoreCheckinData, RestoreCheckinVariables>;
 
+interface RestoreCancelledCheckinPublicRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RestoreCancelledCheckinPublicVariables): MutationRef<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RestoreCancelledCheckinPublicVariables): MutationRef<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+  operationName: string;
+}
+export const restoreCancelledCheckinPublicRef: RestoreCancelledCheckinPublicRef;
+
+export function restoreCancelledCheckinPublic(vars: RestoreCancelledCheckinPublicVariables): MutationPromise<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+export function restoreCancelledCheckinPublic(dc: DataConnect, vars: RestoreCancelledCheckinPublicVariables): MutationPromise<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+
 interface GetPlannedAttendeeRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: GetPlannedAttendeeVariables): QueryRef<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
@@ -875,6 +985,18 @@ export const getPlannedAttendeeRef: GetPlannedAttendeeRef;
 
 export function getPlannedAttendee(vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
 export function getPlannedAttendee(dc: DataConnect, vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+
+interface GetPlannedAttendeeForCheckinRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPlannedAttendeeForCheckinVariables): QueryRef<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetPlannedAttendeeForCheckinVariables): QueryRef<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+  operationName: string;
+}
+export const getPlannedAttendeeForCheckinRef: GetPlannedAttendeeForCheckinRef;
+
+export function getPlannedAttendeeForCheckin(vars: GetPlannedAttendeeForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+export function getPlannedAttendeeForCheckin(dc: DataConnect, vars: GetPlannedAttendeeForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
 
 interface ListPlannedAttendeesRef {
   /* Allow users to create refs without passing in DataConnect */

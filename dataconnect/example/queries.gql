@@ -79,6 +79,29 @@ query GetPersonForCheckin($personalId: String!)
   }
 }
 
+query SearchPeopleForCheckin(
+  $name: String! = ""
+  $limit: Int = 50
+) @auth(level: PUBLIC, insecureReason: "会場QR受付で登録済み参加者を氏名検索するため。") {
+  people(
+    where: { name: { contains: $name } }
+    orderBy: [{ personalId: ASC }]
+    limit: $limit
+  ) {
+    personalId
+    name
+    email
+    company {
+      memberNo
+      companyName
+      branch
+      district
+      block
+      email
+    }
+  }
+}
+
 # 受付時の対象者確認は、名簿全件を読み込まず複合主キーで1件だけ取得する。
 query GetTrainingTargetForCheckin(
   $trainingId: String!
@@ -110,6 +133,37 @@ mutation RegisterPersonalCheckin(
   $checkinMethod: String!
 ) @transaction
   @auth(level: PUBLIC, insecureReason: "SQL受付検証環境の並列受付試験に限定して使用するため。") {
+  checkin_insert(
+    data: {
+      checkinId: $checkinId
+      trainingId: $trainingId
+      memberNo: $memberNo
+      personalId: $personalId
+      attendanceUnit: "PERSONAL"
+      targetId: $personalId
+      checkinMethod: $checkinMethod
+    }
+  )
+}
+
+mutation RegisterNewPersonalCheckin(
+  $checkinId: String!
+  $trainingId: String!
+  $memberNo: String!
+  $personalId: String!
+  $participantName: String!
+  $email: String
+  $checkinMethod: String!
+) @transaction
+  @auth(level: PUBLIC, insecureReason: "会場QR受付で一覧にない社員本人を登録して受付するため。") {
+  person_upsert(
+    data: {
+      personalId: $personalId
+      memberNo: $memberNo
+      name: $participantName
+      email: $email
+    }
+  )
   checkin_insert(
     data: {
       checkinId: $checkinId

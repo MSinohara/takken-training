@@ -11,7 +11,10 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListTrainings*](#listtrainings)
   - [*SearchMemberCompanies*](#searchmembercompanies)
   - [*GetPersonForCheckin*](#getpersonforcheckin)
+  - [*SearchPeopleForCheckin*](#searchpeopleforcheckin)
   - [*GetTrainingTargetForCheckin*](#gettrainingtargetforcheckin)
+  - [*RecentGuestCheckins*](#recentguestcheckins)
+  - [*GuestCheckinSummary*](#guestcheckinsummary)
   - [*RecentCheckins*](#recentcheckins)
   - [*TrainingCheckinSummary*](#trainingcheckinsummary)
   - [*SearchTrainingTargets*](#searchtrainingtargets)
@@ -22,15 +25,20 @@ This README will guide you through the process of using the generated JavaScript
   - [*SearchUncheckedCompanyTargets*](#searchuncheckedcompanytargets)
   - [*GetCheckin*](#getcheckin)
   - [*ListCheckinHistory*](#listcheckinhistory)
+  - [*GetPlannedAttendee*](#getplannedattendee)
+  - [*GetPlannedAttendeeForCheckin*](#getplannedattendeeforcheckin)
   - [*ListPlannedAttendees*](#listplannedattendees)
   - [*PlannedAttendeeSummary*](#plannedattendeesummary)
   - [*ListCheckedPlannedPersonal*](#listcheckedplannedpersonal)
   - [*ListCheckedPlannedCompany*](#listcheckedplannedcompany)
 - [**Mutations**](#mutations)
   - [*RegisterPersonalCheckin*](#registerpersonalcheckin)
+  - [*RegisterNewPersonalCheckin*](#registernewpersonalcheckin)
   - [*RegisterCompanyCheckin*](#registercompanycheckin)
+  - [*RegisterGuestCheckin*](#registerguestcheckin)
   - [*CancelCheckin*](#cancelcheckin)
   - [*RestoreCheckin*](#restorecheckin)
+  - [*RestoreCancelledCheckinPublic*](#restorecancelledcheckinpublic)
   - [*AddPlannedAttendee*](#addplannedattendee)
   - [*RemovePlannedAttendee*](#removeplannedattendee)
 
@@ -250,10 +258,10 @@ The `SearchMemberCompanies` query has an optional argument of type `SearchMember
 
 ```typescript
 export interface SearchMemberCompaniesVariables {
-  memberNo?: string | null;
-  companyName?: string | null;
-  branch?: string | null;
-  district?: string | null;
+  memberNo?: string;
+  companyName?: string;
+  branch?: string;
+  district?: string;
   limit?: number | null;
   offset?: number | null;
 }
@@ -476,6 +484,134 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## SearchPeopleForCheckin
+You can execute the `SearchPeopleForCheckin` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+searchPeopleForCheckin(vars?: SearchPeopleForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+
+interface SearchPeopleForCheckinRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: SearchPeopleForCheckinVariables): QueryRef<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+}
+export const searchPeopleForCheckinRef: SearchPeopleForCheckinRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+searchPeopleForCheckin(dc: DataConnect, vars?: SearchPeopleForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+
+interface SearchPeopleForCheckinRef {
+  ...
+  (dc: DataConnect, vars?: SearchPeopleForCheckinVariables): QueryRef<SearchPeopleForCheckinData, SearchPeopleForCheckinVariables>;
+}
+export const searchPeopleForCheckinRef: SearchPeopleForCheckinRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the searchPeopleForCheckinRef:
+```typescript
+const name = searchPeopleForCheckinRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SearchPeopleForCheckin` query has an optional argument of type `SearchPeopleForCheckinVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SearchPeopleForCheckinVariables {
+  name?: string;
+  limit?: number | null;
+}
+```
+### Return Type
+Recall that executing the `SearchPeopleForCheckin` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SearchPeopleForCheckinData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SearchPeopleForCheckinData {
+  people: ({
+    personalId: string;
+    name: string;
+    email?: string | null;
+    company: {
+      memberNo: string;
+      companyName: string;
+      branch: string;
+      district?: string | null;
+      block: string;
+      email?: string | null;
+    } & MemberCompany_Key;
+  } & Person_Key)[];
+}
+```
+### Using `SearchPeopleForCheckin`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, searchPeopleForCheckin, SearchPeopleForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `SearchPeopleForCheckin` query has an optional argument of type `SearchPeopleForCheckinVariables`:
+const searchPeopleForCheckinVars: SearchPeopleForCheckinVariables = {
+  name: ..., // optional
+  limit: ..., // optional
+};
+
+// Call the `searchPeopleForCheckin()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await searchPeopleForCheckin(searchPeopleForCheckinVars);
+// Variables can be defined inline as well.
+const { data } = await searchPeopleForCheckin({ name: ..., limit: ..., });
+// Since all variables are optional for this query, you can omit the `SearchPeopleForCheckinVariables` argument.
+const { data } = await searchPeopleForCheckin();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await searchPeopleForCheckin(dataConnect, searchPeopleForCheckinVars);
+
+console.log(data.people);
+
+// Or, you can use the `Promise` API.
+searchPeopleForCheckin(searchPeopleForCheckinVars).then((response) => {
+  const data = response.data;
+  console.log(data.people);
+});
+```
+
+### Using `SearchPeopleForCheckin`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, searchPeopleForCheckinRef, SearchPeopleForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `SearchPeopleForCheckin` query has an optional argument of type `SearchPeopleForCheckinVariables`:
+const searchPeopleForCheckinVars: SearchPeopleForCheckinVariables = {
+  name: ..., // optional
+  limit: ..., // optional
+};
+
+// Call the `searchPeopleForCheckinRef()` function to get a reference to the query.
+const ref = searchPeopleForCheckinRef(searchPeopleForCheckinVars);
+// Variables can be defined inline as well.
+const ref = searchPeopleForCheckinRef({ name: ..., limit: ..., });
+// Since all variables are optional for this query, you can omit the `SearchPeopleForCheckinVariables` argument.
+const ref = searchPeopleForCheckinRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = searchPeopleForCheckinRef(dataConnect, searchPeopleForCheckinVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.people);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.people);
+});
+```
+
 ## GetTrainingTargetForCheckin
 You can execute the `GetTrainingTargetForCheckin` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
 ```typescript
@@ -596,6 +732,238 @@ console.log(data.trainingTarget);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.trainingTarget);
+});
+```
+
+## RecentGuestCheckins
+You can execute the `RecentGuestCheckins` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+recentGuestCheckins(vars: RecentGuestCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+
+interface RecentGuestCheckinsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RecentGuestCheckinsVariables): QueryRef<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+}
+export const recentGuestCheckinsRef: RecentGuestCheckinsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+recentGuestCheckins(dc: DataConnect, vars: RecentGuestCheckinsVariables, options?: ExecuteQueryOptions): QueryPromise<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+
+interface RecentGuestCheckinsRef {
+  ...
+  (dc: DataConnect, vars: RecentGuestCheckinsVariables): QueryRef<RecentGuestCheckinsData, RecentGuestCheckinsVariables>;
+}
+export const recentGuestCheckinsRef: RecentGuestCheckinsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the recentGuestCheckinsRef:
+```typescript
+const name = recentGuestCheckinsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RecentGuestCheckins` query requires an argument of type `RecentGuestCheckinsVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RecentGuestCheckinsVariables {
+  trainingId: string;
+  limit?: number | null;
+}
+```
+### Return Type
+Recall that executing the `RecentGuestCheckins` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RecentGuestCheckinsData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RecentGuestCheckinsData {
+  guestCheckins: ({
+    checkinId: string;
+    checkedInAt: TimestampString;
+    checkinMethod: string;
+    participantName: string;
+    organizationName?: string | null;
+    block?: string | null;
+    branch?: string | null;
+    receptionCategory: string;
+  } & GuestCheckin_Key)[];
+}
+```
+### Using `RecentGuestCheckins`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, recentGuestCheckins, RecentGuestCheckinsVariables } from '@takken-training/sql-dataconnect';
+
+// The `RecentGuestCheckins` query requires an argument of type `RecentGuestCheckinsVariables`:
+const recentGuestCheckinsVars: RecentGuestCheckinsVariables = {
+  trainingId: ..., 
+  limit: ..., // optional
+};
+
+// Call the `recentGuestCheckins()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await recentGuestCheckins(recentGuestCheckinsVars);
+// Variables can be defined inline as well.
+const { data } = await recentGuestCheckins({ trainingId: ..., limit: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await recentGuestCheckins(dataConnect, recentGuestCheckinsVars);
+
+console.log(data.guestCheckins);
+
+// Or, you can use the `Promise` API.
+recentGuestCheckins(recentGuestCheckinsVars).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckins);
+});
+```
+
+### Using `RecentGuestCheckins`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, recentGuestCheckinsRef, RecentGuestCheckinsVariables } from '@takken-training/sql-dataconnect';
+
+// The `RecentGuestCheckins` query requires an argument of type `RecentGuestCheckinsVariables`:
+const recentGuestCheckinsVars: RecentGuestCheckinsVariables = {
+  trainingId: ..., 
+  limit: ..., // optional
+};
+
+// Call the `recentGuestCheckinsRef()` function to get a reference to the query.
+const ref = recentGuestCheckinsRef(recentGuestCheckinsVars);
+// Variables can be defined inline as well.
+const ref = recentGuestCheckinsRef({ trainingId: ..., limit: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = recentGuestCheckinsRef(dataConnect, recentGuestCheckinsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.guestCheckins);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckins);
+});
+```
+
+## GuestCheckinSummary
+You can execute the `GuestCheckinSummary` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+guestCheckinSummary(vars: GuestCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+
+interface GuestCheckinSummaryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GuestCheckinSummaryVariables): QueryRef<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+}
+export const guestCheckinSummaryRef: GuestCheckinSummaryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+guestCheckinSummary(dc: DataConnect, vars: GuestCheckinSummaryVariables, options?: ExecuteQueryOptions): QueryPromise<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+
+interface GuestCheckinSummaryRef {
+  ...
+  (dc: DataConnect, vars: GuestCheckinSummaryVariables): QueryRef<GuestCheckinSummaryData, GuestCheckinSummaryVariables>;
+}
+export const guestCheckinSummaryRef: GuestCheckinSummaryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the guestCheckinSummaryRef:
+```typescript
+const name = guestCheckinSummaryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GuestCheckinSummary` query requires an argument of type `GuestCheckinSummaryVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GuestCheckinSummaryVariables {
+  trainingId: string;
+}
+```
+### Return Type
+Recall that executing the `GuestCheckinSummary` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GuestCheckinSummaryData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GuestCheckinSummaryData {
+  guestCheckins: ({
+    _count: number;
+  })[];
+}
+```
+### Using `GuestCheckinSummary`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, guestCheckinSummary, GuestCheckinSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `GuestCheckinSummary` query requires an argument of type `GuestCheckinSummaryVariables`:
+const guestCheckinSummaryVars: GuestCheckinSummaryVariables = {
+  trainingId: ..., 
+};
+
+// Call the `guestCheckinSummary()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await guestCheckinSummary(guestCheckinSummaryVars);
+// Variables can be defined inline as well.
+const { data } = await guestCheckinSummary({ trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await guestCheckinSummary(dataConnect, guestCheckinSummaryVars);
+
+console.log(data.guestCheckins);
+
+// Or, you can use the `Promise` API.
+guestCheckinSummary(guestCheckinSummaryVars).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckins);
+});
+```
+
+### Using `GuestCheckinSummary`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, guestCheckinSummaryRef, GuestCheckinSummaryVariables } from '@takken-training/sql-dataconnect';
+
+// The `GuestCheckinSummary` query requires an argument of type `GuestCheckinSummaryVariables`:
+const guestCheckinSummaryVars: GuestCheckinSummaryVariables = {
+  trainingId: ..., 
+};
+
+// Call the `guestCheckinSummaryRef()` function to get a reference to the query.
+const ref = guestCheckinSummaryRef(guestCheckinSummaryVars);
+// Variables can be defined inline as well.
+const ref = guestCheckinSummaryRef({ trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = guestCheckinSummaryRef(dataConnect, guestCheckinSummaryVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.guestCheckins);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckins);
 });
 ```
 
@@ -1911,6 +2279,245 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## GetPlannedAttendee
+You can execute the `GetPlannedAttendee` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+getPlannedAttendee(vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+
+interface GetPlannedAttendeeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPlannedAttendeeVariables): QueryRef<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+}
+export const getPlannedAttendeeRef: GetPlannedAttendeeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getPlannedAttendee(dc: DataConnect, vars: GetPlannedAttendeeVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+
+interface GetPlannedAttendeeRef {
+  ...
+  (dc: DataConnect, vars: GetPlannedAttendeeVariables): QueryRef<GetPlannedAttendeeData, GetPlannedAttendeeVariables>;
+}
+export const getPlannedAttendeeRef: GetPlannedAttendeeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getPlannedAttendeeRef:
+```typescript
+const name = getPlannedAttendeeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetPlannedAttendee` query requires an argument of type `GetPlannedAttendeeVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetPlannedAttendeeVariables {
+  plannedId: string;
+}
+```
+### Return Type
+Recall that executing the `GetPlannedAttendee` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetPlannedAttendeeData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetPlannedAttendeeData {
+  plannedAttendee?: {
+    plannedId: string;
+    active: boolean;
+  } & PlannedAttendee_Key;
+}
+```
+### Using `GetPlannedAttendee`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getPlannedAttendee, GetPlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetPlannedAttendee` query requires an argument of type `GetPlannedAttendeeVariables`:
+const getPlannedAttendeeVars: GetPlannedAttendeeVariables = {
+  plannedId: ..., 
+};
+
+// Call the `getPlannedAttendee()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getPlannedAttendee(getPlannedAttendeeVars);
+// Variables can be defined inline as well.
+const { data } = await getPlannedAttendee({ plannedId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getPlannedAttendee(dataConnect, getPlannedAttendeeVars);
+
+console.log(data.plannedAttendee);
+
+// Or, you can use the `Promise` API.
+getPlannedAttendee(getPlannedAttendeeVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee);
+});
+```
+
+### Using `GetPlannedAttendee`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getPlannedAttendeeRef, GetPlannedAttendeeVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetPlannedAttendee` query requires an argument of type `GetPlannedAttendeeVariables`:
+const getPlannedAttendeeVars: GetPlannedAttendeeVariables = {
+  plannedId: ..., 
+};
+
+// Call the `getPlannedAttendeeRef()` function to get a reference to the query.
+const ref = getPlannedAttendeeRef(getPlannedAttendeeVars);
+// Variables can be defined inline as well.
+const ref = getPlannedAttendeeRef({ plannedId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getPlannedAttendeeRef(dataConnect, getPlannedAttendeeVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.plannedAttendee);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendee);
+});
+```
+
+## GetPlannedAttendeeForCheckin
+You can execute the `GetPlannedAttendeeForCheckin` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+getPlannedAttendeeForCheckin(vars: GetPlannedAttendeeForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+
+interface GetPlannedAttendeeForCheckinRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPlannedAttendeeForCheckinVariables): QueryRef<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+}
+export const getPlannedAttendeeForCheckinRef: GetPlannedAttendeeForCheckinRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getPlannedAttendeeForCheckin(dc: DataConnect, vars: GetPlannedAttendeeForCheckinVariables, options?: ExecuteQueryOptions): QueryPromise<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+
+interface GetPlannedAttendeeForCheckinRef {
+  ...
+  (dc: DataConnect, vars: GetPlannedAttendeeForCheckinVariables): QueryRef<GetPlannedAttendeeForCheckinData, GetPlannedAttendeeForCheckinVariables>;
+}
+export const getPlannedAttendeeForCheckinRef: GetPlannedAttendeeForCheckinRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getPlannedAttendeeForCheckinRef:
+```typescript
+const name = getPlannedAttendeeForCheckinRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetPlannedAttendeeForCheckin` query requires an argument of type `GetPlannedAttendeeForCheckinVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetPlannedAttendeeForCheckinVariables {
+  plannedId: string;
+  trainingId: string;
+}
+```
+### Return Type
+Recall that executing the `GetPlannedAttendeeForCheckin` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetPlannedAttendeeForCheckinData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetPlannedAttendeeForCheckinData {
+  plannedAttendees: ({
+    plannedId: string;
+    targetType: string;
+    targetId: string;
+    memberNo?: string | null;
+    personalId?: string | null;
+    participantName?: string | null;
+    company?: {
+      memberNo: string;
+      companyName: string;
+    } & MemberCompany_Key;
+    person?: {
+      personalId: string;
+      name: string;
+    } & Person_Key;
+  } & PlannedAttendee_Key)[];
+}
+```
+### Using `GetPlannedAttendeeForCheckin`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getPlannedAttendeeForCheckin, GetPlannedAttendeeForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetPlannedAttendeeForCheckin` query requires an argument of type `GetPlannedAttendeeForCheckinVariables`:
+const getPlannedAttendeeForCheckinVars: GetPlannedAttendeeForCheckinVariables = {
+  plannedId: ..., 
+  trainingId: ..., 
+};
+
+// Call the `getPlannedAttendeeForCheckin()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getPlannedAttendeeForCheckin(getPlannedAttendeeForCheckinVars);
+// Variables can be defined inline as well.
+const { data } = await getPlannedAttendeeForCheckin({ plannedId: ..., trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getPlannedAttendeeForCheckin(dataConnect, getPlannedAttendeeForCheckinVars);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+getPlannedAttendeeForCheckin(getPlannedAttendeeForCheckinVars).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
+### Using `GetPlannedAttendeeForCheckin`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getPlannedAttendeeForCheckinRef, GetPlannedAttendeeForCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `GetPlannedAttendeeForCheckin` query requires an argument of type `GetPlannedAttendeeForCheckinVariables`:
+const getPlannedAttendeeForCheckinVars: GetPlannedAttendeeForCheckinVariables = {
+  plannedId: ..., 
+  trainingId: ..., 
+};
+
+// Call the `getPlannedAttendeeForCheckinRef()` function to get a reference to the query.
+const ref = getPlannedAttendeeForCheckinRef(getPlannedAttendeeForCheckinVars);
+// Variables can be defined inline as well.
+const ref = getPlannedAttendeeForCheckinRef({ plannedId: ..., trainingId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getPlannedAttendeeForCheckinRef(dataConnect, getPlannedAttendeeForCheckinVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.plannedAttendees);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.plannedAttendees);
+});
+```
+
 ## ListPlannedAttendees
 You can execute the `ListPlannedAttendees` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
 ```typescript
@@ -2595,6 +3202,138 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## RegisterNewPersonalCheckin
+You can execute the `RegisterNewPersonalCheckin` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+registerNewPersonalCheckin(vars: RegisterNewPersonalCheckinVariables): MutationPromise<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+
+interface RegisterNewPersonalCheckinRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RegisterNewPersonalCheckinVariables): MutationRef<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+}
+export const registerNewPersonalCheckinRef: RegisterNewPersonalCheckinRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+registerNewPersonalCheckin(dc: DataConnect, vars: RegisterNewPersonalCheckinVariables): MutationPromise<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+
+interface RegisterNewPersonalCheckinRef {
+  ...
+  (dc: DataConnect, vars: RegisterNewPersonalCheckinVariables): MutationRef<RegisterNewPersonalCheckinData, RegisterNewPersonalCheckinVariables>;
+}
+export const registerNewPersonalCheckinRef: RegisterNewPersonalCheckinRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the registerNewPersonalCheckinRef:
+```typescript
+const name = registerNewPersonalCheckinRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RegisterNewPersonalCheckin` mutation requires an argument of type `RegisterNewPersonalCheckinVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RegisterNewPersonalCheckinVariables {
+  checkinId: string;
+  trainingId: string;
+  memberNo: string;
+  personalId: string;
+  participantName: string;
+  email?: string | null;
+  checkinMethod: string;
+}
+```
+### Return Type
+Recall that executing the `RegisterNewPersonalCheckin` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RegisterNewPersonalCheckinData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RegisterNewPersonalCheckinData {
+  person_upsert: Person_Key;
+  checkin_insert: Checkin_Key;
+}
+```
+### Using `RegisterNewPersonalCheckin`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, registerNewPersonalCheckin, RegisterNewPersonalCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `RegisterNewPersonalCheckin` mutation requires an argument of type `RegisterNewPersonalCheckinVariables`:
+const registerNewPersonalCheckinVars: RegisterNewPersonalCheckinVariables = {
+  checkinId: ..., 
+  trainingId: ..., 
+  memberNo: ..., 
+  personalId: ..., 
+  participantName: ..., 
+  email: ..., // optional
+  checkinMethod: ..., 
+};
+
+// Call the `registerNewPersonalCheckin()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await registerNewPersonalCheckin(registerNewPersonalCheckinVars);
+// Variables can be defined inline as well.
+const { data } = await registerNewPersonalCheckin({ checkinId: ..., trainingId: ..., memberNo: ..., personalId: ..., participantName: ..., email: ..., checkinMethod: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await registerNewPersonalCheckin(dataConnect, registerNewPersonalCheckinVars);
+
+console.log(data.person_upsert);
+console.log(data.checkin_insert);
+
+// Or, you can use the `Promise` API.
+registerNewPersonalCheckin(registerNewPersonalCheckinVars).then((response) => {
+  const data = response.data;
+  console.log(data.person_upsert);
+  console.log(data.checkin_insert);
+});
+```
+
+### Using `RegisterNewPersonalCheckin`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, registerNewPersonalCheckinRef, RegisterNewPersonalCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `RegisterNewPersonalCheckin` mutation requires an argument of type `RegisterNewPersonalCheckinVariables`:
+const registerNewPersonalCheckinVars: RegisterNewPersonalCheckinVariables = {
+  checkinId: ..., 
+  trainingId: ..., 
+  memberNo: ..., 
+  personalId: ..., 
+  participantName: ..., 
+  email: ..., // optional
+  checkinMethod: ..., 
+};
+
+// Call the `registerNewPersonalCheckinRef()` function to get a reference to the mutation.
+const ref = registerNewPersonalCheckinRef(registerNewPersonalCheckinVars);
+// Variables can be defined inline as well.
+const ref = registerNewPersonalCheckinRef({ checkinId: ..., trainingId: ..., memberNo: ..., personalId: ..., participantName: ..., email: ..., checkinMethod: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = registerNewPersonalCheckinRef(dataConnect, registerNewPersonalCheckinVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.person_upsert);
+console.log(data.checkin_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.person_upsert);
+  console.log(data.checkin_insert);
+});
+```
+
 ## RegisterCompanyCheckin
 You can execute the `RegisterCompanyCheckin` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
 ```typescript
@@ -2710,6 +3449,145 @@ console.log(data.checkin_insert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.checkin_insert);
+});
+```
+
+## RegisterGuestCheckin
+You can execute the `RegisterGuestCheckin` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+registerGuestCheckin(vars: RegisterGuestCheckinVariables): MutationPromise<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+
+interface RegisterGuestCheckinRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RegisterGuestCheckinVariables): MutationRef<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+}
+export const registerGuestCheckinRef: RegisterGuestCheckinRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+registerGuestCheckin(dc: DataConnect, vars: RegisterGuestCheckinVariables): MutationPromise<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+
+interface RegisterGuestCheckinRef {
+  ...
+  (dc: DataConnect, vars: RegisterGuestCheckinVariables): MutationRef<RegisterGuestCheckinData, RegisterGuestCheckinVariables>;
+}
+export const registerGuestCheckinRef: RegisterGuestCheckinRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the registerGuestCheckinRef:
+```typescript
+const name = registerGuestCheckinRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RegisterGuestCheckin` mutation requires an argument of type `RegisterGuestCheckinVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RegisterGuestCheckinVariables {
+  checkinId: string;
+  trainingId: string;
+  guestKey: string;
+  participantName: string;
+  organizationName?: string | null;
+  block?: string | null;
+  branch?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  receptionCategory?: string;
+  checkinMethod: string;
+}
+```
+### Return Type
+Recall that executing the `RegisterGuestCheckin` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RegisterGuestCheckinData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RegisterGuestCheckinData {
+  guestCheckin_insert: GuestCheckin_Key;
+}
+```
+### Using `RegisterGuestCheckin`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, registerGuestCheckin, RegisterGuestCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `RegisterGuestCheckin` mutation requires an argument of type `RegisterGuestCheckinVariables`:
+const registerGuestCheckinVars: RegisterGuestCheckinVariables = {
+  checkinId: ..., 
+  trainingId: ..., 
+  guestKey: ..., 
+  participantName: ..., 
+  organizationName: ..., // optional
+  block: ..., // optional
+  branch: ..., // optional
+  email: ..., // optional
+  phone: ..., // optional
+  receptionCategory: ..., // optional
+  checkinMethod: ..., 
+};
+
+// Call the `registerGuestCheckin()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await registerGuestCheckin(registerGuestCheckinVars);
+// Variables can be defined inline as well.
+const { data } = await registerGuestCheckin({ checkinId: ..., trainingId: ..., guestKey: ..., participantName: ..., organizationName: ..., block: ..., branch: ..., email: ..., phone: ..., receptionCategory: ..., checkinMethod: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await registerGuestCheckin(dataConnect, registerGuestCheckinVars);
+
+console.log(data.guestCheckin_insert);
+
+// Or, you can use the `Promise` API.
+registerGuestCheckin(registerGuestCheckinVars).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckin_insert);
+});
+```
+
+### Using `RegisterGuestCheckin`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, registerGuestCheckinRef, RegisterGuestCheckinVariables } from '@takken-training/sql-dataconnect';
+
+// The `RegisterGuestCheckin` mutation requires an argument of type `RegisterGuestCheckinVariables`:
+const registerGuestCheckinVars: RegisterGuestCheckinVariables = {
+  checkinId: ..., 
+  trainingId: ..., 
+  guestKey: ..., 
+  participantName: ..., 
+  organizationName: ..., // optional
+  block: ..., // optional
+  branch: ..., // optional
+  email: ..., // optional
+  phone: ..., // optional
+  receptionCategory: ..., // optional
+  checkinMethod: ..., 
+};
+
+// Call the `registerGuestCheckinRef()` function to get a reference to the mutation.
+const ref = registerGuestCheckinRef(registerGuestCheckinVars);
+// Variables can be defined inline as well.
+const ref = registerGuestCheckinRef({ checkinId: ..., trainingId: ..., guestKey: ..., participantName: ..., organizationName: ..., block: ..., branch: ..., email: ..., phone: ..., receptionCategory: ..., checkinMethod: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = registerGuestCheckinRef(dataConnect, registerGuestCheckinVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.guestCheckin_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.guestCheckin_insert);
 });
 ```
 
@@ -2946,6 +3824,118 @@ console.log(data.checkin_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.checkin_update);
+});
+```
+
+## RestoreCancelledCheckinPublic
+You can execute the `RestoreCancelledCheckinPublic` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [generated/index.d.ts](./index.d.ts):
+```typescript
+restoreCancelledCheckinPublic(vars: RestoreCancelledCheckinPublicVariables): MutationPromise<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+
+interface RestoreCancelledCheckinPublicRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RestoreCancelledCheckinPublicVariables): MutationRef<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+}
+export const restoreCancelledCheckinPublicRef: RestoreCancelledCheckinPublicRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+restoreCancelledCheckinPublic(dc: DataConnect, vars: RestoreCancelledCheckinPublicVariables): MutationPromise<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+
+interface RestoreCancelledCheckinPublicRef {
+  ...
+  (dc: DataConnect, vars: RestoreCancelledCheckinPublicVariables): MutationRef<RestoreCancelledCheckinPublicData, RestoreCancelledCheckinPublicVariables>;
+}
+export const restoreCancelledCheckinPublicRef: RestoreCancelledCheckinPublicRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the restoreCancelledCheckinPublicRef:
+```typescript
+const name = restoreCancelledCheckinPublicRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RestoreCancelledCheckinPublic` mutation requires an argument of type `RestoreCancelledCheckinPublicVariables`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RestoreCancelledCheckinPublicVariables {
+  checkinId: string;
+  changedAt: TimestampString;
+}
+```
+### Return Type
+Recall that executing the `RestoreCancelledCheckinPublic` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RestoreCancelledCheckinPublicData`, which is defined in [generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RestoreCancelledCheckinPublicData {
+  checkin_updateMany: number;
+}
+```
+### Using `RestoreCancelledCheckinPublic`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, restoreCancelledCheckinPublic, RestoreCancelledCheckinPublicVariables } from '@takken-training/sql-dataconnect';
+
+// The `RestoreCancelledCheckinPublic` mutation requires an argument of type `RestoreCancelledCheckinPublicVariables`:
+const restoreCancelledCheckinPublicVars: RestoreCancelledCheckinPublicVariables = {
+  checkinId: ..., 
+  changedAt: ..., 
+};
+
+// Call the `restoreCancelledCheckinPublic()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await restoreCancelledCheckinPublic(restoreCancelledCheckinPublicVars);
+// Variables can be defined inline as well.
+const { data } = await restoreCancelledCheckinPublic({ checkinId: ..., changedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await restoreCancelledCheckinPublic(dataConnect, restoreCancelledCheckinPublicVars);
+
+console.log(data.checkin_updateMany);
+
+// Or, you can use the `Promise` API.
+restoreCancelledCheckinPublic(restoreCancelledCheckinPublicVars).then((response) => {
+  const data = response.data;
+  console.log(data.checkin_updateMany);
+});
+```
+
+### Using `RestoreCancelledCheckinPublic`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, restoreCancelledCheckinPublicRef, RestoreCancelledCheckinPublicVariables } from '@takken-training/sql-dataconnect';
+
+// The `RestoreCancelledCheckinPublic` mutation requires an argument of type `RestoreCancelledCheckinPublicVariables`:
+const restoreCancelledCheckinPublicVars: RestoreCancelledCheckinPublicVariables = {
+  checkinId: ..., 
+  changedAt: ..., 
+};
+
+// Call the `restoreCancelledCheckinPublicRef()` function to get a reference to the mutation.
+const ref = restoreCancelledCheckinPublicRef(restoreCancelledCheckinPublicVars);
+// Variables can be defined inline as well.
+const ref = restoreCancelledCheckinPublicRef({ checkinId: ..., changedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = restoreCancelledCheckinPublicRef(dataConnect, restoreCancelledCheckinPublicVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.checkin_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.checkin_updateMany);
 });
 ```
 

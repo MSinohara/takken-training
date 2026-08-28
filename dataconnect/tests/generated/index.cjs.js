@@ -58,6 +58,21 @@ exports.getPersonForCheckin = function getPersonForCheckin(dcOrVars, varsOrOptio
 }
 ;
 
+const searchPeopleForCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchPeopleForCheckin', inputVars);
+}
+searchPeopleForCheckinRef.operationName = 'SearchPeopleForCheckin';
+exports.searchPeopleForCheckinRef = searchPeopleForCheckinRef;
+
+exports.searchPeopleForCheckin = function searchPeopleForCheckin(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(searchPeopleForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const getTrainingTargetForCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -84,6 +99,20 @@ exports.registerPersonalCheckinRef = registerPersonalCheckinRef;
 exports.registerPersonalCheckin = function registerPersonalCheckin(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(registerPersonalCheckinRef(dcInstance, inputVars));
+}
+;
+
+const registerNewPersonalCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RegisterNewPersonalCheckin', inputVars);
+}
+registerNewPersonalCheckinRef.operationName = 'RegisterNewPersonalCheckin';
+exports.registerNewPersonalCheckinRef = registerNewPersonalCheckinRef;
+
+exports.registerNewPersonalCheckin = function registerNewPersonalCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(registerNewPersonalCheckinRef(dcInstance, inputVars));
 }
 ;
 
@@ -323,6 +352,20 @@ exports.restoreCheckin = function restoreCheckin(dcOrVars, vars) {
 }
 ;
 
+const restoreCancelledCheckinPublicRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RestoreCancelledCheckinPublic', inputVars);
+}
+restoreCancelledCheckinPublicRef.operationName = 'RestoreCancelledCheckinPublic';
+exports.restoreCancelledCheckinPublicRef = restoreCancelledCheckinPublicRef;
+
+exports.restoreCancelledCheckinPublic = function restoreCancelledCheckinPublic(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(restoreCancelledCheckinPublicRef(dcInstance, inputVars));
+}
+;
+
 const getPlannedAttendeeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -335,6 +378,21 @@ exports.getPlannedAttendee = function getPlannedAttendee(dcOrVars, varsOrOptions
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getPlannedAttendeeRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getPlannedAttendeeForCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPlannedAttendeeForCheckin', inputVars);
+}
+getPlannedAttendeeForCheckinRef.operationName = 'GetPlannedAttendeeForCheckin';
+exports.getPlannedAttendeeForCheckinRef = getPlannedAttendeeForCheckinRef;
+
+exports.getPlannedAttendeeForCheckin = function getPlannedAttendeeForCheckin(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getPlannedAttendeeForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

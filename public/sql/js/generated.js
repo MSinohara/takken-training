@@ -49,6 +49,18 @@ export function getPersonForCheckin(dcOrVars, varsOrOptions, options) {
   return executeQuery(getPersonForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
+export const searchPeopleForCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchPeopleForCheckin', inputVars);
+}
+searchPeopleForCheckinRef.operationName = 'SearchPeopleForCheckin';
+
+export function searchPeopleForCheckin(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(searchPeopleForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const getTrainingTargetForCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -72,6 +84,18 @@ registerPersonalCheckinRef.operationName = 'RegisterPersonalCheckin';
 export function registerPersonalCheckin(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(registerPersonalCheckinRef(dcInstance, inputVars));
+}
+
+export const registerNewPersonalCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RegisterNewPersonalCheckin', inputVars);
+}
+registerNewPersonalCheckinRef.operationName = 'RegisterNewPersonalCheckin';
+
+export function registerNewPersonalCheckin(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(registerNewPersonalCheckinRef(dcInstance, inputVars));
 }
 
 export const registerCompanyCheckinRef = (dcOrVars, vars) => {
