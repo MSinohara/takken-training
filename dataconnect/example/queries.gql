@@ -531,6 +531,26 @@ mutation RestoreCheckin(
   )
 }
 
+# 係員が取り消した受付を、参加者本人が会場QRから再受付する場合だけ使用する。
+# 通常の新規受付はUNIQUE制約で止まり、画面側で取消済みを確認してから呼び出す。
+mutation RestoreCancelledCheckinPublic(
+  $checkinId: String!
+  $changedAt: Timestamp!
+) @auth(level: PUBLIC, insecureReason: "係員取消後に参加者本人が会場QRから再受付するため。") {
+  checkin_updateMany(
+    where: {
+      checkinId: { eq: $checkinId }
+      cancelled: { eq: true }
+    }
+    data: {
+      cancelled: false
+      restoredAt: $changedAt
+      restoredBy: "会場QR再受付"
+      restoreReason: "参加者による再受付"
+    }
+  )
+}
+
 # 当日参加予定者は受付対象全体とは別に管理する。管理者だけが追加・削除できる。
 query GetPlannedAttendee($plannedId: String!)
   @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {

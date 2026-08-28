@@ -8,9 +8,9 @@ import {
   registerCompanyCheckin,
   registerGuestCheckin,
   registerPersonalCheckin,
-  restoreCheckin,
+  restoreCancelledCheckinPublic,
   searchMemberCompanies
-} from "./generated.js?v=19";
+} from "./generated.js?v=20";
 import { firebaseConfig } from "./config.js?v=17";
 
 const app = initializeApp(firebaseConfig);
@@ -138,11 +138,9 @@ async function restoreIfCancelled(checkinId) {
   try {
     const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
     if (!response.data.checkin?.cancelled) return false;
-    await restoreCheckin(dc, {
+    await restoreCancelledCheckinPublic(dc, {
       checkinId,
       changedAt: new Date().toISOString(),
-      operator: "係員受付",
-      reason: "再受付",
     });
     return true;
   } catch (error) {

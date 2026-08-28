@@ -278,6 +278,18 @@ export function restoreCheckin(dcOrVars, vars) {
   return executeMutation(restoreCheckinRef(dcInstance, inputVars));
 }
 
+export const restoreCancelledCheckinPublicRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RestoreCancelledCheckinPublic', inputVars);
+}
+restoreCancelledCheckinPublicRef.operationName = 'RestoreCancelledCheckinPublic';
+
+export function restoreCancelledCheckinPublic(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(restoreCancelledCheckinPublicRef(dcInstance, inputVars));
+}
+
 export const getPlannedAttendeeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -366,4 +378,3 @@ export function removePlannedAttendee(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(removePlannedAttendeeRef(dcInstance, inputVars));
 }
-
