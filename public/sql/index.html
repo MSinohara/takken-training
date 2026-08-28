@@ -12,6 +12,13 @@
 <body>
   <header><h1>会場受付</h1></header>
   <main>
+    <section id="resetPanel" class="panel" hidden>
+      <h2>登録情報の解除</h2>
+      <p id="resetTrainingName" class="status">研修会を確認中...</p>
+      <p>この端末に保存されている受付完了情報を解除します。登録を間違えた場合のみ使用してください。</p>
+      <div class="actions"><button id="clearReceipt" class="secondary">この端末の登録情報を解除する</button></div>
+      <p id="resetStatus" class="status"></p>
+    </section>
     <section id="receptionModePanel" class="panel reception-mode-panel">
       <h2>参加者の区分を選択</h2>
       <div class="reception-mode" role="group" aria-label="参加者の区分">
@@ -68,6 +75,6 @@
       <p class="hint">受付は完了しています。この画面を受付担当者にご提示ください。</p>
     </section>
   </main>
-  <script type="module" src="js/checkin.js?v=27"></script>
+  <script type="module" src="js/checkin.js?v=28"></script>
 </body>
 </html>

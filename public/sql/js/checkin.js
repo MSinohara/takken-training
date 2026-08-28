@@ -18,7 +18,9 @@ const dc = getDataConnect(app, connectorConfig);
 const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
 let trainings = [];
-const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
+const pageParams = new URLSearchParams(location.search);
+const requestedTrainingId = pageParams.get("event") || "";
+const resetMode = pageParams.get("reset") === "1";
 const receiptStorageKey = requestedTrainingId ? `takken_sql_receipt:${requestedTrainingId}` : "";
 const blockBranchMap = {
   "第一ブロック": ["千代田中央"],
@@ -199,6 +201,39 @@ function restoreCompletedReceipt() {
       console.warn("端末の受付完了情報を消去できませんでした。", storageError);
     }
     return false;
+  }
+}
+
+function showResetPanel() {
+  ["receptionModePanel", "memberSearchPanel", "companiesPanel", "peoplePanel", "guestPanel", "resultPanel"]
+    .forEach((id) => $(id).hidden = true);
+  const selected = selectedTraining();
+  $("resetTrainingName").textContent = selected
+    ? `${selected.title} / 開催日：${selected.eventDate || "-"}`
+    : "指定された研修会を確認できませんでした。";
+  $("resetPanel").hidden = false;
+  try {
+    $("resetStatus").textContent = receiptStorageKey && localStorage.getItem(receiptStorageKey)
+      ? "この端末には受付完了情報が保存されています。"
+      : "この端末には、この研修会の受付完了情報は保存されていません。";
+  } catch (error) {
+    $("resetStatus").textContent = "端末の登録情報を確認できませんでした。";
+    $("resetStatus").className = "status error";
+  }
+}
+
+function clearReceipt() {
+  try {
+    if (receiptStorageKey) localStorage.removeItem(receiptStorageKey);
+    localStorage.removeItem("takken_memberNo");
+    localStorage.removeItem("takken_companyName");
+    localStorage.removeItem("takken_registeredAt");
+    $("clearReceipt").disabled = true;
+    $("resetStatus").textContent = "この端末の登録情報を解除しました。";
+    $("resetStatus").className = "status ok";
+  } catch (error) {
+    $("resetStatus").textContent = "登録情報を解除できませんでした。端末のブラウザ設定を確認してください。";
+    $("resetStatus").className = "status error";
   }
 }
 
@@ -404,11 +439,16 @@ $("hideGuest").addEventListener("click", () => {
 });
 $("guestBlock").addEventListener("change", renderGuestBranches);
 $("registerGuest").addEventListener("click", checkinGuest);
+$("clearReceipt").addEventListener("click", clearReceipt);
 async function initializePublicCheckin() {
   $("search").disabled = true;
   $("clear").disabled = true;
   try {
     const ready = await loadTrainings();
+    if (ready && resetMode) {
+      showResetPanel();
+      return;
+    }
     if (ready && restoreCompletedReceipt()) return;
     $("search").disabled = !ready;
     $("clear").disabled = !ready;
