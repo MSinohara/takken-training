@@ -8,6 +8,10 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script type="module" src="sql/js/qr-checkin.js?v=17"></script>
 
 <style>
 main{
@@ -131,19 +135,10 @@ function loadPage(){
     return;
   }
 
-  jsonp(
-    "getTrainingDetailJsonp",
-    { event: eventId },
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">研修会情報を取得できませんでした。</span>';
-        return;
-      }
-
-      currentTraining =
-        res.training;
+  waitForSqlQr()
+    .then(function(api){ return api.getTraining(eventId); })
+    .then(function(training){
+      currentTraining = training;
 
       document.getElementById("status").style.display =
         "none";
@@ -166,11 +161,28 @@ function loadPage(){
         "業者番号：" + memberNo;
 
       doSelfCheckin();
-    }
-  );
+    })
+    .catch(function(error){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">研修会情報を取得できませんでした。' + escapeHtml(error.message || String(error)) + '</span>';
+    });
 }
 
-function doSelfCheckin(){
+function waitForSqlQr(){
+  if(window.sqlQrCheckin){ return Promise.resolve(window.sqlQrCheckin); }
+  return new Promise(function(resolve, reject){
+    const startedAt = Date.now();
+    const timer = setInterval(function(){
+      if(window.sqlQrCheckin){ clearInterval(timer); resolve(window.sqlQrCheckin); }
+      else if(Date.now() - startedAt >= 10000){
+        clearInterval(timer);
+        reject(new Error("SQL受付機能を読み込めませんでした。画面を再読み込みしてください。"));
+      }
+    }, 50);
+  });
+}
+
+async function doSelfCheckin(){
 
   if(!eventId){
     alert("研修IDがありません。");
@@ -191,14 +203,9 @@ function doSelfCheckin(){
   result.textContent =
     "読み取り済みです。受付登録中...";
 
-	jsonp(
-	  "registerCheckinJsonp",
-	  {
-	    event: eventId,
-	    code: "MEMBER:" + memberNo,
-	    method: "スマホ事前登録＋会場QR受付"
-	  },
-	  function(res){
+  try {
+      const api = await waitForSqlQr();
+      const res = await api.register(eventId, "MEMBER:" + memberNo, "スマホ事前登録＋会場QR受付");
 
       if(!res || !res.ok){
         result.innerHTML =
@@ -231,12 +238,10 @@ function doSelfCheckin(){
 
         'この画面を受付担当者にご提示ください。';
 
-      document.getElementById("checkinArea").style.display =
-        "none";
-    }
-    ,
-    60000
-  );
+      document.getElementById("checkinArea").style.display = "none";
+  } catch(error) {
+      result.innerHTML = '<span class="ng">' + escapeHtml(error.message || String(error)) + '</span>';
+  }
 }
 
 loadPage();

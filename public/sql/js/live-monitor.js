@@ -18,6 +18,7 @@ import {
 } from "./generated.js?v=17";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
+import { checkinMethodLabel } from "./checkin-methods.js?v=1";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -68,7 +69,7 @@ function renderRecent(rows) {
     const person = row.person?.name || "会社受付";
     return `<div class="live-item"><div class="live-time">${esc(formatDate(row.checkedInAt))}<br><span class="result-ok">受付完了</span></div>` +
       `<div><div class="company">${esc(company)}</div><div>${esc(person)} 様</div></div>` +
-      `<div class="live-meta">${esc(row.company?.memberNo || "")}<br>${esc(row.checkinMethod || "")}</div></div>`;
+      `<div class="live-meta">${esc(row.company?.memberNo || "")}<br>${esc(checkinMethodLabel(row.checkinMethod))}</div></div>`;
   }).join("");
 }
 

@@ -3,6 +3,7 @@ import { getDataConnect } from "firebase/data-connect";
 import { connectorConfig, listTrainings, listCheckinHistory, cancelCheckin, restoreCheckin } from "./generated.js?v=14";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
+import { checkinMethodLabel } from "./checkin-methods.js?v=1";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -51,7 +52,7 @@ function filteredRows() {
     if (status === "active" && row.cancelled) return false;
     if (status === "canceled" && !row.cancelled) return false;
     if (!keyword) return true;
-    return [row.company?.companyName, row.company?.memberNo, row.person?.name, row.checkinMethod]
+    return [row.company?.companyName, row.company?.memberNo, row.person?.name, checkinMethodLabel(row.checkinMethod)]
       .join(" ").toLowerCase().includes(keyword);
   });
 }
@@ -84,7 +85,7 @@ function render() {
   }
   $("historyBody").innerHTML = pageRows.map((row) => `<tr><td>${esc(formatDate(row.checkedInAt))}</td>` +
     `<td>${esc(row.company?.companyName || "")}${row.person?.name ? `<div class="muted">${esc(row.person.name)}</div>` : ""}</td>` +
-    `<td>${esc(row.company?.memberNo || "")}</td><td>${esc(row.checkinMethod || "")}</td>` +
+    `<td>${esc(row.company?.memberNo || "")}</td><td>${esc(checkinMethodLabel(row.checkinMethod))}</td>` +
     `<td>${row.cancelled ? "受付取消" : "受付完了"}</td><td>${actionCell(row)}</td></tr>`).join("");
   $("status").textContent = `${rows.length}件中 ${start + 1}〜${start + pageRows.length}件を表示中`;
   $("pageInfo").textContent = `${currentPage} / ${totalPages}ページ`;

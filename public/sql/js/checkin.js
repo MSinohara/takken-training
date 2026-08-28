@@ -12,6 +12,7 @@ import {
   searchMemberCompanies
 } from "./generated.js?v=20";
 import { firebaseConfig } from "./config.js?v=17";
+import { CHECKIN_METHODS } from "./checkin-methods.js?v=1";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -120,7 +121,7 @@ async function checkinGuest() {
       email: values.email || null,
       phone: values.phone || null,
       receptionCategory: otherBlock ? "他ブロック会員" : "一般参加",
-      checkinMethod: "SQL_WEB",
+      checkinMethod: CHECKIN_METHODS.WEB_SEARCH,
     });
     showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（${otherBlock ? "他ブロック会員" : "一般参加"}）`, true);
     $("guestStatus").textContent = "受付しました。";
@@ -340,7 +341,7 @@ async function checkin(person, button) {
       trainingId,
       memberNo: selectedCompany.memberNo,
       personalId: person.personalId,
-      checkinMethod: "SQL_WEB"
+      checkinMethod: CHECKIN_METHODS.WEB_SEARCH
     });
     showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様${target ? "" : "（対象外参加）"}`, true);
   } catch (error) {
@@ -371,7 +372,7 @@ async function checkinCompany(button) {
       checkinId: `${trainingId}:COMPANY:${selectedCompany.memberNo}`,
       trainingId,
       memberNo: selectedCompany.memberNo,
-      checkinMethod: "SQL_WEB"
+      checkinMethod: CHECKIN_METHODS.WEB_SEARCH
     });
     showResult("受付完了", `${selectedCompany.companyName}${target ? "" : "（対象外参加）"}`, true);
   } catch (error) {

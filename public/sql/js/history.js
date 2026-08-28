@@ -3,6 +3,7 @@ import { getDataConnect } from "firebase/data-connect";
 import { connectorConfig, listCheckinHistory } from "./generated.js?v=14";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
+import { checkinMethodLabel } from "./checkin-methods.js?v=1";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -38,7 +39,7 @@ function mapRow(row) {
     date: formatDate(row.checkedInAt),
     eventId: row.trainingId,
     trainingTitle: row.training?.title || "",
-    method: row.checkinMethod || "",
+    method: checkinMethodLabel(row.checkinMethod),
     attendanceUnit: row.attendanceUnit || "",
     memberNo: row.company?.memberNo || "",
     companyName: row.company?.companyName || "",

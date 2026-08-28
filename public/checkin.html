@@ -11,7 +11,7 @@
 <script type="importmap">
 {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
 </script>
-<script type="module" src="sql/js/qr-checkin.js?v=16"></script>
+<script type="module" src="sql/js/qr-checkin.js?v=17"></script>
 
 <style>
 main{
@@ -153,7 +153,7 @@ async function checkin(){
 
 	try {
       const api = await waitForSqlQr();
-      const res = await api.register(eventId, code, "SQL_QR_READER");
+      const res = await api.register(eventId, code, "会社・個人QR受付");
 
       if(!res || !res.ok){
         result.innerHTML =

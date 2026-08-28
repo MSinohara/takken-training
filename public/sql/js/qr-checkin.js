@@ -8,9 +8,11 @@ import {
   listTrainings,
   registerCompanyCheckin,
   registerPersonalCheckin,
+  restoreCancelledCheckinPublic,
   searchMemberCompanies,
-} from "./generated.js?v=14";
+} from "./generated.js?v=20";
 import { firebaseConfig } from "./config.js?v=17";
+import { CHECKIN_METHODS } from "./checkin-methods.js?v=1";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 let trainingsPromise = null;
@@ -35,6 +37,15 @@ function duplicateError(error) {
 async function isCancelled(checkinId) {
   const response = await getCheckin(dc, { checkinId }, { fetchPolicy: "SERVER_ONLY" });
   return Boolean(response.data.checkin?.cancelled);
+}
+
+async function restoreCancelled(checkinId) {
+  if (!(await isCancelled(checkinId))) return false;
+  await restoreCancelledCheckinPublic(dc, {
+    checkinId,
+    changedAt: new Date().toISOString(),
+  });
+  return true;
 }
 
 async function findTraining(trainingId) {
@@ -70,8 +81,8 @@ async function registerCompany(trainingId, memberNo, method) {
     return { ok: true, message: "受付完了", companyName: company.companyName, memberNo, checkedAt: new Date().toLocaleString("ja-JP"), outside: !targetResponse.data.trainingTarget };
   } catch (error) {
     if (!duplicateError(error)) throw error;
-    if (await isCancelled(`${trainingId}:COMPANY:${memberNo}`)) {
-      throw new Error("この受付は取消済みです。受付係員にお申し出ください。");
+    if (await restoreCancelled(`${trainingId}:COMPANY:${memberNo}`)) {
+      return { ok: true, message: "受付完了", companyName: company.companyName, memberNo, checkedAt: new Date().toLocaleString("ja-JP"), restored: true };
     }
     return { ok: true, duplicate: true, message: "既に受付済みです", companyName: company.companyName, memberNo };
   }
@@ -98,8 +109,8 @@ async function registerPerson(trainingId, personalId, method) {
     return { ok: true, message: "受付完了", companyName: company.companyName, participantName: person.name, memberNo: company.memberNo, personalId, checkedAt: new Date().toLocaleString("ja-JP"), outside: !targetResponse.data.trainingTarget };
   } catch (error) {
     if (!duplicateError(error)) throw error;
-    if (await isCancelled(`${trainingId}:PERSONAL:${personalId}`)) {
-      throw new Error("この受付は取消済みです。受付係員にお申し出ください。");
+    if (await restoreCancelled(`${trainingId}:PERSONAL:${personalId}`)) {
+      return { ok: true, message: "受付完了", companyName: company.companyName, participantName: person.name, memberNo: company.memberNo, personalId, checkedAt: new Date().toLocaleString("ja-JP"), restored: true };
     }
     return { ok: true, duplicate: true, message: "既に受付済みです", companyName: company.companyName, participantName: person.name, memberNo: company.memberNo, personalId };
   }
@@ -109,7 +120,7 @@ export async function getSqlTraining(trainingId) {
   return findTraining(trainingId);
 }
 
-export async function registerSqlQrCheckin(trainingId, rawCode, method = "SQL_QR") {
+export async function registerSqlQrCheckin(trainingId, rawCode, method = CHECKIN_METHODS.DIRECT_QR) {
   const training = await findTraining(trainingId);
   const code = String(rawCode || "").trim();
   if (code.startsWith("MEMBER:")) {

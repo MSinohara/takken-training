@@ -10,6 +10,7 @@ import {
   searchUncheckedCompanyTargets,
 } from "./generated.js?v=11";
 import { firebaseConfig } from "./config.js?v=17";
+import { checkinMethodLabel } from "./checkin-methods.js?v=1";
 
 const dc = getDataConnect(initializeApp(firebaseConfig), connectorConfig);
 const $ = (id) => document.getElementById(id);
@@ -92,7 +93,7 @@ async function refresh() {
       table.innerHTML = "<thead><tr><th>受付日時</th><th>会社名</th><th>参加者</th><th>受付方法</th></tr></thead><tbody></tbody>";
       rows.forEach((row) => {
         const tr = document.createElement("tr");
-        [formatTimestamp(row.checkedInAt), row.company?.companyName || "-", row.person?.name || "会社受付", row.checkinMethod].forEach((value) => {
+        [formatTimestamp(row.checkedInAt), row.company?.companyName || "-", row.person?.name || "会社受付", checkinMethodLabel(row.checkinMethod)].forEach((value) => {
           const td = document.createElement("td"); td.textContent = value; tr.append(td);
         });
         table.tBodies[0].append(tr);
