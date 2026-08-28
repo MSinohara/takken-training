@@ -148,8 +148,11 @@ mutation RegisterGuestCheckin(
   $guestKey: String!
   $participantName: String!
   $organizationName: String
+  $block: String
+  $branch: String
   $email: String
   $phone: String
+  $receptionCategory: String!
   $checkinMethod: String!
 ) @auth(level: PUBLIC, insecureReason: "会場QRから一般参加者本人が受付するため。") {
   guestCheckin_insert(
@@ -159,8 +162,11 @@ mutation RegisterGuestCheckin(
       guestKey: $guestKey
       participantName: $participantName
       organizationName: $organizationName
+      block: $block
+      branch: $branch
       email: $email
       phone: $phone
+      receptionCategory: $receptionCategory
       checkinMethod: $checkinMethod
     }
   )
@@ -178,6 +184,8 @@ query RecentGuestCheckins($trainingId: String!, $limit: Int = 10)
     checkinMethod
     participantName
     organizationName
+    block
+    branch
     receptionCategory
   }
 }

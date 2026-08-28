@@ -142,6 +142,8 @@ type GuestCheckin
   guestKey: String!
   participantName: String!
   organizationName: String
+  block: String
+  branch: String
   email: String
   phone: String
   receptionCategory: String! @default(value: "一般参加")

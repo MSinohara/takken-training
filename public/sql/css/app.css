@@ -57,7 +57,7 @@ th { background: #eef2f5; font-size: 13px; }
 .ng { color: #b00020; font-weight: 700; }
 .guest-grid { margin-top: 16px; }
 .reception-mode-panel { padding-bottom: 18px; }
-.reception-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.reception-mode { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .mode-button {
   justify-content: center;
   min-height: 54px;

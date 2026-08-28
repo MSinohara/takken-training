@@ -19,6 +19,19 @@ const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
 let trainings = [];
 const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
+const blockBranchMap = {
+  "第一ブロック": ["千代田中央"],
+  "第二ブロック": ["江東区", "江戸川区", "葛飾区"],
+  "第三ブロック": ["台東区", "墨田区", "足立区"],
+  "第四ブロック": ["文京区", "荒川区", "豊島区"],
+  "第五ブロック": ["品川区", "大田区", "目黒区"],
+  "第六ブロック": ["港区"],
+  "第七ブロック": ["新宿区"],
+  "第八ブロック": ["渋谷区"],
+  "第九ブロック": ["北区", "板橋区", "練馬区"],
+  "第十一ブロック": ["武蔵野中央", "北多摩", "国分寺国立", "調布狛江", "府中稲城"],
+  "第十二ブロック": ["立川", "西多摩", "南多摩", "八王子", "町田"],
+};
 
 async function loadTrainings() {
   $("training").replaceChildren(new Option("研修会を読み込み中...", ""));
@@ -70,14 +83,22 @@ async function guestKey(values) {
 
 async function checkinGuest() {
   const button = $("registerGuest");
+  const otherBlock = $("guestPanel").dataset.mode === "otherBlock";
   const values = {
     name: $("guestName").value.trim(),
     organization: $("guestOrganization").value.trim(),
     email: $("guestEmail").value.trim(),
     phone: $("guestPhone").value.trim(),
+    block: otherBlock ? $("guestBlock").value : "",
+    branch: otherBlock ? $("guestBranch").value : "",
   };
   if (!values.name) {
     $("guestStatus").textContent = "参加者名を入力してください。";
+    $("guestStatus").className = "status error";
+    return;
+  }
+  if (otherBlock && (!values.block || !values.branch || !values.organization)) {
+    $("guestStatus").textContent = "ブロック、支部、会社・団体名を入力してください。";
     $("guestStatus").className = "status error";
     return;
   }
@@ -91,11 +112,14 @@ async function checkinGuest() {
       guestKey: key,
       participantName: values.name,
       organizationName: values.organization || null,
+      block: values.block || null,
+      branch: values.branch || null,
       email: values.email || null,
       phone: values.phone || null,
+      receptionCategory: otherBlock ? "他ブロック会員" : "一般参加",
       checkinMethod: "SQL_WEB",
     });
-    showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（一般参加）`);
+    showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（${otherBlock ? "他ブロック会員" : "一般参加"}）`);
     $("guestStatus").textContent = "受付しました。";
     $("guestStatus").className = "status ok";
   } catch (error) {
@@ -293,22 +317,38 @@ $("next").addEventListener("click", () => {
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+function renderGuestBranches() {
+  const branches = blockBranchMap[$("guestBlock").value] || [];
+  $("guestBranch").replaceChildren(...branches.map((branch) => new Option(branch, branch)));
+}
+
 function setReceptionMode(mode) {
-  const guestMode = mode === "guest";
+  const guestMode = mode === "guest" || mode === "otherBlock";
+  const otherBlock = mode === "otherBlock";
   $("memberSearchPanel").hidden = guestMode;
   $("companiesPanel").hidden = true;
   $("peoplePanel").hidden = true;
   $("guestPanel").hidden = !guestMode;
   $("showMemberMode").classList.toggle("active", !guestMode);
-  $("showGuestMode").classList.toggle("active", guestMode);
+  $("showOtherBlockMode").classList.toggle("active", otherBlock);
+  $("showGuestMode").classList.toggle("active", mode === "guest");
   $("showMemberMode").setAttribute("aria-pressed", String(!guestMode));
-  $("showGuestMode").setAttribute("aria-pressed", String(guestMode));
+  $("showOtherBlockMode").setAttribute("aria-pressed", String(otherBlock));
+  $("showGuestMode").setAttribute("aria-pressed", String(mode === "guest"));
+  $("guestPanel").dataset.mode = otherBlock ? "otherBlock" : "guest";
+  $("guestHeading").textContent = otherBlock ? "他ブロックの会員" : "一般参加者";
+  $("guestGuidance").textContent = otherBlock
+    ? "第十ブロック以外の宅建協会会員はこちらへ入力してください。"
+    : "宅建協会の会員会社に所属していない方はこちらへ入力してください。";
+  $("otherBlockFields").hidden = !otherBlock;
   (guestMode ? $("guestName") : $("companyName")).focus();
 }
 
 $("showMemberMode").addEventListener("click", () => setReceptionMode("member"));
+$("showOtherBlockMode").addEventListener("click", () => setReceptionMode("otherBlock"));
 $("showGuestMode").addEventListener("click", () => setReceptionMode("guest"));
 $("hideGuest").addEventListener("click", () => setReceptionMode("member"));
+$("guestBlock").addEventListener("change", renderGuestBranches);
 $("registerGuest").addEventListener("click", checkinGuest);
 async function initializePublicCheckin() {
   $("search").disabled = true;
@@ -323,3 +363,5 @@ async function initializePublicCheckin() {
 }
 
 initializePublicCheckin();
+$("guestBlock").replaceChildren(...Object.keys(blockBranchMap).map((block) => new Option(block, block)));
+renderGuestBranches();
