@@ -19,6 +19,7 @@ const $ = (id) => document.getElementById(id);
 let selectedCompany = null;
 let trainings = [];
 const requestedTrainingId = new URLSearchParams(location.search).get("event") || "";
+const receiptStorageKey = requestedTrainingId ? `takken_sql_receipt:${requestedTrainingId}` : "";
 const blockBranchMap = {
   "第一ブロック": ["千代田中央"],
   "第二ブロック": ["江東区", "江戸川区", "葛飾区"],
@@ -119,7 +120,7 @@ async function checkinGuest() {
       receptionCategory: otherBlock ? "他ブロック会員" : "一般参加",
       checkinMethod: "SQL_WEB",
     });
-    showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（${otherBlock ? "他ブロック会員" : "一般参加"}）`);
+    showResult("受付完了", `${values.organization ? `${values.organization} ` : ""}${values.name} 様（${otherBlock ? "他ブロック会員" : "一般参加"}）`, true);
     $("guestStatus").textContent = "受付しました。";
     $("guestStatus").className = "status ok";
   } catch (error) {
@@ -161,11 +162,39 @@ async function lookupTarget(targetType, targetId) {
   return response.data.trainingTarget || null;
 }
 
-function showResult(title, body) {
+function showResult(title, body, completed = false) {
   $("resultTitle").textContent = title;
   $("resultBody").textContent = body;
+  if (completed) {
+    if (receiptStorageKey) {
+      try {
+        localStorage.setItem(receiptStorageKey, JSON.stringify({ title, body }));
+      } catch (error) {
+        console.warn("受付完了情報を端末へ保存できませんでした。", error);
+      }
+    }
+    ["receptionModePanel", "memberSearchPanel", "companiesPanel", "peoplePanel", "guestPanel"]
+      .forEach((id) => $(id).hidden = true);
+  }
   $("resultPanel").hidden = false;
   $("resultPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function restoreCompletedReceipt() {
+  if (!receiptStorageKey) return false;
+  try {
+    const receipt = JSON.parse(localStorage.getItem(receiptStorageKey) || "null");
+    if (!receipt?.title || !receipt?.body) return false;
+    showResult(receipt.title, receipt.body, true);
+    return true;
+  } catch (error) {
+    try {
+      localStorage.removeItem(receiptStorageKey);
+    } catch (storageError) {
+      console.warn("端末の受付完了情報を消去できませんでした。", storageError);
+    }
+    return false;
+  }
 }
 
 function renderPeople(company) {
@@ -271,10 +300,10 @@ async function checkin(person, button) {
       personalId: person.personalId,
       checkinMethod: "SQL_WEB"
     });
-    showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様${target ? "" : "（対象外参加）"}`);
+    showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様${target ? "" : "（対象外参加）"}`, true);
   } catch (error) {
     if (duplicateError(error) && await restoreIfCancelled(`${trainingId}:PERSONAL:${person.personalId}`)) {
-      showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様`);
+      showResult("受付完了", `${selectedCompany.companyName} ${person.name} 様`, true);
       return;
     }
     showResult(
@@ -299,10 +328,10 @@ async function checkinCompany(button) {
       memberNo: selectedCompany.memberNo,
       checkinMethod: "SQL_WEB"
     });
-    showResult("受付完了", `${selectedCompany.companyName}${target ? "" : "（対象外参加）"}`);
+    showResult("受付完了", `${selectedCompany.companyName}${target ? "" : "（対象外参加）"}`, true);
   } catch (error) {
     if (duplicateError(error) && await restoreIfCancelled(`${trainingId}:COMPANY:${selectedCompany.memberNo}`)) {
-      showResult("受付完了", selectedCompany.companyName);
+      showResult("受付完了", selectedCompany.companyName, true);
       return;
     }
     showResult(
@@ -322,12 +351,6 @@ $("clear").addEventListener("click", () => {
   $("companiesPanel").hidden = true;
   $("peoplePanel").hidden = true;
   setStatus("条件を入力して検索してください。");
-});
-$("next").addEventListener("click", () => {
-  $("resultPanel").hidden = true;
-  $("peoplePanel").hidden = true;
-  $("companyName").focus();
-  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 $("companyName").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
 $("memberNo").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
@@ -373,6 +396,7 @@ async function initializePublicCheckin() {
   $("clear").disabled = true;
   try {
     const ready = await loadTrainings();
+    if (ready && restoreCompletedReceipt()) return;
     $("search").disabled = !ready;
     $("clear").disabled = !ready;
   } catch (error) {
