@@ -1236,7 +1236,7 @@ function buildAttendanceAnswerUrl_(
     return "";
   }
 
-  return getConfig_("PUBLIC_WEB_URL") +
+  return getCheckinWebUrl_() +
     "/attendance-answer.html?event=" +
     encodeURIComponent(training.eventId) +
     "&member=" +

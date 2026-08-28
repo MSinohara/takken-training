@@ -581,6 +581,27 @@ function getConfig_(key) {
   return value;
 }
 
+function getCheckinWebUrl_() {
+
+  const configured =
+    typeof getConfigOptional_ === "function"
+      ? String(getConfigOptional_("CHECKIN_WEB_URL") || "").trim()
+      : "";
+
+  if (configured) {
+    return configured;
+  }
+
+  const publicWebUrl =
+    getConfig_("PUBLIC_WEB_URL");
+
+  if (/takken-training-demo\.web\.app\/?$/i.test(publicWebUrl)) {
+    return "https://dev-takken10b-checkin.web.app";
+  }
+
+  return publicWebUrl;
+}
+
 function getSpreadsheet_() {
 
   const spreadsheetId =

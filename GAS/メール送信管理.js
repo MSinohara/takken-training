@@ -287,13 +287,13 @@ function getMailPreviewUrls_(
       "?page=qr&member=" +
       encodeURIComponent(member.memberNo),
     memberRegisterUrl:
-      getConfig_("PUBLIC_WEB_URL") +
+      getCheckinWebUrl_() +
       "/member-register.html?event=" +
       encodeURIComponent(training.eventId) +
       "&member=" +
       encodeURIComponent(member.memberNo),
     personalQrUrl:
-      getConfig_("PUBLIC_WEB_URL") +
+      getCheckinWebUrl_() +
       "/personal-member-qr.html?personal=" +
       encodeURIComponent(member.personalId || "") +
       "&member=" +
@@ -317,7 +317,7 @@ function getMailPreviewUrls_(
     hasLocationCheckinVenue_(training)
   ) {
     urls.locationCheckinUrl =
-      getConfig_("PUBLIC_WEB_URL") +
+      getCheckinWebUrl_() +
       "/location-checkin.html?token=preview";
   }
 
@@ -1736,7 +1736,7 @@ function buildPersonalQrMailBody_(
   }
 
   const personalQrUrl =
-    getConfig_("PUBLIC_WEB_URL") +
+    getCheckinWebUrl_() +
     "/personal-member-qr.html?personal=" +
     encodeURIComponent(member.personalId || "") +
     "&member=" +
@@ -1818,7 +1818,7 @@ function buildMemberRegisterMailBody_(
 ) {
 
   const registerUrl =
-    getConfig_("PUBLIC_WEB_URL") +
+    getCheckinWebUrl_() +
     "/member-register.html?event=" +
     encodeURIComponent(training.eventId) +
     "&member=" +

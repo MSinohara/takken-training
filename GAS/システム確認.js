@@ -17,6 +17,7 @@ function getSystemConnectionCheck_() {
       checkSystemBackupFolder_(),
       checkSystemFirestore_(),
       checkSystemPublicWebUrl_(),
+      checkSystemCheckinWebUrl_(),
       checkSystemWebAppUrl_(),
       checkSystemMailSenderSetting_()
     ];
@@ -262,6 +263,24 @@ function checkSystemPublicWebUrl_() {
     "公開WEB URL",
     !!url,
     url ? "設定されています。" : "PUBLIC_WEB_URL が設定されていません。",
+    url
+  );
+}
+
+function checkSystemCheckinWebUrl_() {
+
+  const configured =
+    getConfigOptional_("CHECKIN_WEB_URL");
+
+  const url =
+    getCheckinWebUrl_();
+
+  return makeSystemCheckResult_(
+    "受付専用WEB URL",
+    !!url,
+    configured
+      ? "設定されています。"
+      : "開発環境の受付専用URLを使用しています。",
     url
   );
 }

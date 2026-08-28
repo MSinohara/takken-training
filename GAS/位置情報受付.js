@@ -358,7 +358,7 @@ function buildLocationCheckinUrl_(
     return "";
   }
 
-  return getConfig_("PUBLIC_WEB_URL") +
+  return getCheckinWebUrl_() +
     "/location-checkin.html?token=" +
     encodeURIComponent(token);
 }
@@ -396,7 +396,7 @@ function buildPlannedLocationCheckinUrl_(
     return "";
   }
 
-  return getConfig_("PUBLIC_WEB_URL") +
+  return getCheckinWebUrl_() +
     "/location-checkin.html?token=" +
     encodeURIComponent(token);
 }
