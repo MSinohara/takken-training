@@ -152,7 +152,7 @@ mutation RegisterGuestCheckin(
   $branch: String
   $email: String
   $phone: String
-  $receptionCategory: String!
+  $receptionCategory: String! = "一般参加"
   $checkinMethod: String!
 ) @auth(level: PUBLIC, insecureReason: "会場QRから一般参加者本人が受付するため。") {
   guestCheckin_insert(
