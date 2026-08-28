@@ -340,6 +340,7 @@ function setReceptionMode(mode) {
   $("guestGuidance").textContent = otherBlock
     ? "第十ブロック以外の宅建協会会員はこちらへ入力してください。"
     : "宅建協会の会員会社に所属していない方はこちらへ入力してください。";
+  $("guestOrganizationLabel").textContent = otherBlock ? "会社・団体名" : "会社・団体名（任意）";
   $("otherBlockFields").hidden = !otherBlock;
   (guestMode ? $("guestName") : $("companyName")).focus();
 }
