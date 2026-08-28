@@ -4,13 +4,14 @@ import {
   connectorConfig,
   getCheckin,
   getPersonForCheckin,
+  getPlannedAttendeeForCheckin,
   getTrainingTargetForCheckin,
   listTrainings,
   registerCompanyCheckin,
   registerPersonalCheckin,
   restoreCancelledCheckinPublic,
   searchMemberCompanies,
-} from "./generated.js?v=20";
+} from "./generated.js?v=21";
 import { firebaseConfig } from "./config.js?v=17";
 import { CHECKIN_METHODS } from "./checkin-methods.js?v=1";
 
@@ -61,6 +62,28 @@ async function findCompany(memberNo) {
   const company = rows.find((row) => row.memberNo === memberNo);
   if (!company) throw new Error("業者番号に該当する会社がありません。");
   return company;
+}
+
+async function registerPlanned(trainingId, plannedId) {
+  const response = await getPlannedAttendeeForCheckin(dc, {
+    plannedId,
+    trainingId,
+  }, { fetchPolicy: "SERVER_ONLY" });
+  const planned = response.data.plannedAttendees?.[0];
+  if (!planned) throw new Error("この研修会の有効な事前登録QRではありません。");
+
+  const type = String(planned.targetType || "").toUpperCase();
+  if (type === "COMPANY") {
+    const memberNo = planned.memberNo || planned.company?.memberNo || planned.targetId;
+    if (!memberNo) throw new Error("事前登録者の業者番号が登録されていません。");
+    return registerCompany(trainingId, memberNo, CHECKIN_METHODS.PLANNED_QR);
+  }
+  if (type === "PERSONAL") {
+    const personalId = planned.personalId || planned.person?.personalId || planned.targetId;
+    if (!personalId) throw new Error("事前登録者の個人IDが登録されていません。");
+    return registerPerson(trainingId, personalId, CHECKIN_METHODS.PLANNED_QR);
+  }
+  throw new Error("この事前登録QRの受付区分には対応していません。");
 }
 
 async function registerCompany(trainingId, memberNo, method) {
@@ -132,7 +155,7 @@ export async function registerSqlQrCheckin(trainingId, rawCode, method = CHECKIN
     return registerPerson(trainingId, code.slice(9).trim(), method);
   }
   if (code.startsWith("PLANNED:")) {
-    throw new Error("予定者QRはSQL移行準備中です。係員用検索受付をご利用ください。");
+    return registerPlanned(trainingId, code.slice(8).trim());
   }
   throw new Error("対応している受付QRではありません。");
 }

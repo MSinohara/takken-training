@@ -303,6 +303,18 @@ export function getPlannedAttendee(dcOrVars, varsOrOptions, options) {
   return executeQuery(getPlannedAttendeeRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
+export const getPlannedAttendeeForCheckinRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPlannedAttendeeForCheckin', inputVars);
+}
+getPlannedAttendeeForCheckinRef.operationName = 'GetPlannedAttendeeForCheckin';
+
+export function getPlannedAttendeeForCheckin(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getPlannedAttendeeForCheckinRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const listPlannedAttendeesRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

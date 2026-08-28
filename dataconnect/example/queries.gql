@@ -560,6 +560,30 @@ query GetPlannedAttendee($plannedId: String!)
   }
 }
 
+# 事前登録QRに含まれる予定者IDを、指定研修の有効な予定者に限定して照合する。
+query GetPlannedAttendeeForCheckin(
+  $plannedId: String!
+  $trainingId: String!
+) @auth(level: PUBLIC, insecureReason: "事前登録QRを読み取った本人の受付対象確認に限定して使用するため。") {
+  plannedAttendees(
+    where: {
+      plannedId: { eq: $plannedId }
+      trainingId: { eq: $trainingId }
+      active: { eq: true }
+    }
+    limit: 1
+  ) {
+    plannedId
+    targetType
+    targetId
+    memberNo
+    personalId
+    participantName
+    company { memberNo companyName }
+    person { personalId name }
+  }
+}
+
 query ListPlannedAttendees(
   $trainingId: String!
   $branch: String

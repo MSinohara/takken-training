@@ -12,7 +12,7 @@
 <script type="importmap">
 {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
 </script>
-<script type="module" src="sql/js/qr-checkin.js?v=17"></script>
+<script type="module" src="sql/js/qr-checkin.js?v=18"></script>
 
 <style>
 main{
@@ -282,7 +282,7 @@ async function registerScannedCode(code){
 
   if(code.indexOf("MEMBER:") !== 0 && code.indexOf("PERSONAL:") !== 0 && code.indexOf("PLANNED:") !== 0){
     result.innerHTML =
-      '<div class="ng">対応している会社QRまたは個人QRではありません。</div>';
+      '<div class="ng">対応している会社QR・個人QR・事前登録QRではありません。</div>';
     return;
   }
 
