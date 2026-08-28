@@ -438,3 +438,51 @@ export function removePlannedAttendee(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(removePlannedAttendeeRef(dcInstance, inputVars));
 }
+
+export const adminSearchMemberCompaniesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminSearchMemberCompanies', inputVars);
+}
+adminSearchMemberCompaniesRef.operationName = 'AdminSearchMemberCompanies';
+
+export function adminSearchMemberCompanies(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(adminSearchMemberCompaniesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminSaveMemberSettingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSaveMemberSetting', inputVars);
+}
+adminSaveMemberSettingRef.operationName = 'AdminSaveMemberSetting';
+
+export function adminSaveMemberSetting(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSaveMemberSettingRef(dcInstance, inputVars));
+}
+
+export const adminSearchPeopleRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminSearchPeople', inputVars);
+}
+adminSearchPeopleRef.operationName = 'AdminSearchPeople';
+
+export function adminSearchPeople(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(adminSearchPeopleRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminSavePersonRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSavePerson', inputVars);
+}
+adminSavePersonRef.operationName = 'AdminSavePerson';
+
+export function adminSavePerson(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSavePersonRef(dcInstance, inputVars));
+}

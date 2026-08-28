@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+  {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -273,7 +276,7 @@ let totalMemberCount =
   0;
 
 
-function loadMembers(resetPage){
+async function loadMembers(resetPage){
 
   const keyword =
     document.getElementById("keyword").value.trim();
@@ -312,43 +315,33 @@ function loadMembers(resetPage){
 
   updateSelectedCount();
 
-  jsonp(
-    "getMembersJsonp",
-    {
+  try{
+    await import("./sql/js/admin-master.js?v=32");
+    const res = await window.sqlAdminMaster.searchMembers({
       keyword: keyword,
       branch: branch,
       target: target,
       mailStatus: mailStatus,
       offset: (currentPage - 1) * pageSize,
       limit: pageSize
-    },
-    function(res){
+    });
 
-      if(!res || !res.ok){
-        status.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "会員一覧を取得できませんでした。") +
-          '</span>';
-        return;
-      }
+    allMembers = res.members || [];
+    totalMemberCount = Number(res.totalCount || allMembers.length || 0);
 
-      allMembers =
-        res.members || [];
-
-      totalMemberCount =
-        Number(res.totalCount || allMembers.length || 0);
-
-      if(totalMemberCount === 0){
-        updateSelectedCount();
-
-        status.textContent =
-          "該当する会員がありません。";
-        return;
-      }
-
-      renderMembers();
+    if(totalMemberCount === 0){
+      updateSelectedCount();
+      status.textContent = "該当する会員がありません。";
+      return;
     }
-  );
+
+    renderMembers();
+  }catch(error){
+    status.innerHTML =
+      '<span class="ng">' +
+      escapeHtml(error && error.message ? error.message : "会員一覧を取得できませんでした。") +
+      '</span>';
+  }
 }
 
 
@@ -730,7 +723,7 @@ function renderEditModal(member, organizations){
   );
 }
 
-function saveSetting(memberNo){
+async function saveSetting(memberNo){
 
   const target =
     document.getElementById("editTarget").value;
@@ -768,24 +761,14 @@ function saveSetting(memberNo){
   editStatus.textContent =
     "保存中...";
 
-  jsonp(
-    "updateMemberSettingJsonp",
-    {
-      member: memberNo,
-      mail: mail,
-      target: target,
-      note: note
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        editStatus.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "会員設定の保存に失敗しました。") +
-          '</span>';
-        return;
-      }
-
+  try{
+      await import("./sql/js/admin-master.js?v=32");
+      await window.sqlAdminMaster.saveMemberSetting({
+        memberNo: memberNo,
+        email: mail,
+        sendTarget: target === "TRUE",
+        note: note
+      });
       jsonp(
         "saveMemberOrganizationsJsonp",
         {
@@ -813,8 +796,12 @@ function saveSetting(memberNo){
           }, 500);
         }
       );
-    }
-  );
+  }catch(error){
+    editStatus.innerHTML =
+      '<span class="ng">' +
+      escapeHtml(error && error.message ? error.message : "会員設定の保存に失敗しました。") +
+      '</span>';
+  }
 }
 
 document.addEventListener("keydown", function(e){
