@@ -221,14 +221,22 @@ function renderCompanies(rows) {
 }
 
 async function search() {
+  const memberNo = $("memberNo").value.trim();
+  const companyName = $("companyName").value.trim();
+  if (!memberNo && companyName.length < 2) {
+    setStatus("会社名は2文字以上、または業者番号を入力してください。", "error");
+    $("companyName").focus();
+    return;
+  }
+
   $("search").disabled = true;
   $("peoplePanel").hidden = true;
   setStatus("検索中...");
   try {
     const variables = { limit: 50, offset: 0 };
     const values = {
-      memberNo: $("memberNo").value.trim(),
-      companyName: $("companyName").value.trim(),
+      memberNo,
+      companyName,
       branch: $("branch").value,
       district: $("district").value.trim()
     };
