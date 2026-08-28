@@ -221,8 +221,14 @@ function renderCompanies(rows) {
 }
 
 async function search() {
+  const branch = $("branch").value;
   const memberNo = $("memberNo").value.trim();
   const companyName = $("companyName").value.trim();
+  if (!branch) {
+    setStatus("先に支部を選択してください。", "error");
+    $("branch").focus();
+    return;
+  }
   if (!memberNo && companyName.length < 2) {
     setStatus("会社名は2文字以上、または業者番号を入力してください。", "error");
     $("companyName").focus();
@@ -237,7 +243,7 @@ async function search() {
     const values = {
       memberNo,
       companyName,
-      branch: $("branch").value,
+      branch,
       district: $("district").value.trim()
     };
     Object.entries(values).forEach(([key, value]) => { if (value) variables[key] = value; });
