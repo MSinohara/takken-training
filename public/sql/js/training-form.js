@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { connectorConfig, saveTraining } from "./generated.js?v=25";
+import { connectorConfig, replaceTrainingTargets, saveTraining } from "./generated.js?v=26";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
@@ -46,4 +46,46 @@ async function save(data) {
   return { ok: true };
 }
 
-window.sqlTrainingForm = { save };
+function normalizeTargetRows(data, members) {
+  const personalUnit =
+    String(data.attendanceUnit || "").toUpperCase() === "PERSONAL" ||
+    String(data.attendanceUnit || "").startsWith("個人");
+  const rows = [];
+  const seen = new Set();
+
+  (members || []).forEach((member) => {
+    const memberNo = String(member.memberNo || "").trim();
+    const personalId = String(member.personalId || "").trim();
+    const targetType = personalUnit ? "PERSONAL" : "COMPANY";
+    const targetId = personalUnit ? personalId : memberNo;
+    if (!memberNo || !targetId) return;
+
+    const key = `${targetType}:${targetId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({
+      trainingId: data.eventId,
+      targetType,
+      targetId,
+      memberNo,
+      personalId: personalUnit ? personalId : null,
+      branch: String(member.branch || "").trim(),
+      district: optional(member.district),
+      block: String(member.block || "").trim(),
+    });
+  });
+
+  return rows;
+}
+
+async function replaceTargets(data, members) {
+  await requireSqlAdmin(app, document.getElementById("result"));
+  const rows = normalizeTargetRows(data, members);
+  await replaceTrainingTargets(dc, {
+    trainingId: data.eventId,
+    data: rows,
+  });
+  return { ok: true, targetCount: rows.length };
+}
+
+window.sqlTrainingForm = { replaceTargets, save };

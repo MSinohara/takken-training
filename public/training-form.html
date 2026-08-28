@@ -495,12 +495,30 @@ async function saveTraining(){
         return;
       }
 
-      setupSavedTrainingActions(data);
+      result.textContent =
+        "研修会を保存しました。参加対象者をSQLへ反映中...";
 
-      result.innerHTML =
-        '<span class="ok">' +
-        escapeHtml(res.message || "保存しました。") +
-        '</span>';
+      waitForSqlTrainingForm()
+        .then(function(sqlApi){
+          return sqlApi.replaceTargets(data, res.targetMembers || []);
+        })
+        .then(function(targetResult){
+          setupSavedTrainingActions(data);
+          result.innerHTML =
+            '<span class="ok">' +
+            escapeHtml(res.message || "保存しました。") +
+            '<br>参加対象者 ' +
+            escapeHtml(targetResult.targetCount || 0) +
+            '名をSQLへ反映しました。</span>';
+        })
+        .catch(function(error){
+          setupSavedTrainingActions(data);
+          result.innerHTML =
+            '<span class="ok">研修会の基本情報は保存しました。</span><br>' +
+            '<span class="ng">参加対象者をSQLへ反映できませんでした。もう一度保存してください。' +
+            escapeHtml(error.message || String(error)) +
+            '</span>';
+        });
     }
   );
 }

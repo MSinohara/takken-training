@@ -84,6 +84,14 @@ mutation SaveTraining(
   )
 }
 
+mutation ReplaceTrainingTargets(
+  $trainingId: String!
+  $data: [TrainingTarget_Data!]! @allow(fields: "trainingId targetType targetId memberNo personalId branch district block")
+) @transaction @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  trainingTarget_deleteMany(where: { trainingId: { eq: $trainingId } })
+  trainingTarget_upsertMany(data: $data)
+}
+
 query SearchMemberCompanies(
   $memberNo: String! = ""
   $companyName: String! = ""

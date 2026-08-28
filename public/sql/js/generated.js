@@ -35,6 +35,18 @@ export function saveTraining(dcOrVars, vars) {
   return executeMutation(saveTrainingRef(dcInstance, inputVars));
 }
 
+export const replaceTrainingTargetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ReplaceTrainingTargets', inputVars);
+}
+replaceTrainingTargetsRef.operationName = 'ReplaceTrainingTargets';
+
+export function replaceTrainingTargets(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(replaceTrainingTargetsRef(dcInstance, inputVars));
+}
+
 export const searchMemberCompaniesRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();

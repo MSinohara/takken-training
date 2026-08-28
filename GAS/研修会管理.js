@@ -1028,6 +1028,16 @@ function saveTrainingJsonp_(e) {
     result =
       saveTraining(data);
 
+    if (result && result.ok) {
+      const savedTraining =
+        findTrainingById_(data.eventId);
+
+      result.targetMembers =
+        savedTraining && typeof getTrainingTargetMembers_ === "function"
+          ? getTrainingTargetMembers_(savedTraining)
+          : [];
+    }
+
   } catch (err) {
 
     result = {
