@@ -26,7 +26,7 @@ function mapRow(row) {
 
 async function list() {
   await requireSqlAdmin(app, document.getElementById("message") || document.getElementById("result") || document.body);
-  let response = await adminListEventTypes(dc, {}, { fetchPolicy: "SERVER_ONLY" });
+  let response = await adminListEventTypes(dc, {});
   if (!(response.data.eventTypes || []).length) {
     const now = new Date().toISOString();
     await adminSaveEventType(dc, {
@@ -34,7 +34,7 @@ async function list() {
       attendanceConfirmDefault: false, active: true, sortOrder: 10,
       note: null, updatedAt: now,
     });
-    response = await adminListEventTypes(dc, {}, { fetchPolicy: "SERVER_ONLY" });
+    response = await adminListEventTypes(dc, {});
   }
   return (response.data.eventTypes || []).map(mapRow);
 }
