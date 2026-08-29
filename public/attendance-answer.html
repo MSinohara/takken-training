@@ -8,6 +8,12 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script>
+window.sqlAttendanceReady = import("./sql/js/attendance.js?v=1").then(function(module){ return module.sqlAttendance; });
+</script>
 
 <style>
 main{
@@ -169,7 +175,7 @@ function loadAnswer(){
       name: params.get("name") || "",
       mail: params.get("mail") || ""
     },
-    function(res){
+    async function(res){
 
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
@@ -184,6 +190,25 @@ function loadAnswer(){
 
       member =
         res.member || {};
+
+      try{
+        const respondentKey = member.personalId ? "P:" + member.personalId : "M:" + (member.memberNo || "");
+        const sql = await window.sqlAttendanceReady;
+        const sqlResult = await sql.loadPublicAnswer(eventId, respondentKey);
+        const allowedIds = new Set((res.items || []).map(function(row){ return row.itemId; }));
+        if(sqlResult.items.length){
+          items = sqlResult.items.filter(function(row){ return allowedIds.has(row.itemId); });
+        }
+        res.response = sqlResult.response || res.response || null;
+        if(sqlResult.publicResponses && sqlResult.publicResponses.length){
+          res.publicResponses = sqlResult.publicResponses;
+        }
+        if(sqlResult.training){
+          res.statusPublic = sqlResult.training.attendanceStatusPublic === true;
+        }
+      }catch(error){
+        console.error("SQL attendance answer load failed", error);
+      }
 
       currentResponse =
         res.response || null;
@@ -543,7 +568,24 @@ function saveAnswer(){
   document.getElementById("result").innerHTML =
     "送信中...";
 
-  jsonp(
+  const respondentKey = member.personalId ? "P:" + member.personalId : "M:" + (member.memberNo || "");
+
+  window.sqlAttendanceReady
+    .then(function(sql){
+      return sql.savePublicAnswer({
+        trainingId: eventId,
+        respondentKey: respondentKey,
+        memberNo: member.memberNo || "",
+        personalId: member.personalId || "",
+        companyName: member.companyName || "",
+        participantName: member.participantName || "",
+        email: member.mail || "",
+        answers: answers,
+        note: document.getElementById("note").value.trim()
+      });
+    })
+    .then(function(){
+      jsonp(
     "saveAttendanceAnswerJsonp",
     {
       event: eventId,
@@ -573,8 +615,13 @@ function saveAnswer(){
 
       loadAnswer();
     },
-    60000
-  );
+        60000
+      );
+    })
+    .catch(function(error){
+      document.getElementById("result").innerHTML =
+        '<span class="ng">送信できませんでした。' + escapeHtml(error.message || error) + '</span>';
+    });
 }
 
 loadAnswer();

@@ -140,6 +140,44 @@ type Training @table(key: "trainingId") {
   body: String
 }
 
+# イベントごとの事前出欠確認項目。targetKeys は既存画面との互換用で、
+# ORG:組織ID / 個人IDなどの選択キーをカンマ区切りで保持する。
+type AttendanceItem
+  @table(key: "itemId")
+  @index(fields: ["trainingId", "active", "displayOrder"]) {
+  itemId: String!
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  itemName: String!
+  answerType: String!
+  options: String!
+  targetScope: String!
+  targetKeys: String
+  active: Boolean! @default(value: true)
+  displayOrder: Int!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# 回答者ごとに1行だけ保持し、再回答は同じ行を更新する。
+# answersJson は項目IDをキー、選択した回答を値とするJSON文字列。
+type AttendanceResponse
+  @table(key: ["trainingId", "respondentKey"])
+  @index(fields: ["trainingId", "updatedAt"]) {
+  trainingId: String!
+  training: Training! @ref(fields: "trainingId", references: "trainingId")
+  respondentKey: String!
+  memberNo: String
+  personalId: String
+  companyName: String
+  participantName: String
+  email: String
+  answersJson: String!
+  note: String
+  answeredAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 # 研修ごとに確定した受付対象者名簿。
 # これはFirestore対策の「受付索引」ではなく、事前申込者や開催時点の対象者を
 # 固定しておくための業務データ。受付済み状態は保持せず、CheckinとのJOINで判定する。

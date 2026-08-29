@@ -42,6 +42,66 @@ export function replaceTrainingTargets(dcOrVars, vars) {
   return executeMutation(replaceTrainingTargetsRef(dcInstance, inputVars));
 }
 
+export const adminAttendanceConfigRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminAttendanceConfig', inputVars);
+}
+adminAttendanceConfigRef.operationName = 'AdminAttendanceConfig';
+
+export function adminAttendanceConfig(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(adminAttendanceConfigRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const replaceAttendanceItemsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ReplaceAttendanceItems', inputVars);
+}
+replaceAttendanceItemsRef.operationName = 'ReplaceAttendanceItems';
+
+export function replaceAttendanceItems(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(replaceAttendanceItemsRef(dcInstance, inputVars));
+}
+
+export const publicAttendanceAnswerRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'PublicAttendanceAnswer', inputVars);
+}
+publicAttendanceAnswerRef.operationName = 'PublicAttendanceAnswer';
+
+export function publicAttendanceAnswer(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(publicAttendanceAnswerRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const saveAttendanceResponseRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SaveAttendanceResponse', inputVars);
+}
+saveAttendanceResponseRef.operationName = 'SaveAttendanceResponse';
+
+export function saveAttendanceResponse(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(saveAttendanceResponseRef(dcInstance, inputVars));
+}
+
+export const adminAttendanceResponsesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminAttendanceResponses', inputVars);
+}
+adminAttendanceResponsesRef.operationName = 'AdminAttendanceResponses';
+
+export function adminAttendanceResponses(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(adminAttendanceResponsesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const adminTrainingTargetSourceRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

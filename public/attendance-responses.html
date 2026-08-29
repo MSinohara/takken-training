@@ -8,6 +8,12 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
+<script>
+window.sqlAttendanceReady = import("./sql/js/attendance.js?v=1").then(function(module){ return module.sqlAttendance; });
+</script>
 
 <style>
 main{
@@ -150,7 +156,7 @@ function loadResponses(){
   jsonp(
     "getAttendanceResponsesJsonp",
     { event: eventId },
-    function(res){
+    async function(res){
 
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
@@ -175,8 +181,25 @@ function loadResponses(){
         (res.responses || []).length +
         "件";
 
-      currentItems =
-        res.items || [];
+      try{
+        const sql = await window.sqlAttendanceReady;
+        const sqlResult = await sql.loadAdminResponses(eventId, document.getElementById("status"));
+        res.training = sqlResult.training || res.training;
+        if(sqlResult.items && sqlResult.items.length){
+          res.items = sqlResult.items;
+        }
+        if(sqlResult.responses && sqlResult.responses.length){
+          res.responses = sqlResult.responses;
+        }
+        res.summary = buildAttendanceSummary(res.items, res.responses);
+        const answeredKeys = new Set(res.responses.map(function(row){ return row.respondentKey; }));
+        res.answeredMembers = (res.targetMembers || []).filter(function(row){ return answeredKeys.has(row.respondentKey); });
+        res.unansweredMembers = (res.targetMembers || []).filter(function(row){ return !answeredKeys.has(row.respondentKey); });
+      }catch(error){
+        console.error("SQL attendance responses load failed", error);
+      }
+
+      currentItems = res.items || [];
 
       currentResponses =
         res.responses || [];
@@ -193,6 +216,21 @@ function loadResponses(){
       renderContent(res.items || [], res.responses || [], res.summary || []);
     }
   );
+}
+
+function buildAttendanceSummary(items, responses){
+  return (items || []).map(function(item){
+    const counts = {};
+    (item.optionList || String(item.options || "").split(",")).forEach(function(option){
+      option = String(option || "").trim();
+      if(option){ counts[option] = 0; }
+    });
+    (responses || []).forEach(function(response){
+      const value = response.answers && response.answers[item.itemId];
+      if(value){ counts[value] = (counts[value] || 0) + 1; }
+    });
+    return { itemId:item.itemId, itemName:item.itemName, counts:counts };
+  });
 }
 
 function closeAttendanceResponsesWindow(){

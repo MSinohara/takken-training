@@ -92,6 +92,109 @@ mutation ReplaceTrainingTargets(
   trainingTarget_upsertMany(data: $data)
 }
 
+query AdminAttendanceConfig($trainingId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  training(key: { trainingId: $trainingId }) {
+    trainingId title eventDate hostType attendanceUnit
+    attendanceConfirmEnabled attendanceStatusPublic
+  }
+  items: attendanceItems(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ displayOrder: ASC }, { itemId: ASC }]
+    limit: 100
+  ) {
+    itemId itemName answerType options targetScope targetKeys active displayOrder
+    createdAt updatedAt
+  }
+}
+
+mutation ReplaceAttendanceItems(
+  $trainingId: String!
+  $data: [AttendanceItem_Data!]!
+    @allow(fields: "itemId trainingId itemName answerType options targetScope targetKeys active displayOrder")
+) @transaction @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  attendanceItem_deleteMany(where: { trainingId: { eq: $trainingId } })
+  attendanceItem_upsertMany(data: $data)
+}
+
+query PublicAttendanceAnswer($trainingId: String!, $respondentKey: String!)
+  @auth(level: PUBLIC, insecureReason: "案内メールを受け取った参加者本人の出欠回答画面に限定して使用するため。") {
+  training(key: { trainingId: $trainingId }) {
+    trainingId title eventDate hostType attendanceConfirmEnabled attendanceStatusPublic
+  }
+  items: attendanceItems(
+    where: { trainingId: { eq: $trainingId }, active: { eq: true } }
+    orderBy: [{ displayOrder: ASC }, { itemId: ASC }]
+    limit: 100
+  ) {
+    itemId itemName answerType options targetScope targetKeys active displayOrder
+  }
+  response: attendanceResponse(
+    key: { trainingId: $trainingId, respondentKey: $respondentKey }
+  ) {
+    trainingId respondentKey memberNo personalId companyName participantName email
+    answersJson note answeredAt updatedAt
+  }
+  publicResponses: attendanceResponses(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ updatedAt: DESC }]
+    limit: 5000
+  ) {
+    trainingId respondentKey memberNo personalId companyName participantName
+    answersJson note updatedAt
+  }
+}
+
+mutation SaveAttendanceResponse(
+  $trainingId: String!
+  $respondentKey: String!
+  $memberNo: String
+  $personalId: String
+  $companyName: String
+  $participantName: String
+  $email: String
+  $answersJson: String!
+  $note: String
+) @auth(level: PUBLIC, insecureReason: "案内メールを受け取った参加者本人が自分の出欠回答を保存するため。") {
+  attendanceResponse_upsert(
+    data: {
+      trainingId: $trainingId
+      respondentKey: $respondentKey
+      memberNo: $memberNo
+      personalId: $personalId
+      companyName: $companyName
+      participantName: $participantName
+      email: $email
+      answersJson: $answersJson
+      note: $note
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+query AdminAttendanceResponses($trainingId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  training(key: { trainingId: $trainingId }) {
+    trainingId title eventDate hostType attendanceUnit
+    attendanceConfirmEnabled attendanceStatusPublic
+  }
+  items: attendanceItems(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ displayOrder: ASC }, { itemId: ASC }]
+    limit: 100
+  ) {
+    itemId itemName answerType options targetScope targetKeys active displayOrder
+  }
+  responses: attendanceResponses(
+    where: { trainingId: { eq: $trainingId } }
+    orderBy: [{ updatedAt: DESC }]
+    limit: 5000
+  ) {
+    trainingId respondentKey memberNo personalId companyName participantName email
+    answersJson note answeredAt updatedAt
+  }
+}
+
 query AdminTrainingTargetSource($trainingId: String!)
   @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
   companies: memberCompanies(where: { active: { eq: true } }, limit: 5000) {
