@@ -165,28 +165,23 @@ let allTrainings =
   [];
 
 function loadTrainings(){
+  if(!window.sqlIndividualStats){
+    window.addEventListener("sql-individual-stats-ready", loadTrainings, { once:true });
+    return;
+  }
 
-  jsonp(
-    "getStatsTrainingOptionsJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "研修会一覧を取得できませんでした。") +
-          '</span>';
-        return;
-      }
-
-      allTrainings =
-        res.trainings || [];
-
+  window.sqlIndividualStats.loadTrainings()
+    .then(function(trainings){
+      allTrainings = trainings || [];
       renderYearOptions();
       renderTrainingOptions();
-    },
-    60000
-  );
+    })
+    .catch(function(error){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">研修会一覧を取得できませんでした。' +
+        escapeHtml(error && error.message ? error.message : error) +
+        '</span>';
+    });
 }
 
 function renderYearOptions(){
@@ -289,21 +284,8 @@ function loadStats(){
   document.getElementById("statsArea").style.display =
     "none";
 
-  jsonp(
-    "getTrainingStatsJsonp",
-    { event: eventId },
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
-          '</span>';
-        return;
-      }
-
-      const s =
-        res.stats;
+  window.sqlIndividualStats.loadStats(eventId, allTrainings)
+    .then(function(s){
 
       document.getElementById("status").innerHTML =
         '<span class="ok">集計を表示しています。</span>';
@@ -334,9 +316,13 @@ function loadStats(){
           encodeURIComponent(s.eventId || eventId) +
           '">研修会詳細を開く</a>' +
         '</div>';
-    },
-    60000
-  );
+    })
+    .catch(function(error){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">集計を取得できませんでした。' +
+        escapeHtml(error && error.message ? error.message : error) +
+        '</span>';
+    });
 }
 
 function makeReferenceParticipationItems(stats){
@@ -585,6 +571,7 @@ function normalizeDateText(value){
 
 loadTrainings();
 </script>
+<script type="module" src="sql/js/individual-stats.js?v=1"></script>
 
 </body>
 </html>
