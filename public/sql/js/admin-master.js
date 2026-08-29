@@ -19,8 +19,10 @@ import {
   adminImportMemberCompanies,
   adminDeactivateMissingMembers,
   adminImportPeople,
+  adminValidateOrganizationImportMembers,
+  adminReplaceOrganizationMembers,
   connectorConfig,
-} from "./generated.js?v=32";
+} from "./generated.js?v=33";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
@@ -288,6 +290,29 @@ window.sqlAdminMaster = {
       }
     }
     return { ok: true, message: `所属個人を追加しました。追加 ${personalIds.length}件。` };
+  },
+  replaceOrganizationMembers: async (orgId, memberNos) => {
+    await authorize();
+    const uniqueMemberNos = [...new Set(memberNos.map((value) => String(value || "").trim()).filter(Boolean))];
+    const valid = new Set();
+    const chunkSize = 500;
+    for (let start = 0; start < uniqueMemberNos.length; start += chunkSize) {
+      const chunk = uniqueMemberNos.slice(start, start + chunkSize);
+      const result = await adminValidateOrganizationImportMembers(dc, { memberNos: chunk }, { fetchPolicy: "SERVER_ONLY" });
+      (result.data.rows || []).forEach((row) => valid.add(row.memberNo));
+    }
+    const unknownList = uniqueMemberNos.filter((memberNo) => !valid.has(memberNo));
+    const data = [...valid].map((memberNo) => ({ memberNo, orgId }));
+    const result = await adminReplaceOrganizationMembers(dc, { orgId, data });
+    const response = result.data || {};
+    return {
+      ok: true,
+      message: "所属組織をSQLで更新しました。",
+      deleted: Number((response.deleted && response.deleted._count) || 0),
+      imported: data.length,
+      unknown: unknownList.length,
+      unknownList: unknownList.slice(0, 20),
+    };
   },
   saveMemberSetting: async (data) => {
     await authorize();

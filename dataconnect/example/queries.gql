@@ -1131,3 +1131,21 @@ mutation AdminRemovePersonOrganization($personalId: String!, $orgId: String!)
   @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
   personOrganization_delete(key: { personalId: $personalId, orgId: $orgId })
 }
+
+query AdminValidateOrganizationImportMembers($memberNos: [String!]!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  rows: memberCompanies(
+    where: { memberNo: { in: $memberNos }, active: { eq: true } }
+    orderBy: [{ memberNo: ASC }]
+  ) {
+    memberNo
+  }
+}
+
+mutation AdminReplaceOrganizationMembers(
+  $orgId: String!
+  $data: [MemberOrganization_Data!]! @allow(fields: "memberNo orgId")
+) @transaction @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  deleted: memberOrganization_deleteMany(where: { orgId: { eq: $orgId } })
+  imported: memberOrganization_upsertMany(data: $data)
+}

@@ -586,6 +586,26 @@ export function adminRemovePersonOrganization(dcOrVars, vars) {
   return executeMutation(adminRemovePersonOrganizationRef(dcInstance, inputVars));
 }
 
+export const adminValidateOrganizationImportMembersRef = (dcOrVars, vars) => {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return queryRef(dcInstance, 'AdminValidateOrganizationImportMembers', inputVars);
+};
+adminValidateOrganizationImportMembersRef.operationName = 'AdminValidateOrganizationImportMembers';
+export function adminValidateOrganizationImportMembers(dcOrVars, varsOrOptions, options) {
+  const { dcInstance, inputVars, inputOpts } = validateArgs(connectorConfig, dcOrVars, varsOrOptions, options);
+  return executeQuery(adminValidateOrganizationImportMembersRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminReplaceOrganizationMembersRef = (dcOrVars, vars) => {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return mutationRef(dcInstance, 'AdminReplaceOrganizationMembers', inputVars);
+};
+adminReplaceOrganizationMembersRef.operationName = 'AdminReplaceOrganizationMembers';
+export function adminReplaceOrganizationMembers(dcOrVars, vars) {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return executeMutation(adminReplaceOrganizationMembersRef(dcInstance, inputVars));
+}
+
 export const adminPeopleForMemberRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

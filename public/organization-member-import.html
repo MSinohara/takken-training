@@ -8,6 +8,15 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js",
+    "firebase/data-connect": "https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"
+  }
+}
+</script>
 
 <style>
 main{
@@ -130,13 +139,10 @@ let csvRows =
 let memberNos =
   [];
 
-function loadOrganizations(){
-
-  jsonp(
-    "getOrganizationsJsonp",
-    {},
-    function(res){
-
+async function loadOrganizations(){
+  try {
+      const { sqlAdminMaster } = await import("./sql/js/admin-master.js?v=39");
+      const res = await sqlAdminMaster.listOrganizations();
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
           '<span class="ng">組織設定を取得できませんでした。</span>';
@@ -150,8 +156,10 @@ function loadOrganizations(){
 
       document.getElementById("status").textContent =
         "CSVファイルを選択してください。";
-    }
-  );
+  } catch (error) {
+    document.getElementById("status").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "組織設定を取得できませんでした。") + '</span>';
+  }
 }
 
 
@@ -396,7 +404,7 @@ function makePreview(){
 }
 
 
-function executeImport(){
+async function executeImport(){
 
   if(!detectedOrganization){
     alert("対象組織が判定されていません。");
@@ -419,20 +427,16 @@ function executeImport(){
   document.getElementById("status").textContent =
     "取込中...";
 
-  jsonp(
-    "replaceOrganizationMembersJsonp",
-    {
-      orgId: detectedOrganization.orgId,
-      memberNos: memberNos.join(",")
-    },
-    function(res){
-
+  const button = document.getElementById("importButton");
+  button.disabled = true;
+  try {
+      const { sqlAdminMaster } = await import("./sql/js/admin-master.js?v=39");
+      const res = await sqlAdminMaster.replaceOrganizationMembers(
+        detectedOrganization.orgId,
+        memberNos
+      );
       if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "取込に失敗しました。") +
-          '</span>';
-        return;
+        throw new Error(res && res.message ? res.message : "取込に失敗しました。");
       }
 
       let html =
@@ -458,10 +462,11 @@ function executeImport(){
       document.getElementById("status").innerHTML =
         html;
 
-      document.getElementById("importButton").disabled =
-        true;
-    }
-  );
+  } catch (error) {
+    document.getElementById("status").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "取込に失敗しました。") + '</span>';
+    button.disabled = false;
+  }
 }
 
 
