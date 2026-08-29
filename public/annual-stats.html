@@ -162,36 +162,27 @@ let allEventTypes =
   [];
 
 function loadTrainings(){
+  if(!window.sqlAnnualStats){
+    window.addEventListener("sql-annual-stats-ready", loadTrainings, { once:true });
+    return;
+  }
 
-  jsonp(
-    "getStatsTrainingOptionsJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "研修会一覧を取得できませんでした。") +
-          '</span>';
-        return;
-      }
-
-      allTrainings =
-        res.trainings || [];
-
-      allEventTypes =
-        res.eventTypes || ["研修会"];
-
+  window.sqlAnnualStats.loadOptions()
+    .then(function(res){
+      allTrainings = res.trainings || [];
+      allEventTypes = res.eventTypes || ["研修会"];
       renderYearOptions();
       renderEventTypeOptions();
       renderAnnualFilterOptions();
-
       document.getElementById("status").textContent =
         "条件を選択して「年間集計を表示」を押してください。";
-
-    },
-    90000
-  );
+    })
+    .catch(function(error){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">研修会一覧を取得できませんでした。' +
+        escapeHtml(error && error.message ? error.message : error) +
+        '</span>';
+    });
 }
 
 
@@ -846,6 +837,7 @@ function makeAnnualTrainingTable(title, list){
 
 loadTrainings();
 </script>
+<script type="module" src="sql/js/annual-stats.js?v=1"></script>
 
 </body>
 </html>
