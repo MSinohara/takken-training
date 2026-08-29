@@ -92,6 +92,25 @@ mutation ReplaceTrainingTargets(
   trainingTarget_upsertMany(data: $data)
 }
 
+query AdminTrainingTargetSource($trainingId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  companies: memberCompanies(where: { active: { eq: true } }, limit: 5000) {
+    memberNo companyName branch district block email representativeName active
+  }
+  persons(where: { active: { eq: true } }, limit: 5000) {
+    personalId memberNo name email personType active
+  }
+  memberOrganizations(limit: 5000) { memberNo orgId }
+  personOrganizations(limit: 5000) { personalId orgId }
+  plannedAttendees(
+    where: { trainingId: { eq: $trainingId }, active: { eq: true } }
+    limit: 5000
+  ) {
+    plannedId targetType targetId memberNo personalId participantName email
+    branch district block active
+  }
+}
+
 query AdminSearchMemberCompanies(
   $keyword: String! = ""
   $branch: String

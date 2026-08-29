@@ -12,7 +12,7 @@
 {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
 </script>
 <script type="module">
-import("./sql/js/training-form.js?v=4").catch(function(error){
+import("./sql/js/training-form.js?v=5").catch(function(error){
   window.sqlTrainingFormLoadError = error;
   console.error("研修会SQL保存機能を読み込めませんでした。", error);
 });
@@ -434,6 +434,7 @@ async function saveTraining(){
     body: document.getElementById("body").value,
     pdfFileId: document.getElementById("pdfFileId").value.trim(),
     active: document.getElementById("active").value,
+    skipTargetMembers: "TRUE",
 
 		targetBlock: document.getElementById("targetBlock").value,
 		targetBranch: document.getElementById("targetBranch").value,
@@ -495,7 +496,7 @@ async function saveTraining(){
 
       waitForSqlTrainingForm()
         .then(function(sqlApi){
-          return sqlApi.replaceTargets(data, res.targetMembers || []);
+          return sqlApi.replaceTargets(data);
         })
         .then(function(targetResult){
           setupSavedTrainingActions(data);

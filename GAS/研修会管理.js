@@ -1028,7 +1028,11 @@ function saveTrainingJsonp_(e) {
     result =
       saveTraining(data);
 
-    if (result && result.ok) {
+    if (
+      result &&
+      result.ok &&
+      String(e.parameter.skipTargetMembers || "").toUpperCase() !== "TRUE"
+    ) {
       const savedTraining =
         findTrainingById_(data.eventId);
 

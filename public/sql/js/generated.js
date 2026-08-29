@@ -42,6 +42,18 @@ export function replaceTrainingTargets(dcOrVars, vars) {
   return executeMutation(replaceTrainingTargetsRef(dcInstance, inputVars));
 }
 
+export const adminTrainingTargetSourceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminTrainingTargetSource', inputVars);
+}
+adminTrainingTargetSourceRef.operationName = 'AdminTrainingTargetSource';
+
+export function adminTrainingTargetSource(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(adminTrainingTargetSourceRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const searchMemberCompaniesRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
