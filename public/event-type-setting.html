@@ -178,7 +178,7 @@ async function loadEventTypes(){
   showMessage("", true);
 
   try {
-      await import("./sql/js/event-types.js?v=3");
+      await import("./sql/js/event-types.js?v=4");
       eventTypes = await window.sqlEventTypes.list();
       if(!eventTypes){
         document.getElementById("eventTypeRows").innerHTML =
@@ -302,7 +302,7 @@ async function saveEventType(){
   }
 
   try {
-      await import("./sql/js/event-types.js?v=3");
+      await import("./sql/js/event-types.js?v=4");
       const res = await window.sqlEventTypes.save(data);
       showMessage(res.message || "保存しました。", true);
       closeEditArea();
@@ -324,7 +324,7 @@ async function toggleEventType(eventTypeId){
   }
 
   try {
-    await import("./sql/js/event-types.js?v=3");
+    await import("./sql/js/event-types.js?v=4");
     const res = await window.sqlEventTypes.save({
       eventTypeId: item.eventTypeId,
       eventTypeName: item.eventTypeName,

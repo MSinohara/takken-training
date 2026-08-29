@@ -602,22 +602,24 @@ export function adminReplaceOrganizationMembers(dcOrVars, vars) {
 }
 
 export const adminListEventTypesRef = (dcOrVars, vars) => {
-  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'AdminListEventTypes', inputVars);
 };
 adminListEventTypesRef.operationName = 'AdminListEventTypes';
 export function adminListEventTypes(dcOrVars, varsOrOptions, options) {
-  const { dcInstance, inputVars, inputOpts } = validateArgs(connectorConfig, dcOrVars, varsOrOptions, options);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(adminListEventTypesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const adminSaveEventTypeRef = (dcOrVars, vars) => {
-  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
   return mutationRef(dcInstance, 'AdminSaveEventType', inputVars);
 };
 adminSaveEventTypeRef.operationName = 'AdminSaveEventType';
 export function adminSaveEventType(dcOrVars, vars) {
-  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(adminSaveEventTypeRef(dcInstance, inputVars));
 }
 
