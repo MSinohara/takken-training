@@ -839,7 +839,7 @@ query AnnualTrainingData($trainingId: String!, $targetType: String!)
     limit: 5000
   ) {
     targetId
-    company { memberNo branch district }
+    company { memberNo companyName block branch district }
   }
   checkins(
     where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }
@@ -848,7 +848,7 @@ query AnnualTrainingData($trainingId: String!, $targetType: String!)
     targetId
     checkinMethod
     attendanceUnit
-    company { memberNo branch district }
+    company { memberNo companyName block branch district }
   }
   guestCheckins(
     where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }

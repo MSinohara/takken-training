@@ -373,38 +373,15 @@ function loadAnalysis(){
   document.getElementById("pager").style.display =
     "none";
 
-  jsonp(
-    "getFollowAnalysisJsonp",
-    {
-      year: year,
-      eventType: eventType
-    },
-    function(res){
+  if(!window.sqlFollowAnalysis){
+    window.addEventListener("sql-follow-analysis-ready", loadAnalysis, { once:true });
+    return;
+  }
+
+  window.sqlFollowAnalysis.load(year, eventType)
+    .then(function(res){
 
       if(requestNo !== analysisRequestNo){
-        return;
-      }
-
-      if(!res || !res.ok){
-        currentResult =
-          null;
-
-        document.getElementById("summary").style.display =
-          "none";
-
-        document.getElementById("analysisTable").style.display =
-          "none";
-
-        document.getElementById("analysisBody").innerHTML =
-          "";
-
-        document.getElementById("pager").style.display =
-          "none";
-
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "参加フォロー分析を取得できませんでした。") +
-          '</span>';
         return;
       }
 
@@ -417,9 +394,21 @@ function loadAnalysis(){
       renderYearOptions(res);
       renderEventTypeOptions(res);
       renderAnalysis();
-    },
-    60000
-  );
+    })
+    .catch(function(error){
+      if(requestNo !== analysisRequestNo){
+        return;
+      }
+      currentResult = null;
+      document.getElementById("summary").style.display = "none";
+      document.getElementById("analysisTable").style.display = "none";
+      document.getElementById("analysisBody").innerHTML = "";
+      document.getElementById("pager").style.display = "none";
+      document.getElementById("status").innerHTML =
+        '<span class="ng">参加フォロー分析を取得できませんでした。' +
+        escapeHtml(error && error.message ? error.message : error) +
+        '</span>';
+    });
 }
 
 
@@ -891,6 +880,7 @@ function makeSummaryCard(label, value){
 
 loadAnalysis();
 </script>
+<script type="module" src="sql/js/follow-analysis.js?v=1"></script>
 
 </body>
 </html>
