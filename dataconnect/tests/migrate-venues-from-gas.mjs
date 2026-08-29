@@ -45,12 +45,13 @@ const rows = (await gas()).map((row) => ({
 }));
 const varsFile = resolve(varsDir, "AdminUpsertVenues.json");
 await writeFile(varsFile, JSON.stringify({ data: rows }), "utf8");
-const result = spawnSync("npx.cmd", [
+const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+const result = spawnSync(npxCommand, [
   "firebase-tools", "dataconnect:execute", queries, "AdminUpsertVenues",
   "--service", "takken-training", "--location", "asia-northeast1",
   "--project", "takken-training-demo", "--no-debug-details",
   "--variables", `@${relative(root, varsFile).replaceAll("\\", "/")}`,
-], { cwd: root, stdio: "inherit", windowsHide: true, shell: true, env: {
+], { cwd: root, stdio: "inherit", windowsHide: true, shell: false, env: {
   ...process.env, NODE_OPTIONS: "--use-system-ca", npm_config_cache: resolve(".npm-cache"),
 }});
 if (result.status !== 0) throw new Error("会場マスタ移行に失敗しました。");
