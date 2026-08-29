@@ -1402,17 +1402,13 @@ function loadDetail(){
       }
       loadDetailFromResponse({ ok:true, training:training, attendanceItemCount:0 });
     })
-    .catch(function(){
-      loadDetailFromGas();
+    .catch(function(error){
+      console.error("研修会詳細をSQLから取得できませんでした。", error);
+      loadDetailFromResponse({
+        ok:false,
+        message:"研修会詳細を取得できませんでした。時間をおいて再度お試しください。"
+      });
     });
-}
-
-function loadDetailFromGas(){
-  jsonp(
-    "getTrainingDetailJsonp",
-    { event: eventId },
-    loadDetailFromResponse
-  );
 }
 
 function loadDetailFromResponse(res){

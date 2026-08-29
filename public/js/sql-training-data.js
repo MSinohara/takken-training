@@ -39,13 +39,36 @@ function mapTraining(row) {
 }
 
 export const sqlTrainingData = {
-  async list() {
+  async listAll() {
     const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
-    return (response.data.trainings || []).map(mapTraining).filter((row) => row.active);
+    return (response.data.trainings || []).map(mapTraining);
+  },
+
+  async list() {
+    const rows = await this.listAll();
+    return rows.filter((row) => row.active);
   },
 
   async get(trainingId) {
-    const rows = await this.list();
+    const rows = await this.listAll();
     return rows.find((row) => row.eventId === trainingId) || null;
+  },
+
+  async nextId(now = new Date()) {
+    const tokyoParts = new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "numeric",
+    }).formatToParts(now);
+    const year = Number(tokyoParts.find((part) => part.type === "year")?.value || 0);
+    const month = Number(tokyoParts.find((part) => part.type === "month")?.value || 0);
+    const fiscalYear = month <= 3 ? year - 1 : year;
+    const pattern = new RegExp(`^${fiscalYear}-(\\d+)$`);
+    const rows = await this.listAll();
+    const maxNo = rows.reduce((max, row) => {
+      const match = String(row.eventId || "").match(pattern);
+      return match ? Math.max(max, Number(match[1]) || 0) : max;
+    }, 0);
+    return `${fiscalYear}-${String(maxNo + 1).padStart(3, "0")}`;
   }
 };

@@ -16,6 +16,8 @@ import("./sql/js/training-form.js?v=4").catch(function(error){
   window.sqlTrainingFormLoadError = error;
   console.error("研修会SQL保存機能を読み込めませんでした。", error);
 });
+window.sqlTrainingDataReady = import("./js/sql-training-data.js?v=10")
+  .then(function(module){ return module.sqlTrainingData; });
 </script>
 
 <style>
@@ -388,27 +390,20 @@ let statsOrgModeTouched =
 let attendanceConfirmTouched =
   false;
 
-function setNextTrainingId(){
+async function setNextTrainingId(){
 
   if(editEventId){
     alert("編集中の研修IDは変更できません。");
     return;
   }
 
-  jsonp(
-    "getNextTrainingIdJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        alert("研修IDを取得できませんでした。");
-        return;
-      }
-
-      document.getElementById("eventId").value =
-        res.eventId || "";
-    }
-  );
+  try {
+    const sqlData = await window.sqlTrainingDataReady;
+    document.getElementById("eventId").value = await sqlData.nextId();
+  } catch(error) {
+    console.error("研修IDをSQLから取得できませんでした。", error);
+    alert("研修IDを取得できませんでした。時間をおいて再度お試しください。");
+  }
 }
 
 async function saveTraining(){

@@ -209,20 +209,13 @@ function loadTrainings(attempt){
     .then(function(trainings){
       handleTrainingListResponse({ ok:true, trainings:trainings }, attempt);
     })
-    .catch(function(){
-      loadTrainingsFromGas(attempt);
+    .catch(function(error){
+      console.error("研修会一覧をSQLから取得できませんでした。", error);
+      handleTrainingListResponse({
+        ok:false,
+        message:"研修会一覧を取得できませんでした。時間をおいて再度お試しください。"
+      }, attempt);
     });
-}
-
-function loadTrainingsFromGas(attempt){
-  jsonp(
-    "getActiveTrainingsJsonp",
-    {},
-    function(res){
-      handleTrainingListResponse(res, attempt);
-    },
-    90000
-  );
 }
 
 function handleTrainingListResponse(res, attempt){
@@ -236,7 +229,7 @@ function handleTrainingListResponse(res, attempt){
           status.textContent =
             "研修会一覧の読み込みに時間がかかっています。もう一度読み込みます...";
 
-          setTimeout(function(){ loadTrainingsFromGas(attempt + 1); }, 1500);
+          setTimeout(function(){ loadTrainings(attempt + 1); }, 1500);
 
           return;
         }
