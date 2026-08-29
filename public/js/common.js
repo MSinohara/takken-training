@@ -533,7 +533,7 @@ function showSaveToast_(message, type){
 
 function escapeHtml(text){
 
-  return String(text || "")
+  return String(text === null || text === undefined ? "" : text)
     .replace(/&/g,"&amp;")
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;")
@@ -543,7 +543,7 @@ function escapeHtml(text){
 
 function escapeJs(text){
 
-  return String(text || "")
+  return String(text === null || text === undefined ? "" : text)
     .replace(/\\/g,"\\\\")
     .replace(/'/g,"\\'");
 }

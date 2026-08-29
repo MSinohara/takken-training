@@ -267,7 +267,7 @@ function renderContent(items, responses, summary){
         '\',\'' +
         escapeJs(option || "") +
         '\')">' +
-        escapeHtml(item.counts[option]) +
+        escapeHtml(String(item.counts[option] === undefined ? 0 : item.counts[option])) +
         '件</span><br>';
     });
 
