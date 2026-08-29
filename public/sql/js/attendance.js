@@ -131,7 +131,7 @@ async function mergeAdminAttendanceList(list, statusElement) {
       const result = await adminAttendanceResponses(dc, { trainingId }, { fetchPolicy: "SERVER_ONLY" });
       const items = (result.data.items || []).map(item);
       const responses = (result.data.responses || []).map(response);
-      if (!items.length) return entry;
+      if (!items.length && !responses.length) return entry;
       const targetCount = Number(entry.targetCount || 0);
       return {
         ...entry,
@@ -142,7 +142,8 @@ async function mergeAdminAttendanceList(list, statusElement) {
       };
     } catch (error) {
       console.error("SQL attendance list load failed", trainingId, error);
-      return entry;
+      return { ...entry, ok: false, answeredCount: null, unansweredCount: null,
+        message: "最新の回答を取得できませんでした。再検索してください。", summaries: [] };
     }
   }));
 }

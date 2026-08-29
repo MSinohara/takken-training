@@ -12,7 +12,7 @@
 {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
 </script>
 <script>
-window.sqlAttendanceReady = import("./sql/js/attendance.js?v=2").then(function(module){ return module.sqlAttendance; });
+window.sqlAttendanceReady = import("./sql/js/attendance.js?v=3").then(function(module){ return module.sqlAttendance; });
 </script>
 
 <style>
@@ -112,7 +112,11 @@ let allAttendances =
 let yearInitialized =
   false;
 
+let listRequestVersion = 0;
+
 function loadAttendanceList(){
+  const requestVersion = ++listRequestVersion;
+  document.getElementById("attendanceTable").style.display = "none";
 
   document.getElementById("status").textContent =
     "読み込み中...";
@@ -124,6 +128,7 @@ function loadAttendanceList(){
       keyword: document.getElementById("keyword").value.trim()
     },
     async function(res){
+      if(requestVersion !== listRequestVersion) return;
 
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
@@ -133,15 +138,21 @@ function loadAttendanceList(){
         return;
       }
 
-      allAttendances =
+      let resultList =
         res.attendances || [];
 
       try{
         const sql = await window.sqlAttendanceReady;
-        allAttendances = await sql.mergeAdminAttendanceList(allAttendances, document.getElementById("status"));
+        resultList = await sql.mergeAdminAttendanceList(resultList, document.getElementById("status"));
       }catch(error){
         console.error("SQL attendance list merge failed", error);
+        if(requestVersion !== listRequestVersion) return;
+        document.getElementById("status").textContent = "最新の回答を取得できませんでした。再検索してください。";
+        return;
       }
+
+      if(requestVersion !== listRequestVersion) return;
+      allAttendances = resultList;
 
       if(!yearInitialized){
         renderYearOptions(allAttendances);
@@ -238,8 +249,8 @@ function renderAttendanceList(list){
         escapeHtml(item.eventType || "") + '</span>' +
       '</td>' +
       '<td><span class="count-strong">' + escapeHtml(String(item.targetCount || 0)) + '</span>件</td>' +
-      '<td><span class="count-strong">' + escapeHtml(String(item.answeredCount || 0)) + '</span>件</td>' +
-      '<td><span class="count-strong">' + escapeHtml(String(item.unansweredCount || 0)) + '</span>件</td>' +
+      '<td><span class="count-strong">' + (item.ok ? escapeHtml(String(item.answeredCount || 0)) + '件' : '取得失敗') + '</span></td>' +
+      '<td><span class="count-strong">' + (item.ok ? escapeHtml(String(item.unansweredCount || 0)) + '件' : '取得失敗') + '</span></td>' +
       '<td>' + buildSummaryHtml(item) + '</td>' +
       '<td>' +
         '<a class="btn" href="attendance-responses.html?event=' + encodeURIComponent(item.eventId || "") + '">回答一覧</a> ' +
