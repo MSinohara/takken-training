@@ -144,10 +144,14 @@ function normalizeTargetRows(data, source) {
   return rows;
 }
 
-async function replaceTargets(data) {
+async function resolveTargetRows(data) {
   await requireSqlAdmin(app, document.getElementById("result"));
   const response = await adminTrainingTargetSource(dc, { trainingId: data.eventId }, { fetchPolicy: "SERVER_ONLY" });
-  const rows = normalizeTargetRows(data, response.data || {});
+  return normalizeTargetRows(data, response.data || {});
+}
+
+async function replaceTargets(data) {
+  const rows = await resolveTargetRows(data);
   await replaceTrainingTargets(dc, {
     trainingId: data.eventId,
     data: rows,
@@ -155,4 +159,9 @@ async function replaceTargets(data) {
   return { ok: true, targetCount: rows.length };
 }
 
-window.sqlTrainingForm = { replaceTargets, save };
+async function previewTargets(data) {
+  const rows = await resolveTargetRows(data);
+  return { targetCount: rows.length };
+}
+
+window.sqlTrainingForm = { previewTargets, replaceTargets, save };
