@@ -309,6 +309,21 @@ export function listCheckinHistory(dcOrVars, varsOrOptions, options) {
   return executeQuery(listCheckinHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
+export const annualTrainingDataRef = (dcOrVars, vars) => {
+  const { dcInstance, vars: inputVars } = dcOrVars && 'connector' in dcOrVars
+    ? { dcInstance: dcOrVars, vars }
+    : { dcInstance: undefined, vars: dcOrVars };
+  return queryRef(dcInstance, 'AnnualTrainingData', inputVars);
+};
+annualTrainingDataRef.operationName = 'AnnualTrainingData';
+
+export function annualTrainingData(dcOrVars, varsOrOptions, options) {
+  const { dcInstance, vars: inputVars, options: inputOpts } = dcOrVars && 'connector' in dcOrVars
+    ? { dcInstance: dcOrVars, vars: varsOrOptions, options }
+    : { dcInstance: undefined, vars: dcOrVars, options: varsOrOptions };
+  return executeQuery(annualTrainingDataRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const cancelCheckinRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

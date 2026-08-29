@@ -830,6 +830,36 @@ query ListCheckinHistory(
   }
 }
 
+# 年間集計を実行した時だけ、1研修分の確定対象者と有効な受付を取得する。
+# 日常の受付画面では使用せず、全年度・全会員の常時読込を避ける。
+query AnnualTrainingData($trainingId: String!, $targetType: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  targets: trainingTargets(
+    where: { trainingId: { eq: $trainingId }, targetType: { eq: $targetType } }
+    limit: 5000
+  ) {
+    targetId
+    company { memberNo branch district }
+  }
+  checkins(
+    where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }
+    limit: 5000
+  ) {
+    targetId
+    checkinMethod
+    attendanceUnit
+    company { memberNo branch district }
+  }
+  guestCheckins(
+    where: { trainingId: { eq: $trainingId }, cancelled: { eq: false } }
+    limit: 5000
+  ) {
+    checkinMethod
+    receptionCategory
+    branch
+  }
+}
+
 mutation CancelCheckin(
   $checkinId: String!
   $changedAt: Timestamp!

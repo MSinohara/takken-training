@@ -600,27 +600,29 @@ function loadAnnualStats(){
   document.getElementById("statsArea").style.display =
     "none";
 
-  jsonp(
-    "getAnnualTrainingStatsJsonp",
-    {
-      year: year,
-      eventType: eventType,
-      hostType: hostType,
-      targetBranch: targetBranch,
-      targetOrgId: targetOrgId
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "集計を取得できませんでした。") +
-          '</span>';
-        return;
+  const selectedTrainings =
+    allTrainings.filter(function(training){
+      if(!isAnnualFilterTrainingMatched(training, year, eventType)){
+        return false;
       }
+      if(hostType && String(training.hostType || "") !== hostType){
+        return false;
+      }
+      if(targetBranch && String(training.targetBranch || "") !== targetBranch){
+        return false;
+      }
+      const orgIds = splitCsvText(training.targetOrgIdsNew);
+      if(targetOrgId === "__NONE__" && orgIds.length){
+        return false;
+      }
+      if(targetOrgId && targetOrgId !== "__NONE__" && orgIds.indexOf(targetOrgId) < 0){
+        return false;
+      }
+      return true;
+    });
 
-      const s =
-        res.annualStats;
+  window.sqlAnnualStats.loadStats(selectedTrainings, year, eventType)
+    .then(function(s){
 
       document.getElementById("status").innerHTML =
         '<span class="ok">' +
@@ -653,9 +655,13 @@ function loadAnnualStats(){
         makeMethodStatsTable("受付区分別", s.receptionCategoryStats) +
         makeMethodStatsTable("受付方法別", s.methodStats) +
         makeAnnualTrainingTable("イベント別", s.trainingStats);
-    },
-    90000
-  );
+    })
+    .catch(function(error){
+      document.getElementById("status").innerHTML =
+        '<span class="ng">集計を取得できませんでした。' +
+        escapeHtml(error && error.message ? error.message : error) +
+        '</span>';
+    });
 }
 
 
@@ -837,7 +843,7 @@ function makeAnnualTrainingTable(title, list){
 
 loadTrainings();
 </script>
-<script type="module" src="sql/js/annual-stats.js?v=1"></script>
+<script type="module" src="sql/js/annual-stats.js?v=2"></script>
 
 </body>
 </html>
