@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
-import { adminListEventTypes, adminSaveEventType, connectorConfig } from "./generated.js?v=34";
+import { adminListEventTypes, adminSaveEventType, connectorConfig } from "./generated.js?v=35";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 

@@ -840,7 +840,7 @@ function updateTargetDistrictOptions(selectedValue){
 
 async function loadEventTypes(){
   try {
-      await import("./sql/js/event-types.js?v=2");
+      await import("./sql/js/event-types.js?v=3");
       eventTypeList = await window.sqlEventTypes.list();
       renderEventTypeOptions(
         document.getElementById("eventType").value || "研修会"
