@@ -47,6 +47,19 @@ type Organization
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+type EventType
+  @table(key: "eventTypeId")
+  @unique(fields: ["eventTypeName"], indexName: "event_type_name_uidx") {
+  eventTypeId: String!
+  eventTypeName: String! @index
+  attendanceConfirmDefault: Boolean! @default(value: false)
+  active: Boolean! @default(value: true) @index
+  sortOrder: Int! @default(value: 9999) @index
+  note: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type MemberOrganization
   @table(key: ["memberNo", "orgId"])
   @index(fields: ["orgId", "memberNo"]) {

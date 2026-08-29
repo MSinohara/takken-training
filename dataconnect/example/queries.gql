@@ -1149,3 +1149,37 @@ mutation AdminReplaceOrganizationMembers(
   deleted: memberOrganization_deleteMany(where: { orgId: { eq: $orgId } })
   imported: memberOrganization_upsertMany(data: $data)
 }
+
+query AdminListEventTypes
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  eventTypes(orderBy: [{ sortOrder: ASC }, { eventTypeName: ASC }]) {
+    eventTypeId
+    eventTypeName
+    attendanceConfirmDefault
+    active
+    sortOrder
+    note
+    createdAt
+    updatedAt
+  }
+}
+
+mutation AdminSaveEventType(
+  $eventTypeId: String!
+  $eventTypeName: String!
+  $attendanceConfirmDefault: Boolean!
+  $active: Boolean!
+  $sortOrder: Int!
+  $note: String
+  $updatedAt: Timestamp!
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  eventType_upsert(data: {
+    eventTypeId: $eventTypeId
+    eventTypeName: $eventTypeName
+    attendanceConfirmDefault: $attendanceConfirmDefault
+    active: $active
+    sortOrder: $sortOrder
+    note: $note
+    updatedAt: $updatedAt
+  })
+}

@@ -838,23 +838,18 @@ function updateTargetDistrictOptions(selectedValue){
   }
 }
 
-function loadEventTypes(){
-
-  jsonp(
-    "getEventTypesJsonp",
-    {},
-    function(res){
-
-      eventTypeList =
-        (res && res.ok)
-          ? (res.eventTypes || [])
-          : [];
-
+async function loadEventTypes(){
+  try {
+      await import("./sql/js/event-types.js?v=1");
+      eventTypeList = await window.sqlEventTypes.list();
       renderEventTypeOptions(
         document.getElementById("eventType").value || "研修会"
       );
-    }
-  );
+  } catch (error) {
+    eventTypeList = [];
+    renderEventTypeOptions(document.getElementById("eventType").value || "研修会");
+    console.error("イベント種別をSQLから取得できませんでした。", error);
+  }
 }
 
 function renderEventTypeOptions(selectedValue){

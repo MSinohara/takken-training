@@ -606,6 +606,26 @@ export function adminReplaceOrganizationMembers(dcOrVars, vars) {
   return executeMutation(adminReplaceOrganizationMembersRef(dcInstance, inputVars));
 }
 
+export const adminListEventTypesRef = (dcOrVars, vars) => {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return queryRef(dcInstance, 'AdminListEventTypes', inputVars);
+};
+adminListEventTypesRef.operationName = 'AdminListEventTypes';
+export function adminListEventTypes(dcOrVars, varsOrOptions, options) {
+  const { dcInstance, inputVars, inputOpts } = validateArgs(connectorConfig, dcOrVars, varsOrOptions, options);
+  return executeQuery(adminListEventTypesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminSaveEventTypeRef = (dcOrVars, vars) => {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return mutationRef(dcInstance, 'AdminSaveEventType', inputVars);
+};
+adminSaveEventTypeRef.operationName = 'AdminSaveEventType';
+export function adminSaveEventType(dcOrVars, vars) {
+  const { dcInstance, inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return executeMutation(adminSaveEventTypeRef(dcInstance, inputVars));
+}
+
 export const adminPeopleForMemberRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

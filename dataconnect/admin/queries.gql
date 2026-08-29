@@ -18,6 +18,12 @@ mutation AdminUpsertOrganizations(
   organization_upsertMany(data: $data)
 }
 
+mutation AdminUpsertEventTypes(
+  $data: [EventType_Data!]! @allow(fields: "eventTypeId eventTypeName attendanceConfirmDefault active sortOrder note createdAt updatedAt")
+) @transaction @auth(level: NO_ACCESS) {
+  eventType_upsertMany(data: $data)
+}
+
 mutation AdminUpsertMemberOrganizations(
   $data: [MemberOrganization_Data!]! @allow(fields: "memberNo orgId createdAt")
 ) @transaction @auth(level: NO_ACCESS) {

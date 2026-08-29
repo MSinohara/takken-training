@@ -8,6 +8,15 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js",
+    "firebase/data-connect": "https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"
+  }
+}
+</script>
 
 <style>
 main{
@@ -164,27 +173,23 @@ function showMessage(text, ok){
       : "";
 }
 
-function loadEventTypes(){
+async function loadEventTypes(){
 
   showMessage("", true);
 
-  jsonp(
-    "getEventTypesJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
+  try {
+      await import("./sql/js/event-types.js?v=1");
+      eventTypes = await window.sqlEventTypes.list();
+      if(!eventTypes){
         document.getElementById("eventTypeRows").innerHTML =
           '<tr><td colspan="7"><span class="ng">イベント種別を取得できませんでした。</span></td></tr>';
         return;
       }
-
-      eventTypes =
-        res.eventTypes || [];
-
       renderEventTypes();
-    }
-  );
+  } catch (error) {
+    document.getElementById("eventTypeRows").innerHTML =
+      '<tr><td colspan="7"><span class="ng">' + escapeHtml(error.message || "イベント種別を取得できませんでした。") + '</span></td></tr>';
+  }
 }
 
 function renderEventTypes(){
@@ -280,7 +285,7 @@ function closeEditArea(){
     "none";
 }
 
-function saveEventType(){
+async function saveEventType(){
 
   const data = {
     eventTypeId: document.getElementById("eventTypeId").value,
@@ -296,24 +301,18 @@ function saveEventType(){
     return;
   }
 
-  jsonp(
-    "saveEventTypeJsonp",
-    data,
-    function(res){
-
-      if(!res || !res.ok){
-        showMessage(res && res.message ? res.message : "保存に失敗しました。", false);
-        return;
-      }
-
+  try {
+      await import("./sql/js/event-types.js?v=1");
+      const res = await window.sqlEventTypes.save(data);
       showMessage(res.message || "保存しました。", true);
       closeEditArea();
-      loadEventTypes();
-    }
-  );
+      await loadEventTypes();
+  } catch (error) {
+    showMessage(error.message || "保存に失敗しました。", false);
+  }
 }
 
-function toggleEventType(eventTypeId){
+async function toggleEventType(eventTypeId){
 
   const item =
     eventTypes.find(function(row){
@@ -324,27 +323,21 @@ function toggleEventType(eventTypeId){
     return;
   }
 
-  jsonp(
-    "saveEventTypeJsonp",
-    {
+  try {
+    await import("./sql/js/event-types.js?v=1");
+    const res = await window.sqlEventTypes.save({
       eventTypeId: item.eventTypeId,
       eventTypeName: item.eventTypeName,
       sortOrder: item.sortOrder || "",
       attendanceConfirmDefault: item.attendanceConfirmDefault || "FALSE",
       active: item.active === "FALSE" ? "TRUE" : "FALSE",
       note: item.note || ""
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        showMessage(res && res.message ? res.message : "変更に失敗しました。", false);
-        return;
-      }
-
-      showMessage(res.message || "変更しました。", true);
-      loadEventTypes();
-    }
-  );
+    });
+    showMessage(res.message || "変更しました。", true);
+    await loadEventTypes();
+  } catch (error) {
+    showMessage(error.message || "変更に失敗しました。", false);
+  }
 }
 
 function escapeJs(value){
