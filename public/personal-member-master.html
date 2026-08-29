@@ -298,7 +298,7 @@ async function loadPersonalMembers(attempt){
     attempt ? "再読み込み中..." : "読み込み中...";
 
   try{
-    await import("./sql/js/admin-master.js?v=35");
+    await import("./sql/js/admin-master.js?v=36");
     const res = await window.sqlAdminMaster.searchPeople({
       keyword: document.getElementById("keyword").value,
       branch: document.getElementById("branch").value,
@@ -609,7 +609,7 @@ async function openPersonalOrgModal(personalId){
   );
 
   try{
-      await import("./sql/js/admin-master.js?v=35");
+      await import("./sql/js/admin-master.js?v=36");
       const res = await window.sqlAdminMaster.personOrganizations(personalId);
 
       if(!res || !res.ok){
@@ -698,7 +698,7 @@ async function savePersonalOrganizations(){
     "保存中...";
 
   try{
-      await import("./sql/js/admin-master.js?v=35");
+      await import("./sql/js/admin-master.js?v=36");
       const res = await window.sqlAdminMaster.savePersonalOrganizations(personalId, orgIds);
 
       if(!res || !res.ok){
@@ -817,7 +817,7 @@ function makeSelectedCompanyText(item){
   );
 }
 
-function searchCompanyForPersonal(){
+async function searchCompanyForPersonal(){
 
   const keyword =
     document.getElementById("modalCompanySearch").value.trim();
@@ -833,12 +833,9 @@ function searchCompanyForPersonal(){
   resultsBox.innerHTML =
     '<div class="status">会社を検索中...</div>';
 
-  jsonp(
-    "searchMembersJsonp",
-    {
-      keyword: keyword
-    },
-    function(res){
+  try{
+      await import("./sql/js/admin-master.js?v=36");
+      const res = await window.sqlAdminMaster.searchMembers({ keyword: keyword, limit: 50, offset: 0 });
 
       if(!res || !res.ok){
         resultsBox.innerHTML =
@@ -849,9 +846,10 @@ function searchCompanyForPersonal(){
       }
 
       renderCompanySearchResults(res.members || []);
-    },
-    PERSONAL_MEMBER_LOAD_TIMEOUT_MS
-  );
+  }catch(error){
+    resultsBox.innerHTML = '<div class="status ng">' +
+      escapeHtml(error && error.message ? error.message : "会社検索に失敗しました。") + '</div>';
+  }
 }
 
 function renderCompanySearchResults(members){
@@ -978,7 +976,7 @@ async function savePersonalMember(){
   const existingPersonalId = document.getElementById("modalPersonalId").value;
   if(existingPersonalId){
     try{
-      await import("./sql/js/admin-master.js?v=35");
+      await import("./sql/js/admin-master.js?v=36");
       const existing = findPersonalMember(existingPersonalId) || {};
       await window.sqlAdminMaster.savePerson({
         personalId: existingPersonalId,
@@ -1006,19 +1004,17 @@ async function savePersonalMember(){
     return;
   }
 
-  jsonp(
-    "savePersonalMemberJsonp",
-    {
-      personalId: document.getElementById("modalPersonalId").value,
-      memberNo: document.getElementById("modalMemberNo").value,
-      companyName: document.getElementById("modalCompanyName").value,
-      personName: document.getElementById("modalPersonName").value,
-      personType: document.getElementById("modalPersonType").value,
-      mail: document.getElementById("modalMail").value,
-      active: document.getElementById("modalActive").value,
-      note: document.getElementById("modalNote").value
-    },
-    function(res){
+  try{
+      await import("./sql/js/admin-master.js?v=36");
+      const res = await window.sqlAdminMaster.createPerson({
+        memberNo: document.getElementById("modalMemberNo").value,
+        name: document.getElementById("modalPersonName").value,
+        personType: document.getElementById("modalPersonType").value,
+        email: document.getElementById("modalMail").value,
+        active: document.getElementById("modalActive").value === "TRUE",
+        note: document.getElementById("modalNote").value,
+        source: "手入力"
+      });
 
       personalMemberSaving =
         false;
@@ -1053,9 +1049,12 @@ async function savePersonalMember(){
         closeAppModal();
         loadPersonalMembers();
       }, 500);
-    },
-    PERSONAL_MEMBER_SAVE_TIMEOUT_MS
-  );
+  }catch(error){
+    personalMemberSaving = false;
+    if(saveButton){ saveButton.disabled = false; saveButton.textContent = "保存"; }
+    status.className = "status ng";
+    status.textContent = error && error.message ? error.message : "保存できませんでした。";
+  }
 }
 
 document.addEventListener(
