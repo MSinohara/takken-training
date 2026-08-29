@@ -1042,3 +1042,21 @@ mutation AdminAddPersonOrganization($personalId: String!, $orgId: String!, $sour
   @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
   personOrganization_upsert(data: { personalId: $personalId orgId: $orgId source: $source })
 }
+
+query AdminMemberDetail($memberNo: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  memberCompany(key: { memberNo: $memberNo }) {
+    memberNo companyName representativeName email branch district block sendTarget note active
+  }
+  organizations(orderBy: [{ orgId: ASC }]) {
+    orgId orgName active
+  }
+  selected: memberOrganizations(where: { memberNo: { eq: $memberNo } }) {
+    orgId
+  }
+}
+
+mutation AdminRemoveMemberOrganization($memberNo: String!, $orgId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  memberOrganization_delete(key: { memberNo: $memberNo, orgId: $orgId })
+}

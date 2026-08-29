@@ -541,3 +541,25 @@ export function adminAddPersonOrganization(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(adminAddPersonOrganizationRef(dcInstance, inputVars));
 }
+
+export const adminMemberDetailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminMemberDetail', inputVars);
+}
+adminMemberDetailRef.operationName = 'AdminMemberDetail';
+export function adminMemberDetail(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(adminMemberDetailRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminRemoveMemberOrganizationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminRemoveMemberOrganization', inputVars);
+}
+adminRemoveMemberOrganizationRef.operationName = 'AdminRemoveMemberOrganization';
+export function adminRemoveMemberOrganization(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminRemoveMemberOrganizationRef(dcInstance, inputVars));
+}

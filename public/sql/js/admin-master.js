@@ -10,8 +10,10 @@ import {
   adminOrganizationMembers,
   adminAddMemberOrganization,
   adminAddPersonOrganization,
+  adminMemberDetail,
+  adminRemoveMemberOrganization,
   connectorConfig,
-} from "./generated.js?v=28";
+} from "./generated.js?v=29";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
@@ -97,6 +99,40 @@ async function searchPeople(filters) {
 }
 
 window.sqlAdminMaster = {
+  memberDetail: async (memberNo) => {
+    await authorize();
+    const result = await adminMemberDetail(dc, { memberNo }, { fetchPolicy: "SERVER_ONLY" });
+    const data = result.data || {};
+    if (!data.memberCompany) return { ok: false, message: "会員情報が見つかりません。" };
+    const selected = new Set((data.selected || []).map((row) => row.orgId));
+    const member = data.memberCompany;
+    return {
+      ok: true,
+      member: {
+        memberNo: member.memberNo, companyName: member.companyName,
+        representativeName: member.representativeName || "", mail: member.email || "",
+        branch: member.branch || "", district: member.district || "", block: member.block || "",
+        target: member.sendTarget ? "TRUE" : "FALSE", note: member.note || "", active: member.active,
+      },
+      organizations: (data.organizations || []).filter((org) => org.active).map((org) => ({
+        orgId: org.orgId, orgName: org.orgName, selected: selected.has(org.orgId),
+      })),
+    };
+  },
+  saveMemberOrganizations: async (memberNo, orgIds) => {
+    await authorize();
+    const detail = await window.sqlAdminMaster.memberDetail(memberNo);
+    if (!detail.ok) return detail;
+    const before = new Set(detail.organizations.filter((org) => org.selected).map((org) => org.orgId));
+    const after = new Set(orgIds);
+    for (const orgId of after) {
+      if (!before.has(orgId)) await adminAddMemberOrganization(dc, { memberNo, orgId });
+    }
+    for (const orgId of before) {
+      if (!after.has(orgId)) await adminRemoveMemberOrganization(dc, { memberNo, orgId });
+    }
+    return { ok: true, message: "会員設定と所属組織を保存しました。" };
+  },
   listOrganizations: async () => {
     await authorize();
     const result = await adminListOrganizations(dc, {}, { fetchPolicy: "SERVER_ONLY" });
