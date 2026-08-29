@@ -1193,6 +1193,13 @@ query AdminListVenues
   }
 }
 
+query AdminListDistricts
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  districts(orderBy: [{ branch: ASC }, { sortOrder: ASC }, { districtName: ASC }]) {
+    branch districtName active sortOrder
+  }
+}
+
 mutation AdminSaveVenue(
   $venueId: String!
   $venueName: String!

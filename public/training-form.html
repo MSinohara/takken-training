@@ -1007,21 +1007,25 @@ function applyAttendanceDefaultForEventType(){
   updateAttendanceConfirmView();
 }
 
-function loadDistricts(){
-
-  jsonp(
-    "getDistrictsJsonp",
-    {},
-    function(res){
-
-      if(res && res.ok){
-        districtMap =
-          res.districts || {};
-      }
-
-      loadOrganizations();
-    }
-  );
+async function loadDistricts(){
+  try {
+    await import("./sql/js/training-masters.js?v=1");
+    const data = await window.sqlTrainingMasters.load();
+    districtMap = data.districts || {};
+    organizationList = (data.organizations || []).filter(function(o){
+      return o.active !== "FALSE";
+    });
+    renderOrganizationInputs();
+  } catch(error) {
+    districtMap = {};
+    organizationList = [];
+    document.getElementById("targetOrgArea").innerHTML =
+      '<span class="ng">対象設定を取得できませんでした。</span>';
+    document.getElementById("statsOrgArea").innerHTML =
+      '<span class="ng">対象設定を取得できませんでした。</span>';
+    console.error("対象設定をSQLから取得できませんでした。", error);
+  }
+  loadTrainingForEdit();
 }
 
 function loadPdfFiles(){
@@ -1573,34 +1577,6 @@ function openPdfUploadPage(){
     "?page=pdfUpload&event=" +
     encodeURIComponent(eventId),
     "_blank"
-  );
-}
-
-function loadOrganizations(){
-
-  jsonp(
-    "getOrganizationsJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("targetOrgArea").innerHTML =
-          '<span class="ng">組織一覧を取得できませんでした。</span>';
-        document.getElementById("statsOrgArea").innerHTML =
-          '<span class="ng">組織一覧を取得できませんでした。</span>';
-        loadTrainingForEdit();
-        return;
-      }
-
-      organizationList =
-        (res.organizations || []).filter(function(o){
-          return o.active !== "FALSE";
-        });
-
-      renderOrganizationInputs();
-
-      loadTrainingForEdit();
-    }
   );
 }
 

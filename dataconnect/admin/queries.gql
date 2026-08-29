@@ -30,6 +30,12 @@ mutation AdminUpsertVenues(
   venue_upsertMany(data: $data)
 }
 
+mutation AdminUpsertDistricts(
+  $data: [District_Data!]! @allow(fields: "branch districtName active sortOrder createdAt updatedAt")
+) @transaction @auth(level: NO_ACCESS) {
+  district_upsertMany(data: $data)
+}
+
 mutation AdminUpsertMemberOrganizations(
   $data: [MemberOrganization_Data!]! @allow(fields: "memberNo orgId createdAt")
 ) @transaction @auth(level: NO_ACCESS) {

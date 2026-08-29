@@ -634,6 +634,17 @@ export function adminListVenues(dcOrVars, varsOrOptions, options) {
   return executeQuery(adminListVenuesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
+export const adminListDistrictsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminListDistricts', inputVars);
+};
+adminListDistrictsRef.operationName = 'AdminListDistricts';
+export function adminListDistricts(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(adminListDistrictsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const adminSaveVenueRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

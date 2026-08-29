@@ -82,6 +82,17 @@ type Venue
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+type District
+  @table(key: ["branch", "districtName"])
+  @index(fields: ["branch", "active", "sortOrder", "districtName"]) {
+  branch: String!
+  districtName: String!
+  active: Boolean! @default(value: true)
+  sortOrder: Int! @default(value: 9999)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type MemberOrganization
   @table(key: ["memberNo", "orgId"])
   @index(fields: ["orgId", "memberNo"]) {
