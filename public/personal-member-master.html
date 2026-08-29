@@ -298,7 +298,7 @@ async function loadPersonalMembers(attempt){
     attempt ? "再読み込み中..." : "読み込み中...";
 
   try{
-    await import("./sql/js/admin-master.js?v=32");
+    await import("./sql/js/admin-master.js?v=35");
     const res = await window.sqlAdminMaster.searchPeople({
       keyword: document.getElementById("keyword").value,
       branch: document.getElementById("branch").value,
@@ -593,7 +593,7 @@ function showAutoMemberDetail(personalId){
   );
 }
 
-function openPersonalOrgModal(personalId){
+async function openPersonalOrgModal(personalId){
 
   const item =
     findPersonalMember(personalId);
@@ -608,12 +608,9 @@ function openPersonalOrgModal(personalId){
     { wide: true }
   );
 
-  jsonp(
-    "getPersonalOrganizationsJsonp",
-    {
-      personalId: personalId
-    },
-    function(res){
+  try{
+      await import("./sql/js/admin-master.js?v=35");
+      const res = await window.sqlAdminMaster.personOrganizations(personalId);
 
       if(!res || !res.ok){
         document.getElementById("personalOrgStatus").className =
@@ -624,9 +621,11 @@ function openPersonalOrgModal(personalId){
       }
 
       renderPersonalOrgModal(res);
-    },
-    PERSONAL_MEMBER_LOAD_TIMEOUT_MS
-  );
+  }catch(error){
+    document.getElementById("personalOrgStatus").className = "status ng";
+    document.getElementById("personalOrgStatus").textContent =
+      error && error.message ? error.message : "個人所属を取得できませんでした。";
+  }
 }
 
 function renderPersonalOrgModal(data){
@@ -675,7 +674,7 @@ function renderPersonalOrgModal(data){
   );
 }
 
-function savePersonalOrganizations(){
+async function savePersonalOrganizations(){
 
   const status =
     document.getElementById("personalOrgStatus");
@@ -698,13 +697,9 @@ function savePersonalOrganizations(){
   status.textContent =
     "保存中...";
 
-  jsonp(
-    "savePersonalOrganizationsJsonp",
-    {
-      personalId: personalId,
-      orgIds: orgIds.join(",")
-    },
-    function(res){
+  try{
+      await import("./sql/js/admin-master.js?v=35");
+      const res = await window.sqlAdminMaster.savePersonalOrganizations(personalId, orgIds);
 
       if(!res || !res.ok){
         status.className =
@@ -724,9 +719,10 @@ function savePersonalOrganizations(){
         closeAppModal();
         loadPersonalMembers();
       }, 500);
-    },
-    PERSONAL_MEMBER_SAVE_TIMEOUT_MS
-  );
+  }catch(error){
+    status.className = "status ng";
+    status.textContent = error && error.message ? error.message : "個人所属を保存できませんでした。";
+  }
 }
 
 function openEditModal(personalId){
@@ -982,7 +978,7 @@ async function savePersonalMember(){
   const existingPersonalId = document.getElementById("modalPersonalId").value;
   if(existingPersonalId){
     try{
-      await import("./sql/js/admin-master.js?v=32");
+      await import("./sql/js/admin-master.js?v=35");
       const existing = findPersonalMember(existingPersonalId) || {};
       await window.sqlAdminMaster.savePerson({
         personalId: existingPersonalId,

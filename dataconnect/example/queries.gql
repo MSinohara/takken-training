@@ -1060,3 +1060,25 @@ mutation AdminRemoveMemberOrganization($memberNo: String!, $orgId: String!)
   @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
   memberOrganization_delete(key: { memberNo: $memberNo, orgId: $orgId })
 }
+
+query AdminPersonOrganizations($personalId: String!, $memberNo: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  person(key: { personalId: $personalId }) {
+    personalId memberNo name
+    company { companyName }
+  }
+  organizations(orderBy: [{ orgId: ASC }]) {
+    orgId orgName active
+  }
+  personSelected: personOrganizations(where: { personalId: { eq: $personalId } }) {
+    orgId
+  }
+  memberSelected: memberOrganizations(where: { memberNo: { eq: $memberNo } }) {
+    orgId
+  }
+}
+
+mutation AdminRemovePersonOrganization($personalId: String!, $orgId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  personOrganization_delete(key: { personalId: $personalId, orgId: $orgId })
+}

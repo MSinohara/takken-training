@@ -12,8 +12,10 @@ import {
   adminAddPersonOrganization,
   adminMemberDetail,
   adminRemoveMemberOrganization,
+  adminPersonOrganizations,
+  adminRemovePersonOrganization,
   connectorConfig,
-} from "./generated.js?v=29";
+} from "./generated.js?v=30";
 import { firebaseConfig } from "./config.js?v=17";
 import { requireSqlAdmin } from "./admin-auth.js?v=16";
 
@@ -99,6 +101,46 @@ async function searchPeople(filters) {
 }
 
 window.sqlAdminMaster = {
+  personOrganizations: async (personalId) => {
+    await authorize();
+    const memberNo = String(personalId).replace(/-\d+$/, "");
+    const isRepresentative = /-001$/.test(personalId);
+    const result = await adminPersonOrganizations(dc, { personalId, memberNo }, { fetchPolicy: "SERVER_ONLY" });
+    const data = result.data || {};
+    if (!data.person) return { ok: false, message: "個人会員が見つかりません。" };
+    const rows = isRepresentative ? data.memberSelected : data.personSelected;
+    const selected = new Set((rows || []).map((row) => row.orgId));
+    return {
+      ok: true,
+      personalId: data.person.personalId,
+      companyName: (data.person.company && data.person.company.companyName) || "",
+      personName: data.person.name || "",
+      isRepresentative,
+      organizations: (data.organizations || []).filter((org) => org.active).map((org) => ({
+        orgId: org.orgId, orgName: org.orgName, selected: selected.has(org.orgId),
+      })),
+    };
+  },
+  savePersonalOrganizations: async (personalId, orgIds) => {
+    await authorize();
+    const detail = await window.sqlAdminMaster.personOrganizations(personalId);
+    if (!detail.ok) return detail;
+    const before = new Set(detail.organizations.filter((org) => org.selected).map((org) => org.orgId));
+    const after = new Set(orgIds);
+    const isRepresentative = /-001$/.test(personalId);
+    const memberNo = String(personalId).replace(/-\d+$/, "");
+    for (const orgId of after) {
+      if (before.has(orgId)) continue;
+      if (isRepresentative) await adminAddMemberOrganization(dc, { memberNo, orgId });
+      else await adminAddPersonOrganization(dc, { personalId, orgId, source: "個人会員マスタ" });
+    }
+    for (const orgId of before) {
+      if (after.has(orgId)) continue;
+      if (isRepresentative) await adminRemoveMemberOrganization(dc, { memberNo, orgId });
+      else await adminRemovePersonOrganization(dc, { personalId, orgId });
+    }
+    return { ok: true, message: "個人所属を保存しました。" };
+  },
   memberDetail: async (memberNo) => {
     await authorize();
     const result = await adminMemberDetail(dc, { memberNo }, { fetchPolicy: "SERVER_ONLY" });
