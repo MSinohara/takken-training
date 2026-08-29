@@ -5,6 +5,11 @@ import {
   adminSavePerson,
   adminSearchMemberCompanies,
   adminSearchPeople,
+  adminListOrganizations,
+  adminSaveOrganization,
+  adminOrganizationMembers,
+  adminAddMemberOrganization,
+  adminAddPersonOrganization,
   connectorConfig,
 } from "./generated.js?v=28";
 import { firebaseConfig } from "./config.js?v=17";
@@ -92,6 +97,56 @@ async function searchPeople(filters) {
 }
 
 window.sqlAdminMaster = {
+  listOrganizations: async () => {
+    await authorize();
+    const result = await adminListOrganizations(dc, {}, { fetchPolicy: "SERVER_ONLY" });
+    return { ok: true, organizations: (result.data.organizations || []).map((o) => ({
+      orgId: o.orgId, orgName: o.orgName, senderName: o.senderName,
+      active: o.active ? "TRUE" : "FALSE", hostAvailable: o.hostAvailable ? "TRUE" : "FALSE",
+      csvImportName: o.csvImportName || "", csvImportMode: o.csvImportMode || "所属入替",
+      createdAt: o.createdAt || "", updatedAt: o.updatedAt || "",
+    })) };
+  },
+  saveOrganization: async (data) => {
+    await authorize();
+    const orgId = data.orgId || `ORG-${Date.now()}`;
+    await adminSaveOrganization(dc, {
+      orgId, orgName: data.orgName, senderName: data.senderName,
+      active: data.active !== "FALSE", hostAvailable: data.hostAvailable === "TRUE",
+      csvImportName: optional(data.csvImportName), csvImportMode: optional(data.csvImportMode),
+      updatedAt: new Date().toISOString(),
+    });
+    return { ok: true, orgId, message: data.orgId ? "組織を更新しました。" : "組織を登録しました。" };
+  },
+  organizationMembers: async (orgId) => {
+    await authorize();
+    const result = await adminOrganizationMembers(dc, { orgId }, { fetchPolicy: "SERVER_ONLY" });
+    const data = result.data || {};
+    const byId = new Map();
+    (data.companyRows || []).forEach(({ member }) => {
+      const personalId = `${member.memberNo}-001`;
+      byId.set(personalId, { memberNo: member.memberNo, companyName: member.companyName,
+        personalId, personName: member.representativeName || "", personType: "代表者",
+        branch: member.branch, district: member.district || "", mail: member.email || "" });
+    });
+    (data.personRows || []).forEach(({ person }) => byId.set(person.personalId, {
+      memberNo: person.memberNo, companyName: person.company.companyName, personalId: person.personalId,
+      personName: person.name, personType: person.personType || "", branch: person.company.branch,
+      district: person.company.district || "", mail: person.email || "",
+    }));
+    return { ok: true, members: [...byId.values()] };
+  },
+  addPeopleToOrganization: async (orgId, personalIds) => {
+    await authorize();
+    for (const personalId of personalIds) {
+      if (/-001$/.test(personalId)) {
+        await adminAddMemberOrganization(dc, { memberNo: personalId.replace(/-001$/, ""), orgId });
+      } else {
+        await adminAddPersonOrganization(dc, { personalId, orgId, source: "組織設定画面" });
+      }
+    }
+    return { ok: true, message: `所属個人を追加しました。追加 ${personalIds.length}件。` };
+  },
   saveMemberSetting: async (data) => {
     await authorize();
     await adminSaveMemberSetting(dc, {

@@ -996,3 +996,49 @@ mutation RemovePlannedAttendee(
     data: { active: false removedAt: $changedAt removedBy: $operator }
   )
 }
+
+query AdminListOrganizations @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  organizations(orderBy: [{ orgId: ASC }]) {
+    orgId orgName senderName active hostAvailable csvImportName csvImportMode createdAt updatedAt
+  }
+}
+
+mutation AdminSaveOrganization(
+  $orgId: String!
+  $orgName: String!
+  $senderName: String!
+  $active: Boolean!
+  $hostAvailable: Boolean!
+  $csvImportName: String
+  $csvImportMode: String
+  $updatedAt: Timestamp!
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  organization_upsert(data: {
+    orgId: $orgId orgName: $orgName senderName: $senderName active: $active
+    hostAvailable: $hostAvailable csvImportName: $csvImportName
+    csvImportMode: $csvImportMode updatedAt: $updatedAt
+  })
+}
+
+query AdminOrganizationMembers($orgId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  companyRows: memberOrganizations(where: { orgId: { eq: $orgId } }) {
+    member { memberNo companyName representativeName email branch district block }
+  }
+  personRows: personOrganizations(where: { orgId: { eq: $orgId } }) {
+    person {
+      personalId name personType email memberNo
+      company { companyName branch district block }
+    }
+  }
+}
+
+mutation AdminAddMemberOrganization($memberNo: String!, $orgId: String!)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  memberOrganization_upsert(data: { memberNo: $memberNo orgId: $orgId })
+}
+
+mutation AdminAddPersonOrganization($personalId: String!, $orgId: String!, $source: String)
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  personOrganization_upsert(data: { personalId: $personalId orgId: $orgId source: $source })
+}

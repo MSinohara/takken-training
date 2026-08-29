@@ -486,3 +486,58 @@ export function adminSavePerson(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(adminSavePersonRef(dcInstance, inputVars));
 }
+
+export const adminListOrganizationsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminListOrganizations', inputVars);
+}
+adminListOrganizationsRef.operationName = 'AdminListOrganizations';
+export function adminListOrganizations(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(adminListOrganizationsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminSaveOrganizationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSaveOrganization', inputVars);
+}
+adminSaveOrganizationRef.operationName = 'AdminSaveOrganization';
+export function adminSaveOrganization(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSaveOrganizationRef(dcInstance, inputVars));
+}
+
+export const adminOrganizationMembersRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminOrganizationMembers', inputVars);
+}
+adminOrganizationMembersRef.operationName = 'AdminOrganizationMembers';
+export function adminOrganizationMembers(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(adminOrganizationMembersRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminAddMemberOrganizationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminAddMemberOrganization', inputVars);
+}
+adminAddMemberOrganizationRef.operationName = 'AdminAddMemberOrganization';
+export function adminAddMemberOrganization(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminAddMemberOrganizationRef(dcInstance, inputVars));
+}
+
+export const adminAddPersonOrganizationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminAddPersonOrganization', inputVars);
+}
+adminAddPersonOrganizationRef.operationName = 'AdminAddPersonOrganization';
+export function adminAddPersonOrganization(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminAddPersonOrganizationRef(dcInstance, inputVars));
+}

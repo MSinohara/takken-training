@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -269,7 +272,7 @@ const pageSize =
 let organizationSaving =
   false;
 
-function loadOrganizations(attempt){
+async function loadOrganizations(attempt){
 
   attempt =
     Number(attempt || 0);
@@ -292,10 +295,9 @@ function loadOrganizations(attempt){
   document.getElementById("pager").style.display =
     "none";
 
-  jsonp(
-    "getOrganizationsJsonp",
-    {},
-    function(res){
+  try {
+    await import("./sql/js/admin-master.js?v=33");
+    const res = await window.sqlAdminMaster.listOrganizations();
 
       if(!res || !res.ok){
 
@@ -339,10 +341,9 @@ function loadOrganizations(attempt){
       }
 
       renderOrganizations();
-    }
-  ,
-  90000
-  );
+  } catch(err) {
+    status.innerHTML = '<span class="ng">組織一覧を取得できませんでした。' + escapeHtml(err.message || "") + '</span>';
+  }
 }
 
 
@@ -554,17 +555,16 @@ function nextPage(){
   renderOrganizations();
 }
 
-function showOrganizationMembers(orgId, orgName){
+async function showOrganizationMembers(orgId, orgName){
 
   openAppModal(
     "所属会員確認",
     '<div class="status">読み込み中...</div>'
   );
 
-  jsonp(
-    "getOrganizationMembersJsonp",
-    { orgId: orgId },
-    function(res){
+  try {
+    await import("./sql/js/admin-master.js?v=33");
+    const res = await window.sqlAdminMaster.organizationMembers(orgId);
 
       if(!res || !res.ok){
         document.getElementById("appModalBody").innerHTML =
@@ -626,8 +626,9 @@ function showOrganizationMembers(orgId, orgName){
         html,
         { wide:true }
       );
-    }
-  );
+  } catch(err) {
+    document.getElementById("appModalBody").innerHTML = '<span class="ng">所属会員を取得できませんでした。' + escapeHtml(err.message || "") + '</span>';
+  }
 }
 
 function openOrganizationPersonalEditor(orgId, orgName){
@@ -683,7 +684,7 @@ function openOrganizationPersonalEditor(orgId, orgName){
   );
 }
 
-function searchOrganizationPersonalCandidates(){
+async function searchOrganizationPersonalCandidates(){
 
   const keyword =
     document.getElementById("orgPersonalKeyword").value.trim();
@@ -700,12 +701,9 @@ function searchOrganizationPersonalCandidates(){
   status.textContent =
     "検索中...";
 
-  jsonp(
-    "getPersonalMembersJsonp",
-    {
-      keyword: keyword
-    },
-    function(res){
+  try {
+    await import("./sql/js/admin-master.js?v=33");
+    const res = await window.sqlAdminMaster.searchPeople({ keyword: keyword, limit: 100, offset: 0, mailStatus: "" });
 
       if(!res || !res.ok){
         status.innerHTML =
@@ -721,9 +719,9 @@ function searchOrganizationPersonalCandidates(){
       renderOrganizationPersonalCandidates(
         res.count || organizationPersonalCandidates.length
       );
-    },
-    120000
-  );
+  } catch(err) {
+    status.innerHTML = '<span class="ng">個人会員を検索できませんでした。' + escapeHtml(err.message || "") + '</span>';
+  }
 }
 
 function renderOrganizationPersonalCandidates(totalCount){
@@ -789,7 +787,7 @@ function checkOrganizationPersonalCandidates(checked){
     });
 }
 
-function addSelectedPersonalToOrganization(){
+async function addSelectedPersonalToOrganization(){
 
   if(!editingOrganizationForPersonal || !editingOrganizationForPersonal.orgId){
     alert("対象組織が分かりません。");
@@ -817,13 +815,9 @@ function addSelectedPersonalToOrganization(){
   status.textContent =
     "所属個人を追加中...";
 
-  jsonp(
-    "addPersonalMembersToOrganizationJsonp",
-    {
-      orgId: editingOrganizationForPersonal.orgId,
-      personalIds: personalIds.join(",")
-    },
-    function(res){
+  try {
+    await import("./sql/js/admin-master.js?v=33");
+    const res = await window.sqlAdminMaster.addPeopleToOrganization(editingOrganizationForPersonal.orgId, personalIds);
 
       if(!res || !res.ok){
         status.innerHTML =
@@ -839,13 +833,13 @@ function addSelectedPersonalToOrganization(){
         '</span>';
 
       checkOrganizationPersonalCandidates(false);
-    },
-    120000
-  );
+  } catch(err) {
+    status.innerHTML = '<span class="ng">所属個人を追加できませんでした。' + escapeHtml(err.message || "") + '</span>';
+  }
 }
 
 
-function saveOrganization(){
+async function saveOrganization(){
 
   if(organizationSaving){
     return;
@@ -889,9 +883,9 @@ function saveOrganization(){
     true
   );
 
-  jsonp(
-    "saveOrganizationJsonp",
-    {
+  try {
+    await import("./sql/js/admin-master.js?v=33");
+    const res = await window.sqlAdminMaster.saveOrganization({
       orgId: orgId,
       orgName: orgName,
       senderName: senderName,
@@ -899,8 +893,7 @@ function saveOrganization(){
       hostAvailable: hostAvailable,
       csvImportName: csvImportName,
       csvImportMode: csvImportMode
-    },
-    function(res){
+    });
 
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
@@ -925,9 +918,10 @@ function saveOrganization(){
 
       closeOrganizationForm();
       loadOrganizations();
-    },
-    120000
-  );
+  } catch(err) {
+    document.getElementById("status").innerHTML = '<span class="ng">保存に失敗しました。' + escapeHtml(err.message || "") + '</span>';
+    setOrganizationSaving(false);
+  }
 }
 
 function setOrganizationSaving(saving){

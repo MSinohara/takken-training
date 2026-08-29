@@ -12,6 +12,24 @@ mutation AdminUpsertPeople(
   person_upsertMany(data: $data)
 }
 
+mutation AdminUpsertOrganizations(
+  $data: [Organization_Data!]! @allow(fields: "orgId orgName senderName active hostAvailable csvImportName csvImportMode createdAt updatedAt")
+) @transaction @auth(level: NO_ACCESS) {
+  organization_upsertMany(data: $data)
+}
+
+mutation AdminUpsertMemberOrganizations(
+  $data: [MemberOrganization_Data!]! @allow(fields: "memberNo orgId createdAt")
+) @transaction @auth(level: NO_ACCESS) {
+  memberOrganization_upsertMany(data: $data)
+}
+
+mutation AdminUpsertPersonOrganizations(
+  $data: [PersonOrganization_Data!]! @allow(fields: "personalId orgId source createdAt")
+) @transaction @auth(level: NO_ACCESS) {
+  personOrganization_upsertMany(data: $data)
+}
+
 mutation AdminUpsertTrainings(
   $data: [Training_Data!]! @allow(fields: "trainingId title eventDate")
 ) @transaction @auth(level: NO_ACCESS) {
@@ -39,6 +57,9 @@ mutation AdminUpsertPlannedAttendees(
 query AdminMigrationVerification @auth(level: NO_ACCESS) {
   memberCompanies(limit: 5000) { memberNo }
   people(limit: 5000) { personalId }
+  organizations(limit: 5000) { orgId }
+  memberOrganizations(limit: 5000) { memberNo orgId }
+  personOrganizations(limit: 5000) { personalId orgId }
   trainings(limit: 5000) { trainingId }
   trainingTargets(limit: 5000) { trainingId targetType targetId }
   plannedAttendees(limit: 5000) { plannedId trainingId targetType targetId }

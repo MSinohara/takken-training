@@ -4,12 +4,19 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const firebaseToolsRoot = path.join(
+let firebaseToolsRoot = path.join(
   process.env.APPDATA || "",
   "npm",
   "node_modules",
   "firebase-tools"
 );
+if (!fs.existsSync(firebaseToolsRoot)) {
+  const npxRoot = path.resolve(".npm-cache", "_npx");
+  const candidates = fs.existsSync(npxRoot)
+    ? fs.readdirSync(npxRoot).map((name) => path.join(npxRoot, name, "node_modules", "firebase-tools"))
+    : [];
+  firebaseToolsRoot = candidates.find((candidate) => fs.existsSync(candidate)) || firebaseToolsRoot;
+}
 const { GoogleAuth } = require(
   path.join(firebaseToolsRoot, "node_modules", "google-auth-library")
 );

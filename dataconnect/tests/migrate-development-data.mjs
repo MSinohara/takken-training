@@ -7,6 +7,7 @@ const BATCH_SIZE = 100;
 const DRY_RUN = process.argv.includes("--dry-run");
 const TRAININGS_ONLY = process.argv.includes("--trainings-only");
 const TARGETS_ONLY = process.argv.includes("--targets-only");
+const ORGANIZATIONS_ONLY = process.argv.includes("--organizations-only");
 const PROJECT_ID = "takken-training-demo";
 const SERVICE_ID = "takken-training";
 const LOCATION_ID = "asia-northeast1";
@@ -82,6 +83,9 @@ const personalRows = exported["個人会員マスタ"] || [];
 const trainingRows = exported["研修会"] || [];
 const targetRows = exported["受付索引"] || [];
 const memberSettingRows = exported["会員設定"] || [];
+const organizationRows = exported["組織マスタ"] || [];
+const memberOrganizationRows = exported["会員所属"] || [];
+const personOrganizationRows = exported["個人所属"] || [];
 
 const memberSettingByNo = new Map(
   memberSettingRows
@@ -144,6 +148,37 @@ for (const row of personalRows) {
 }
 const people = [...peopleById.values()].filter((person) => person.name);
 
+const now = new Date().toISOString();
+const organizations = organizationRows
+  .map((row) => ({
+    orgId: String(row["組織ID"] || "").trim(),
+    orgName: String(row["組織名"] || "").trim(),
+    senderName: String(row["差出人名"] || row["組織名"] || "").trim(),
+    active: booleanValue(row["有効"], true),
+    hostAvailable: booleanValue(row["主催区分"]),
+    csvImportName: nullable(row["CSV取込名"]),
+    csvImportMode: nullable(row["CSV取込方式"]) || "所属入替",
+    createdAt: now,
+    updatedAt: now,
+  }))
+  .filter((row) => row.orgId && row.orgName && row.senderName);
+const validOrgIds = new Set(organizations.map((row) => row.orgId));
+const memberOrganizations = memberOrganizationRows
+  .map((row) => ({
+    memberNo: String(row["業者番号"] || "").replace(/\.0$/, "").trim(),
+    orgId: String(row["組織ID"] || "").trim(),
+    createdAt: now,
+  }))
+  .filter((row) => row.memberNo && validOrgIds.has(row.orgId));
+const personOrganizations = personOrganizationRows
+  .map((row) => ({
+    personalId: String(row["個人ID"] || "").trim(),
+    orgId: String(row["組織ID"] || "").trim(),
+    source: nullable(row["登録元"] || row["由来"]),
+    createdAt: now,
+  }))
+  .filter((row) => peopleById.has(row.personalId) && validOrgIds.has(row.orgId));
+
 const trainings = trainingRows
   .map((row) => ({
     trainingId: String(row["研修ID"] || "").trim(),
@@ -193,15 +228,20 @@ for (const row of targetRows) {
 }
 const targets = [...targetMap.values()];
 
-console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
-if (!TRAININGS_ONLY && !TARGETS_ONLY) {
+console.log(`移行元: 会員会社 ${members.length}件 / 個人 ${people.length}件 / 組織 ${organizations.length}件 / 会社所属 ${memberOrganizations.length}件 / 個人所属 ${personOrganizations.length}件 / 研修会 ${trainings.length}件 / 受付対象 ${targets.length}件`);
+if (!TRAININGS_ONLY && !TARGETS_ONLY && !ORGANIZATIONS_ONLY) {
   await upsertBatches("AdminUpsertMemberCompanies", members, "会員会社");
   await upsertBatches("AdminUpsertPeople", people, "個人");
 }
-if (!TARGETS_ONLY) {
+if (!TRAININGS_ONLY && !TARGETS_ONLY) {
+  await upsertBatches("AdminUpsertOrganizations", organizations, "組織");
+  await upsertBatches("AdminUpsertMemberOrganizations", memberOrganizations, "会社所属");
+  await upsertBatches("AdminUpsertPersonOrganizations", personOrganizations, "個人所属");
+}
+if (!TARGETS_ONLY && !ORGANIZATIONS_ONLY) {
   await upsertBatches("AdminUpsertTrainingDetails", trainings, "研修会");
 }
-if (!TRAININGS_ONLY) {
+if (!TRAININGS_ONLY && !ORGANIZATIONS_ONLY) {
   await upsertBatches("AdminUpsertTrainingTargets", targets.map(({ targetType, ...target }) => ({
     ...target,
     targetType,
@@ -214,7 +254,7 @@ if (DRY_RUN) {
     ? [trainings]
     : TARGETS_ONLY
       ? [targets]
-      : [members, people, trainings, targets];
+      : [members, people, organizations, memberOrganizations, personOrganizations, trainings, targets];
   const requestCount = requestGroups
     .reduce((sum, rows) => sum + Math.ceil(rows.length / BATCH_SIZE), 0);
   console.log(`ドライラン完了: 一括要求 ${requestCount}回（件数確認を除く）`);
