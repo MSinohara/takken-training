@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+  {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -100,7 +103,7 @@ main{
 	  <strong>会員マスタ取込について</strong><br>
 	  この画面では、会員マスタをCSVの内容で更新します。<br>
 	  取込対象は、業者番号・会社名・代表者名・ブロック・支部・地区・メールです。<br>
-	  既存の会員マスタはバックアップ作成後、CSVの内容に置き換わります。<br>
+	  CSVの内容をSQL会員マスタへ反映し、CSVにない会員は無効になります（データ自体は削除しません）。<br>
 	  会員設定の送信対象・備考は引き継がれ、新規会員は「送信する」として追加されます。
 	</div>
 
@@ -490,91 +493,47 @@ function getCell(row, index){
   return String(row[Number(index)] || "").trim();
 }
 
-function executeImport(){
+async function executeImport(){
 
   if(mappedRows.length === 0){
     alert("先にプレビューを実行してください。");
     return;
   }
 
-  if(!confirm("会員マスタを全件入れ替えます。\n現在の会員マスタはバックアップされます。\n\n実行しますか？")){
+  if(!confirm("CSVの内容をSQL会員マスタへ反映します。\nCSVにない会員は無効になりますが、データは削除されません。\n\n実行しますか？")){
     return;
   }
 
-  document.getElementById("status").textContent =
-    "取込準備中...";
+  const memberMap = {};
+  const candidateMap = {};
+  mappedRows.forEach(function(row){
+    const memberNo = String(row[0] || "").trim();
+    memberMap[memberNo] = row;
+    if(!candidateMap[memberNo]) candidateMap[memberNo] = [];
+    candidateMap[memberNo].push(row);
+  });
+  const importRows = Object.keys(memberMap).sort().map(function(memberNo){ return memberMap[memberNo]; });
+  duplicateGroups = Object.keys(candidateMap).sort().filter(function(memberNo){
+    return candidateMap[memberNo].length > 1;
+  }).map(function(memberNo){
+    return {
+      memberNo: memberNo,
+      candidates: candidateMap[memberNo].map(function(row, index){
+        return { candidateNo: String(index + 1), memberNo: memberNo, companyName: row[1],
+          representativeName: row[2], block: row[3], branch: row[4], district: row[5], mail: row[6] };
+      })
+    };
+  });
 
-  jsonp(
-    "startMemberImportJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">取込準備に失敗しました。</span>';
-        return;
-      }
-
-      sendChunks(0);
-    }
-  );
-}
-
-function sendChunks(start){
-
-  const chunkSize =
-    10;
-
-  const chunk =
-    mappedRows.slice(
-      start,
-      start + chunkSize
-    );
-
-  if(chunk.length === 0){
-    finishImport();
-    return;
-  }
-
-  document.getElementById("status").textContent =
-    "取込中... " +
-    Math.min(start + chunkSize, mappedRows.length) +
-    " / " +
-    mappedRows.length;
-
-  jsonp(
-    "appendMemberImportChunkJsonp",
-    {
-      rows: JSON.stringify(chunk)
-    },
-    function(res){
+  try{
+      await import("./sql/js/admin-master.js?v=38");
+      const res = await window.sqlAdminMaster.importMembers(importRows, function(done, total){
+        document.getElementById("status").textContent = "SQL取込中... " + done + " / " + total;
+      });
 
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
-          '<span class="ng">取込中にエラーが発生しました。</span>';
-        return;
-      }
-
-      sendChunks(
-        start + chunkSize
-      );
-    }
-  );
-}
-
-function finishImport(){
-
-  document.getElementById("status").textContent =
-    "最終処理中...";
-
-  jsonp(
-    "finishMemberImportJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">取込完了処理に失敗しました。</span>';
+          '<span class="ng">SQL取込に失敗しました。</span>';
         return;
       }
 
@@ -585,18 +544,13 @@ function finishImport(){
         '取込件数：' +
         escapeHtml(res.imported) +
         '件<br>' +
-        '除外件数：' +
-        escapeHtml(res.skipped) +
-        '件<br>' +
-        '会員設定新規追加：' +
-        escapeHtml(res.addedSettings) +
-        '件';
+        'CSV内の同一業者番号：' + duplicateGroups.length + '組';
 
-      if(Number(res.duplicateCandidateGroups || 0) > 0){
+      if(duplicateGroups.length > 0){
         document.getElementById("status").innerHTML +=
           '<br><span class="ng">同じ業者番号の候補があります。下の候補確認で001・002などを選んでください。</span>';
-
-        loadDuplicateCandidates();
+        document.getElementById("duplicateArea").style.display = "block";
+        renderDuplicateCandidates();
       }else{
         document.getElementById("duplicateArea").style.display =
           "none";
@@ -604,38 +558,10 @@ function finishImport(){
 
       document.getElementById("importButton").disabled =
         true;
-    }
-  );
-}
-
-function loadDuplicateCandidates(){
-
-  const area =
-    document.getElementById("duplicateArea");
-
-  area.style.display =
-    "block";
-
-  area.innerHTML =
-    "同一業者番号の候補を読み込み中です...";
-
-  jsonp(
-    "getMemberImportDuplicateCandidatesJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        area.innerHTML =
-          '<span class="ng">重複候補を取得できませんでした。</span>';
-        return;
-      }
-
-      duplicateGroups =
-        res.groups || [];
-
-      renderDuplicateCandidates();
-    }
-  );
+  }catch(error){
+    document.getElementById("status").innerHTML = '<span class="ng">' +
+      escapeHtml(error && error.message ? error.message : "SQL取込中にエラーが発生しました。") + '</span>';
+  }
 }
 
 function renderDuplicateCandidates(){
@@ -768,7 +694,7 @@ function makeDuplicateSuffixOptions(index){
   return html;
 }
 
-function saveDuplicateChoices(){
+async function saveDuplicateChoices(){
 
   const selects =
     Array.prototype.slice.call(
@@ -794,13 +720,47 @@ function saveDuplicateChoices(){
   status.textContent =
     "反映中...";
 
-  jsonpWithLongBody(
-    "applyMemberImportDuplicateChoicesJsonp",
-    {
-      choices: "",
-      body: JSON.stringify(choices)
-    },
-    function(res){
+  try{
+      const candidateMap = {};
+      duplicateGroups.forEach(function(group){
+        (group.candidates || []).forEach(function(candidate){
+          candidateMap[String(group.memberNo) + "\t" + String(candidate.candidateNo)] = candidate;
+        });
+      });
+      const used = {};
+      const rows = [];
+      let skipped = 0;
+      choices.forEach(function(choice){
+        if(choice.suffix === "skip"){
+          skipped++;
+          return;
+        }
+        const suffix = String(choice.suffix || "").padStart(3, "0");
+        if(!used[choice.memberNo]) used[choice.memberNo] = {};
+        if(used[choice.memberNo][suffix]){
+          throw new Error(choice.memberNo + " で同じ個人番号 " + suffix + " が複数選択されています。");
+        }
+        used[choice.memberNo][suffix] = true;
+        const candidate = candidateMap[String(choice.memberNo) + "\t" + String(choice.candidateNo)];
+        if(!candidate || !candidate.representativeName){
+          skipped++;
+          return;
+        }
+        rows.push({
+          personalId: choice.memberNo + "-" + suffix,
+          memberNo: choice.memberNo,
+          name: candidate.representativeName,
+          email: candidate.mail || null,
+          personType: suffix === "001" ? "代表者" : "社員",
+          approvalStatus: "承認済み",
+          active: true,
+          source: "会員CSV重複候補",
+          note: "会員マスタCSV取込時の同一業者番号候補から登録",
+          autoGenerated: false
+        });
+      });
+      await import("./sql/js/admin-master.js?v=38");
+      const res = await window.sqlAdminMaster.importPeople(rows);
 
       if(!res || !res.ok){
         status.innerHTML =
@@ -812,10 +772,12 @@ function saveDuplicateChoices(){
 
       status.innerHTML =
         '<span class="ok">' +
-        escapeHtml(res.message || "反映しました。") +
+        escapeHtml((res.message || "反映しました。") + " 取込しない " + skipped + "件。") +
         '</span>';
-    }
-  );
+  }catch(error){
+    status.innerHTML = '<span class="ng">' +
+      escapeHtml(error && error.message ? error.message : "反映できませんでした。") + '</span>';
+  }
 }
 
 function parseCsv(text){

@@ -607,3 +607,36 @@ export function adminCreatePerson(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(adminCreatePersonRef(dcInstance, inputVars));
 }
+
+export const adminImportMemberCompaniesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminImportMemberCompanies', inputVars);
+}
+adminImportMemberCompaniesRef.operationName = 'AdminImportMemberCompanies';
+export function adminImportMemberCompanies(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminImportMemberCompaniesRef(dcInstance, inputVars));
+}
+
+export const adminDeactivateMissingMembersRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeactivateMissingMembers', inputVars);
+}
+adminDeactivateMissingMembersRef.operationName = 'AdminDeactivateMissingMembers';
+export function adminDeactivateMissingMembers(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeactivateMissingMembersRef(dcInstance, inputVars));
+}
+
+export const adminImportPeopleRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminImportPeople', inputVars);
+}
+adminImportPeopleRef.operationName = 'AdminImportPeople';
+export function adminImportPeople(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminImportPeopleRef(dcInstance, inputVars));
+}
