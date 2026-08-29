@@ -141,8 +141,8 @@ let memberNos =
 
 async function loadOrganizations(){
   try {
-      const { sqlAdminMaster } = await import("./sql/js/admin-master.js?v=39");
-      const res = await sqlAdminMaster.listOrganizations();
+      await import("./sql/js/admin-master.js?v=39");
+      const res = await window.sqlAdminMaster.listOrganizations();
       if(!res || !res.ok){
         document.getElementById("status").innerHTML =
           '<span class="ng">組織設定を取得できませんでした。</span>';
@@ -430,8 +430,8 @@ async function executeImport(){
   const button = document.getElementById("importButton");
   button.disabled = true;
   try {
-      const { sqlAdminMaster } = await import("./sql/js/admin-master.js?v=39");
-      const res = await sqlAdminMaster.replaceOrganizationMembers(
+      await import("./sql/js/admin-master.js?v=39");
+      const res = await window.sqlAdminMaster.replaceOrganizationMembers(
         detectedOrganization.orgId,
         memberNos
       );

@@ -8,6 +8,15 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js",
+    "firebase/data-connect": "https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"
+  }
+}
+</script>
 
 <style>
 main{
@@ -84,7 +93,7 @@ const memberNo =
 let currentMember =
   null;
 
-function loadDetail(){
+async function loadDetail(){
 
   if(!memberNo){
     document.getElementById("status").innerHTML =
@@ -92,17 +101,11 @@ function loadDetail(){
     return;
   }
 
-  jsonp(
-    "getMemberDetailJsonp",
-    { member: memberNo },
-    function(res){
-
+  try {
+      await import("./sql/js/admin-master.js?v=40");
+      const res = await window.sqlAdminMaster.memberDetail(memberNo);
       if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "取得できませんでした。") +
-          '</span>';
-        return;
+        throw new Error(res && res.message ? res.message : "取得できませんでした。");
       }
 
       currentMember =
@@ -138,8 +141,10 @@ function loadDetail(){
       renderOrganizations(
         res.organizations || []
       );
-    }
-  );
+  } catch (error) {
+    document.getElementById("status").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "取得できませんでした。") + '</span>';
+  }
 }
 
 function renderOrganizations(orgs){
@@ -170,7 +175,7 @@ function renderOrganizations(orgs){
   });
 }
 
-function saveAll(){
+async function saveAll(){
 
   if(!currentMember){
     alert("会員情報が読み込まれていません。");
@@ -202,47 +207,22 @@ function saveAll(){
 
   showResult("保存中...");
 
-  jsonp(
-    "updateMemberSettingJsonp",
-    {
-      member: currentMember.memberNo,
-      mail: mail,
-      target: target,
+  try {
+    await import("./sql/js/admin-master.js?v=40");
+    await window.sqlAdminMaster.saveMemberSetting({
+      memberNo: currentMember.memberNo,
+      email: mail,
+      sendTarget: target !== "FALSE",
       note: note
-    },
-    function(res){
-
-      if(!res || !res.ok){
-        showResult(
-          '<span class="ng">会員設定の保存に失敗しました。</span>'
-        );
-        return;
-      }
-
-      jsonp(
-        "saveMemberOrganizationsJsonp",
-        {
-          member: currentMember.memberNo,
-          orgIds: orgIds.join(",")
-        },
-        function(res2){
-
-          if(!res2 || !res2.ok){
-            showResult(
-              '<span class="ng">所属組織の保存に失敗しました。</span>'
-            );
-            return;
-          }
-
-          showResult(
-            '<span class="ok">保存しました。</span>'
-          );
-
-          loadDetail();
-        }
-      );
-    }
-  );
+    });
+    await window.sqlAdminMaster.saveMemberOrganizations(currentMember.memberNo, orgIds);
+    showResult('<span class="ok">保存しました。</span>');
+    await loadDetail();
+  } catch (error) {
+    showResult(
+      '<span class="ng">' + escapeHtml(error.message || "保存に失敗しました。") + '</span>'
+    );
+  }
 }
 
 function showResult(html){
