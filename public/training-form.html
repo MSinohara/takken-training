@@ -1164,23 +1164,17 @@ function formatDateTimeLocalInput(value){
     String(match[5] || "00").padStart(2, "0");
 }
 
-function loadVenueMasters(){
-
-  jsonp(
-    "getVenueMastersJsonp",
-    {},
-    function(res){
-
-      venueList =
-        res && res.ok
-          ? (res.venues || []).filter(function(venue){
-              return String(venue.active || "TRUE").toUpperCase() !== "FALSE";
-            })
-          : [];
-
-      renderVenueOptions();
-    }
-  );
+async function loadVenueMasters(){
+  try {
+    await import("./sql/js/venues.js?v=1");
+    venueList = (await window.sqlVenues.list()).filter(function(venue){
+      return String(venue.active || "TRUE").toUpperCase() !== "FALSE";
+    });
+  } catch(error) {
+    venueList = [];
+    console.error("会場マスタを取得できませんでした。", error);
+  }
+  renderVenueOptions();
 }
 
 function markVenueMasterOpened(){

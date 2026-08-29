@@ -623,6 +623,28 @@ export function adminSaveEventType(dcOrVars, vars) {
   return executeMutation(adminSaveEventTypeRef(dcInstance, inputVars));
 }
 
+export const adminListVenuesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminListVenues', inputVars);
+};
+adminListVenuesRef.operationName = 'AdminListVenues';
+export function adminListVenues(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(adminListVenuesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const adminSaveVenueRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSaveVenue', inputVars);
+};
+adminSaveVenueRef.operationName = 'AdminSaveVenue';
+export function adminSaveVenue(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSaveVenueRef(dcInstance, inputVars));
+}
+
 export const adminPeopleForMemberRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

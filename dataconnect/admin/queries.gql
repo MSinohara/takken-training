@@ -24,6 +24,12 @@ mutation AdminUpsertEventTypes(
   eventType_upsertMany(data: $data)
 }
 
+mutation AdminUpsertVenues(
+  $data: [Venue_Data!]! @allow(fields: "venueId venueName venueAddress venueContactName venueContactPhone venueContactMail venueUrl venueApplicationUrl venueCapacity latitude longitude geoRadius geoCheckedAt geoMemo active createdAt updatedAt")
+) @transaction @auth(level: NO_ACCESS) {
+  venue_upsertMany(data: $data)
+}
+
 mutation AdminUpsertMemberOrganizations(
   $data: [MemberOrganization_Data!]! @allow(fields: "memberNo orgId createdAt")
 ) @transaction @auth(level: NO_ACCESS) {

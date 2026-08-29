@@ -1183,3 +1183,41 @@ mutation AdminSaveEventType(
     updatedAt: $updatedAt
   })
 }
+
+query AdminListVenues
+  @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  venues(orderBy: [{ venueName: ASC }, { venueId: ASC }]) {
+    venueId venueName venueAddress venueContactName venueContactPhone
+    venueContactMail venueUrl venueApplicationUrl venueCapacity latitude
+    longitude geoRadius geoCheckedAt geoMemo active createdAt updatedAt
+  }
+}
+
+mutation AdminSaveVenue(
+  $venueId: String!
+  $venueName: String!
+  $venueAddress: String
+  $venueContactName: String
+  $venueContactPhone: String
+  $venueContactMail: String
+  $venueUrl: String
+  $venueApplicationUrl: String
+  $venueCapacity: Int
+  $latitude: Float
+  $longitude: Float
+  $geoRadius: Int!
+  $geoCheckedAt: Timestamp
+  $geoMemo: String
+  $active: Boolean!
+  $updatedAt: Timestamp!
+) @auth(expr: "auth.token.email == 'ohzakai.kk@gmail.com'") {
+  venue_upsert(data: {
+    venueId: $venueId venueName: $venueName venueAddress: $venueAddress
+    venueContactName: $venueContactName venueContactPhone: $venueContactPhone
+    venueContactMail: $venueContactMail venueUrl: $venueUrl
+    venueApplicationUrl: $venueApplicationUrl venueCapacity: $venueCapacity
+    latitude: $latitude longitude: $longitude geoRadius: $geoRadius
+    geoCheckedAt: $geoCheckedAt geoMemo: $geoMemo active: $active
+    updatedAt: $updatedAt
+  })
+}

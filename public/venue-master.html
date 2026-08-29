@@ -8,6 +8,9 @@
 
 <link rel="stylesheet" href="css/common.css">
 <script src="js/common.js"></script>
+<script type="importmap">
+{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+</script>
 
 <style>
 main{
@@ -81,7 +84,6 @@ main{
   <div class="actions">
     <button class="btn" onclick="loadVenues()">再読み込み</button>
     <button class="btn" onclick="openVenueModal(null)">新規会場</button>
-    <button class="btn sub" onclick="importFromTrainings()">研修会記録から取り込み</button>
     <a class="btn sub" href="training-menu.html">研修会管理へ戻る</a>
   </div>
 
@@ -129,32 +131,20 @@ let updateGeoCheckedAt =
 let venueSaving =
   false;
 
-function loadVenues(){
+async function loadVenues(){
 
   document.getElementById("status").textContent =
     "会場マスタを読み込み中...";
 
-  jsonp(
-    "getVenueMastersJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "会場マスタを取得できませんでした。") +
-          '</span>';
-        document.getElementById("venueTable").style.display =
-          "none";
-        return;
-      }
-
-      venues =
-        res.venues || [];
-
-      renderVenues();
-    }
-  );
+  try {
+    await import("./sql/js/venues.js?v=1");
+    venues = await window.sqlVenues.list();
+    renderVenues();
+  } catch(error) {
+    document.getElementById("status").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "会場マスタを取得できませんでした。") + '</span>';
+    document.getElementById("venueTable").style.display = "none";
+  }
 }
 
 function renderVenues(){
@@ -426,7 +416,7 @@ function fillCurrentLocation(){
   );
 }
 
-function saveVenue(){
+async function saveVenue(){
 
   if(venueSaving){
     return;
@@ -460,27 +450,17 @@ function saveVenue(){
   document.getElementById("modalGeoStatus").textContent =
     "保存中...";
 
-  jsonp(
-    "saveVenueMasterJsonp",
-    data,
-    function(res){
-
-      if(!res || !res.ok){
-        setVenueSaving(false);
-        document.getElementById("modalGeoStatus").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "保存に失敗しました。") +
-          '</span>';
-        return;
-      }
-
-      editingVenueId =
-        res.venueId || editingVenueId;
-
-      closeAppModal();
-      loadVenues();
-    }
-  );
+  try {
+    await import("./sql/js/venues.js?v=1");
+    const res = await window.sqlVenues.save(data);
+    editingVenueId = res.venueId || editingVenueId;
+    closeAppModal();
+    await loadVenues();
+  } catch(error) {
+    setVenueSaving(false);
+    document.getElementById("modalGeoStatus").innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "保存に失敗しました。") + '</span>';
+  }
 }
 
 function checkVenueLocation(venueId){
@@ -565,38 +545,6 @@ function calcDistanceMeters(lat1, lon1, lat2, lon2){
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
   return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function importFromTrainings(){
-
-  if(!confirm("研修会に入力済みの会場名・住所から、会場マスタを作成します。既存の同名会場は追加しません。")){
-    return;
-  }
-
-  document.getElementById("status").textContent =
-    "取り込み中...";
-
-  jsonp(
-    "importVenueMastersFromTrainingsJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        document.getElementById("status").innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "取り込みに失敗しました。") +
-          '</span>';
-        return;
-      }
-
-      document.getElementById("status").innerHTML =
-        '<span class="ok">' +
-        escapeHtml(res.message || "取り込みました。") +
-        ' 追加: ' + escapeHtml(res.imported || 0) + '件</span>';
-
-      loadVenues();
-    }
-  );
 }
 
 loadVenues();

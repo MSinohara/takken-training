@@ -60,6 +60,28 @@ type EventType
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+type Venue
+  @table(key: "venueId")
+  @unique(fields: ["venueName", "venueAddress"], indexName: "venue_name_address_uidx") {
+  venueId: String!
+  venueName: String! @index
+  venueAddress: String
+  venueContactName: String
+  venueContactPhone: String
+  venueContactMail: String
+  venueUrl: String
+  venueApplicationUrl: String
+  venueCapacity: Int
+  latitude: Float
+  longitude: Float
+  geoRadius: Int! @default(value: 200)
+  geoCheckedAt: Timestamp
+  geoMemo: String
+  active: Boolean! @default(value: true) @index
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type MemberOrganization
   @table(key: ["memberNo", "orgId"])
   @index(fields: ["orgId", "memberNo"]) {
