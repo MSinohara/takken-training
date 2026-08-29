@@ -110,10 +110,48 @@ async function loadAdminResponses(trainingId, statusElement) {
   };
 }
 
+function buildSummary(items, responses) {
+  return items.map((row) => {
+    const counts = {};
+    (row.optionList || []).forEach((option) => { counts[option] = 0; });
+    responses.forEach((entry) => {
+      const value = String((entry.answers || {})[row.itemId] || "").trim();
+      if (value) counts[value] = (counts[value] || 0) + 1;
+    });
+    return { itemId: row.itemId, itemName: row.itemName, counts };
+  });
+}
+
+async function mergeAdminAttendanceList(list, statusElement) {
+  await adminReady(statusElement);
+  return Promise.all((list || []).map(async (entry) => {
+    const trainingId = entry.eventId || entry.trainingId || "";
+    if (!trainingId) return entry;
+    try {
+      const result = await adminAttendanceResponses(dc, { trainingId }, { fetchPolicy: "SERVER_ONLY" });
+      const items = (result.data.items || []).map(item);
+      const responses = (result.data.responses || []).map(response);
+      if (!items.length) return entry;
+      const targetCount = Number(entry.targetCount || 0);
+      return {
+        ...entry,
+        ok: true,
+        answeredCount: responses.length,
+        unansweredCount: Math.max(0, targetCount - responses.length),
+        summaries: buildSummary(items, responses),
+      };
+    } catch (error) {
+      console.error("SQL attendance list load failed", trainingId, error);
+      return entry;
+    }
+  }));
+}
+
 export const sqlAttendance = {
   loadAdminConfig,
   saveAdminConfig,
   loadPublicAnswer,
   savePublicAnswer,
   loadAdminResponses,
+  mergeAdminAttendanceList,
 };
