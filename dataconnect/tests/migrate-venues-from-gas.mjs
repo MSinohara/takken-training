@@ -45,9 +45,10 @@ const rows = (await gas()).map((row) => ({
 }));
 const varsFile = resolve(varsDir, "AdminUpsertVenues.json");
 await writeFile(varsFile, JSON.stringify({ data: rows }), "utf8");
-const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
-const result = spawnSync(npxCommand, [
-  "firebase-tools", "dataconnect:execute", queries, "AdminUpsertVenues",
+const command = process.platform === "win32" ? "npx.cmd" : "firebase";
+const commandArgs = process.platform === "win32" ? ["firebase-tools"] : [];
+const result = spawnSync(command, [
+  ...commandArgs, "dataconnect:execute", queries, "AdminUpsertVenues",
   "--service", "takken-training", "--location", "asia-northeast1",
   "--project", "takken-training-demo", "--no-debug-details",
   "--variables", `@${relative(root, varsFile).replaceAll("\\", "/")}`,
