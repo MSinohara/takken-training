@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>会場受付</title>
+  <link rel="stylesheet" href="css/app.css?v=5">
+  <script type="importmap">
+    {"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js","firebase/data-connect":"https://www.gstatic.com/firebasejs/12.11.0/firebase-data-connect.js"}}
+  </script>
+</head>
+<body>
+  <header><h1>会場受付</h1></header>
+  <nav id="managementNav" hidden>
+    <a id="backLink" href="../checkin-select.html">受付研修一覧へ戻る</a>
+    <a id="detailLink" href="../training-detail.html">研修詳細</a>
+  </nav>
+  <main>
+    <section id="resetPanel" class="panel" hidden>
+      <h2>登録情報の解除</h2>
+      <p id="resetTrainingName" class="status">行事を確認中...</p>
+      <p>この端末に保存されている受付完了情報を解除します。登録を間違えた場合のみ使用してください。</p>
+      <div class="actions"><button id="clearReceipt" class="secondary">この端末の登録情報を解除する</button></div>
+      <p id="resetStatus" class="status"></p>
+    </section>
+    <section id="receptionModePanel" class="panel reception-mode-panel">
+      <h2>参加者の区分を選択</h2>
+      <div class="reception-mode" role="group" aria-label="参加者の区分">
+        <button id="showMemberMode" class="mode-button active" aria-pressed="true">宅建協会の会員</button>
+        <button id="showOtherBlockMode" class="mode-button" aria-pressed="false">他ブロックの会員</button>
+        <button id="showGuestMode" class="mode-button" aria-pressed="false">一般参加者</button>
+      </div>
+    </section>
+    <section id="memberSearchPanel" class="panel">
+      <h2>受付対象を検索</h2>
+      <p id="trainingName" class="status">行事を確認中...</p>
+      <div class="grid">
+        <label style="display:none">対象研修<select id="training"></select></label>
+        <label>支部<select id="branch"><option value="">指定なし</option><option>杉並区支部</option><option>中野区支部</option><option>世田谷区支部</option></select></label>
+        <label>業者番号<input id="memberNo" inputmode="numeric" placeholder="例: 90001"></label>
+        <label>会社名<input id="companyName" placeholder="会社名の一部"></label>
+        <label>地区<input id="district" placeholder="指定なし"></label>
+      </div>
+      <p class="hint">会社名は2文字以上、または業者番号を入力してください。支部・地区は必要な場合だけ指定できます。</p>
+      <div class="actions"><button id="search">検索</button><button id="clear" class="secondary">入力を消す</button></div>
+      <p id="searchStatus" class="status">会社を検索してください。</p>
+    </section>
+    <section id="companiesPanel" class="panel" hidden>
+      <h2>会社を選択</h2>
+      <div id="companies"></div>
+    </section>
+    <section id="peoplePanel" class="panel" hidden>
+      <h2 id="peopleHeading">参加者を選択</h2>
+      <div id="selectedCompany" class="status"></div>
+      <div id="people" class="people"></div>
+      <p id="checkinStatus" class="status"></p>
+    </section>
+    <section id="guestPanel" class="panel guest-panel" hidden>
+      <h2 id="guestHeading">一般参加者</h2>
+      <p id="guestGuidance" class="guest-guidance">宅建協会の会員会社に所属していない方はこちらへ入力してください。</p>
+      <div id="guestForm">
+        <div id="otherBlockFields" class="grid guest-grid" hidden>
+          <label>ブロック<select id="guestBlock"></select></label>
+          <label>支部<select id="guestBranch"></select></label>
+        </div>
+        <div class="grid guest-grid">
+          <label>参加者名<input id="guestName" autocomplete="name" placeholder="例：山田 太郎"></label>
+          <label><span id="guestOrganizationLabel">会社・団体名（任意）</span><input id="guestOrganization" placeholder="例：株式会社サンプル"></label>
+          <label>メール（任意）<input id="guestEmail" type="email" autocomplete="email" placeholder="例：sample@example.com"></label>
+          <label>電話（任意）<input id="guestPhone" type="tel" autocomplete="tel" placeholder="例：03-0000-0000"></label>
+        </div>
+        <div class="actions"><button id="registerGuest">この内容で受付する</button><button id="hideGuest" class="secondary">区分選択へ戻る</button></div>
+        <p id="guestStatus" class="status"></p>
+      </div>
+    </section>
+    <section id="resultPanel" class="panel complete" hidden>
+      <h2 id="resultTitle">受付完了</h2>
+      <div id="resultBody"></div>
+      <p class="hint">受付は完了しています。続けて次の方を受付できます。</p>
+    </section>
+  </main>
+  <script type="module" src="js/checkin.js?v=34"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>個人受付QR</title>
+
+<link rel="stylesheet" href="css/common.css">
+
+<style>
+body{
+  background:#eef2f6;
+}
+
+main{
+  max-width:760px;
+}
+
+.print-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.sheet{
+  display:flex;
+  justify-content:center;
+  padding:24px;
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+
+.qr-card{
+  width:194mm;
+  min-height:277mm;
+  box-sizing:border-box;
+  border:1px solid #ccd3dc;
+  border-radius:8px;
+  padding:14mm;
+  display:flex;
+  flex-direction:column;
+  gap:10mm;
+  background:#fff;
+  color:#111;
+}
+
+.title-area{
+  border-bottom:2px solid #12345a;
+  padding-bottom:7mm;
+}
+
+.title-area h2{
+  margin:0;
+  font-size:24px;
+  line-height:1.4;
+}
+
+.title-area .subtitle{
+  margin-top:5px;
+  color:#555;
+  font-size:13px;
+}
+
+.person-name{
+  font-size:28px;
+  font-weight:bold;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+.company-name{
+  margin-top:6px;
+  font-size:20px;
+  font-weight:bold;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+
+.meta{
+  margin-top:10px;
+  font-size:16px;
+  line-height:1.7;
+  color:#333;
+}
+
+.qr-area{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:8mm;
+  padding:10mm;
+  border:1px solid #d7dce3;
+  border-radius:8px;
+  background:#f7f9fc;
+}
+
+.qr-image{
+  width:78mm;
+  height:78mm;
+}
+
+.qr-code-text{
+  font-size:14px;
+  color:#555;
+  overflow-wrap:anywhere;
+}
+
+.note{
+  font-size:14px;
+  line-height:1.8;
+  color:#555;
+}
+
+@media print{
+  @page{
+    size:A4;
+    margin:8mm;
+  }
+
+  body{
+    background:#fff;
+  }
+
+  header,
+  .global-nav,
+  .print-actions,
+  .muted{
+    display:none;
+  }
+
+  main{
+    max-width:none;
+    margin:0;
+  }
+
+  .sheet{
+    display:block;
+    padding:0;
+    box-shadow:none;
+    border-radius:0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>個人受付QR</h1>
+</header>
+
+<main>
+  <div class="print-actions">
+    <button class="btn" onclick="window.print()">印刷する / PDF保存</button>
+  </div>
+
+  <p class="muted">
+    個人単位受付の研修会で使用する個人別QRです。
+  </p>
+
+  <div class="sheet">
+    <div class="qr-card">
+      <div class="title-area">
+        <h2>個人単位受付用QR</h2>
+        <div class="subtitle">個人単位受付が有効な研修会で使用します。</div>
+      </div>
+
+      <div>
+        <div id="personName" class="person-name"></div>
+        <div id="companyName" class="company-name"></div>
+        <div class="meta">
+          個人ID：<span id="personalId"></span><br>
+          業者番号：<span id="memberNo"></span><br>
+          区分：<span id="personType"></span>
+        </div>
+      </div>
+
+      <div class="qr-area">
+        <img id="qrImage" class="qr-image" alt="個人受付QR">
+        <div id="qrText" class="qr-code-text"></div>
+      </div>
+
+      <div class="note">
+        このQRは会社QRとは別物です。会社単位受付の研修会では使用できません。<br>
+        受付単位が「個人」の研修会で、受付担当者がQR受付画面から読み取ってください。
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const params =
+  new URLSearchParams(location.search);
+
+const personalId =
+  params.get("personal") || "";
+
+const memberNo =
+  params.get("member") || "";
+
+const companyName =
+  params.get("company") || "";
+
+const personName =
+  params.get("name") || "";
+
+const personType =
+  params.get("type") || "";
+
+const qrText =
+  "PERSONAL:" + personalId;
+
+document.getElementById("personName").textContent =
+  personName || "氏名未指定";
+
+document.getElementById("companyName").textContent =
+  companyName || "会社名未指定";
+
+document.getElementById("personalId").textContent =
+  personalId || "未指定";
+
+document.getElementById("memberNo").textContent =
+  memberNo || "未指定";
+
+document.getElementById("personType").textContent =
+  personType || "未指定";
+
+document.getElementById("qrText").textContent =
+  qrText;
+
+document.getElementById("qrImage").src =
+  "https://quickchart.io/qr?size=480&text=" +
+  encodeURIComponent(qrText);
+</script>
+
+</body>
+</html>

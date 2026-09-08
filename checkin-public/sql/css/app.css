@@ -1,0 +1,89 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  color: #20242a;
+  background: #f2f5f7;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: #f2f5f7; }
+header { background: #173b63; color: #fff; padding: 18px 24px; }
+header h1 { margin: 0; font-size: 22px; }
+nav { background: #e8eef3; border-bottom: 1px solid #ccd5dd; padding: 9px 24px; }
+nav a { color: #173b63; font-weight: 700; margin-right: 18px; text-decoration: none; }
+main { max-width: 1040px; margin: 24px auto; padding: 0 18px 36px; }
+.panel { background: #fff; border: 1px solid #dce3e8; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.panel h2 { margin: 0 0 16px; font-size: 19px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+label { display: block; font-weight: 700; font-size: 14px; }
+input, select { width: 100%; margin-top: 6px; padding: 11px; border: 1px solid #9eaab5; font-size: 16px; background: #fff; }
+button, .button-link { min-height: 42px; border: 0; border-radius: 6px; padding: 9px 16px; background: #173b63; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+button.secondary, .button-link.secondary { background: #666; }
+button:disabled { background: #a9b0b7; cursor: wait; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.status { min-height: 24px; margin: 12px 0 0; color: #555; }
+.status.ok { color: #08752e; font-weight: 700; }
+.status.error { color: #b00020; font-weight: 700; }
+.company {
+  width: 100%;
+  min-height: 58px;
+  text-align: left;
+  background: #f8fafb;
+  color: #20242a;
+  border: 1px solid #cbd5dd;
+  margin-bottom: 8px;
+  padding: 13px 15px;
+  font-size: 18px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.company.selected { border: 2px solid #173b63; background: #edf4fb; }
+.people { display: grid; gap: 8px; margin-top: 12px; }
+.person { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #e1e5e8; }
+.person strong { display: block; }
+.muted { color: #66717b; font-size: 13px; }
+.complete { border-left: 5px solid #08752e; background: #f1fbf4; padding: 18px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid #dce3e8; }
+th { background: #eef2f5; font-size: 13px; }
+.empty { padding: 28px 8px; text-align: center; color: #66717b; }
+.metric { background: #f3f5f7; padding: 14px; border-left: 3px solid #173b63; }
+.metric strong { display: block; margin-top: 5px; font-size: 22px; }
+.section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.result-card { border: 1px solid #cbd5dd; padding: 14px; margin-top: 12px; }
+.person-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid #e1e5e8; }
+.person-row:first-of-type { margin-top: 10px; }
+.result-ok { color: #08752e; font-weight: 700; }
+.ng { color: #b00020; font-weight: 700; }
+.guest-grid { margin-top: 16px; }
+.reception-mode-panel { padding-bottom: 18px; }
+.reception-mode { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mode-button {
+  justify-content: center;
+  min-height: 54px;
+  background: #fff;
+  color: #173b63;
+  border: 2px solid #b9c7d3;
+  font-size: 18px;
+}
+.mode-button.active { background: #173b63; color: #fff; border-color: #173b63; }
+.guest-panel { border-top: 4px solid #173b63; }
+.guest-guidance { margin: -4px 0 0; padding: 12px; background: #eef4f9; color: #34495d; }
+
+@media (max-width: 680px) {
+  header { padding: 15px 16px; }
+  nav { padding: 9px 16px; }
+  main { margin-top: 16px; padding: 0 12px 28px; }
+  .panel { padding: 16px; }
+  .grid { grid-template-columns: 1fr; }
+  .reception-mode { grid-template-columns: 1fr; }
+  .person { align-items: flex-start; flex-direction: column; }
+  .person button { width: 100%; }
+  .section-heading, .person-row { align-items: stretch; flex-direction: column; }
+  .person-row button { width: 100%; justify-content: center; }
+  table, thead, tbody, tr, th, td { display: block; }
+  thead { display: none; }
+  tr { padding: 10px 0; border-bottom: 1px solid #ccd5dd; }
+  td { border: 0; padding: 3px 0; }
+}
