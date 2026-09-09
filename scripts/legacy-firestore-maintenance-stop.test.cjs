@@ -23,6 +23,7 @@ test('member Firestore sync stops before reading the spreadsheet master', () => 
 
 test('system check page exposes no legacy Firestore maintenance buttons', () => {
   assert.doesNotMatch(page, /onclick="(?:syncMembersToFirestore|syncCheckinsToFirestore|syncPendingCheckinsToSheet)\(\)"/);
+  assert.doesNotMatch(page, /queueMemberMasterFirestoreSyncJsonp|queueCheckinFirestoreResyncJsonp|queuePendingCheckinSheetSyncJsonp|getCheckinFirestoreResyncStatusJsonp/);
 });
 
 test('SQL runtime system check tells administrators not to re-enable Firestore', () => {

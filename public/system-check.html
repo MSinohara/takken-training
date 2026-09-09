@@ -7,7 +7,7 @@
 <title>本番接続確認</title>
 
 <link rel="stylesheet" href="css/common.css">
-<script src="js/common.js"></script>
+<script src="js/common.js?v=18"></script>
 
 <style>
 main{
@@ -140,10 +140,22 @@ function runCheck(){
   result.innerHTML =
     "";
 
-  jsonp(
-    "getSystemConnectionCheckJsonp",
-    {},
-    function(res){
+  fetch("/api/mail", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      action: "getSystemConnectionCheckJsonp",
+      params: {sessionToken:getAuthSessionToken_()}
+    })
+  })
+  .then(function(response){
+    return response.json().then(function(data){
+      if(!response.ok){throw new Error(data.message || "接続確認に失敗しました。");}
+      return data;
+    });
+  })
+  .then(function(res){
 
       if(!res.ok && !Array.isArray(res.checks)){
         status.innerHTML =
@@ -169,9 +181,11 @@ function runCheck(){
         '<span class="muted">' + okCount + ' / ' + checks.length + ' 件 OK</span>';
 
       renderChecks(checks);
-    },
-    45000
-  );
+  })
+  .catch(function(error){
+    status.innerHTML =
+      '<span class="ng">' + escapeHtml(error.message || "接続確認に失敗しました。") + '</span>';
+  });
 }
 
 function renderChecks(checks){
@@ -213,230 +227,6 @@ function renderChecks(checks){
 
   result.innerHTML =
     html;
-}
-
-function syncMembersToFirestore(){
-
-  if(!confirm("現在の会員マスタをFirestoreへ同期予約します。よろしいですか？")){
-    return;
-  }
-
-  const status =
-    document.getElementById("status");
-
-  status.textContent =
-    "会員マスタのFirestore同期を予約しています...";
-
-  jsonp(
-    "queueMemberMasterFirestoreSyncJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        status.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "同期予約に失敗しました。") +
-          '</span>';
-        return;
-      }
-
-      status.innerHTML =
-        '<span class="ok">' +
-        escapeHtml(res.message || "会員マスタのFirestore同期を裏で開始します。") +
-        '</span>';
-
-      loadMemberSyncStatus();
-    },
-    30000
-  );
-}
-
-function loadMemberSyncStatus(){
-
-  const box =
-    document.getElementById("memberSyncStatus");
-
-  box.textContent =
-    "会員マスタ同期状態を確認中です...";
-
-  jsonp(
-    "getMemberMasterFirestoreSyncStatusJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        box.innerHTML =
-          '<strong>会員マスタ同期状態：</strong>' +
-          '<span class="pill ng">要確認</span>' +
-          '<span class="sync-detail">' +
-          escapeHtml(res && res.message ? res.message : "同期状態を取得できませんでした。") +
-          '</span>';
-        return;
-      }
-
-      const status =
-        String(res.status || "未実行");
-
-      let label =
-        "未実行";
-
-      let className =
-        "warn";
-
-      if(status === "RUNNING"){
-        label =
-          "実行中";
-        className =
-          "warn";
-      } else if(status === "DONE"){
-        label =
-          "完了";
-        className =
-          "ok";
-      }
-
-      box.innerHTML =
-        '<strong>会員マスタ同期状態：</strong>' +
-        '<span class="pill ' + className + '">' + escapeHtml(label) + '</span>' +
-        '<span class="sync-detail">' + escapeHtml(res.message || "") + '</span>' +
-        '<span class="sync-detail">処理単位: ' + escapeHtml(res.batchSize || "") + '件</span>';
-    },
-    30000
-  );
-}
-
-function syncCheckinsToFirestore(){
-
-  if(!confirm("Firestore復旧後に、参加履歴・受付索引・受付済みキーを再同期します。よろしいですか？")){
-    return;
-  }
-
-  const status =
-    document.getElementById("status");
-
-  status.textContent =
-    "受付データのFirestore再同期を予約しています...";
-
-  jsonp(
-    "queueCheckinFirestoreResyncJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        status.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "受付データの再同期予約に失敗しました。") +
-          '</span>';
-        return;
-      }
-
-      status.innerHTML =
-        '<span class="ok">' +
-        escapeHtml(res.message || "受付データのFirestore再同期を裏で開始します。") +
-        '</span>';
-
-      loadCheckinSyncStatus();
-    },
-    30000
-  );
-}
-
-function syncPendingCheckinsToSheet(){
-
-  if(!confirm("Firestoreに残っている未同期受付をスプレッドシートへ反映します。よろしいですか？")){
-    return;
-  }
-
-  const status =
-    document.getElementById("status");
-
-  status.textContent =
-    "未同期受付のスプレッドシート反映を予約しています...";
-
-  jsonp(
-    "queuePendingCheckinSheetSyncJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        status.innerHTML =
-          '<span class="ng">' +
-          escapeHtml(res && res.message ? res.message : "未同期受付の反映予約に失敗しました。") +
-          '</span>';
-        return;
-      }
-
-      status.innerHTML =
-        '<span class="ok">' +
-        escapeHtml(res.message || "未同期受付のスプレッドシート反映を裏で開始します。") +
-        '</span>';
-
-      loadCheckinSyncStatus();
-    },
-    30000
-  );
-}
-
-function loadCheckinSyncStatus(){
-
-  const box =
-    document.getElementById("checkinSyncStatus");
-
-  box.textContent =
-    "受付データ同期状態を確認中です...";
-
-  jsonp(
-    "getCheckinFirestoreResyncStatusJsonp",
-    {},
-    function(res){
-
-      if(!res || !res.ok){
-        box.innerHTML =
-          '<strong>受付データ同期状態：</strong>' +
-          '<span class="pill ng">要確認</span>' +
-          '<span class="sync-detail">' +
-          escapeHtml(res && res.message ? res.message : "同期状態を取得できませんでした。") +
-          '</span>';
-        return;
-      }
-
-      const status =
-        String(res.status || "未実行");
-
-      let label =
-        "未実行";
-
-      let className =
-        "warn";
-
-      if(status === "RUNNING"){
-        label =
-          "実行中";
-        className =
-          "warn";
-      } else if(status === "DONE"){
-        label =
-          "完了";
-        className =
-          "ok";
-      }
-
-      box.innerHTML =
-        '<strong>受付データ同期状態：</strong>' +
-        '<span class="pill ' + className + '">' + escapeHtml(label) + '</span>' +
-        '<span class="sync-detail">処理: ' + escapeHtml(res.phase || "-") + '</span>' +
-        '<span class="sync-detail">位置: ' + escapeHtml(res.offset || "") + '</span>' +
-        '<span class="sync-detail">処理単位: ' + escapeHtml(res.batchSize || "") + '件</span>' +
-        '<span class="sync-detail">' + escapeHtml(res.message || "") + '</span>' +
-        '<br>' +
-        '<strong>未同期受付のシート反映：</strong>' +
-        '<span class="pill ' + (res.sheetSyncStatus === "DONE" ? "ok" : "warn") + '">' +
-        escapeHtml(res.sheetSyncStatus || "未実行") +
-        '</span>' +
-        '<span class="sync-detail">' + escapeHtml(res.sheetSyncMessage || "") + '</span>';
-    },
-    30000
-  );
 }
 
 function escapeHtml(value){
