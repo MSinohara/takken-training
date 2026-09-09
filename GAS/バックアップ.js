@@ -307,6 +307,13 @@ function writeTrainingInfoBackupSheet_(
   eventId
 ) {
 
+  if (typeof isSqlTrainingRecordEnabled_ === "function" && isSqlTrainingRecordEnabled_()) {
+    const source = sourceSs.getSheetByName("研修会");
+    const values = source ? source.getDataRange().getValues() : [["研修ID"]];
+    writeRowsToBackupSheet_(backupSs.insertSheet("研修会情報"), sqlTrainingBackupRows_(values, eventId));
+    return;
+  }
+
   const sourceSheet =
     sourceSs.getSheetByName("研修会");
 
@@ -356,6 +363,10 @@ function writeTrainingHistoryBackupSheet_(
   sourceSs,
   eventId
 ) {
+
+  if (typeof isSqlDataRuntime_ === "function" && isSqlDataRuntime_()) {
+    return writeSqlTrainingHistoryBackupSheet_(backupSs, eventId, "参加履歴");
+  }
 
   const sourceSheet =
     sourceSs.getSheetByName("参加履歴");
@@ -435,6 +446,20 @@ function copyWholeSheetIfExists_(
   sheetName
 ) {
 
+  if(sheetName==='送信履歴'&&typeof isSqlMailHistoryEnabled_==='function'&&isSqlMailHistoryEnabled_())return backupSqlMailHistory_(backupSs);
+
+  if (sheetName === "参加履歴" && typeof isSqlDataRuntime_ === "function" && isSqlDataRuntime_()) {
+    writeSqlTrainingHistoryBackupSheet_(backupSs, "", "参加履歴");
+    return;
+  }
+
+  if (sheetName === "研修会" && typeof isSqlTrainingRecordEnabled_ === "function" && isSqlTrainingRecordEnabled_()) {
+    const source = sourceSs.getSheetByName("研修会");
+    const values = source ? source.getDataRange().getValues() : [["研修ID"]];
+    writeRowsToBackupSheet_(backupSs.insertSheet("研修会"), sqlTrainingBackupRows_(values, ""));
+    return;
+  }
+
   const sourceSheet =
     sourceSs.getSheetByName(
       sheetName
@@ -462,6 +487,75 @@ function copyWholeSheetIfExists_(
     sheet,
     values
   );
+}
+
+function readSqlCheckinBackupRows_(eventId) {
+  const headers = [
+    "受付ID", "研修ID", "受付日時", "受付区分", "受付単位", "受付対象ID",
+    "業者番号", "会社名", "個人ID", "参加者名", "メール", "支部", "地区", "ブロック",
+    "受付方法", "取消", "取消日時", "取消者", "取消理由", "復元日時", "復元者", "復元理由"
+  ];
+  const rows = [headers];
+  const targetEventId = String(eventId || "").trim();
+
+  function readPaged_(rootName, fields) {
+    let after = "";
+    const result = [];
+    for (let page = 0; page < 100; page++) {
+      const where = targetEventId
+        ? "where:{trainingId:{eq:$eventId},checkinId:{gt:$after}},"
+        : "where:{checkinId:{gt:$after}},";
+      const variableDefinition = targetEventId
+        ? "$eventId:String!,$after:String!"
+        : "$after:String!";
+      const query = "query(" + variableDefinition + "){rows:" + rootName + "(" + where +
+        "orderBy:[{checkinId:ASC}],limit:1000){" + fields + "}}";
+      const variables = {after: after};
+      if (targetEventId) variables.eventId = targetEventId;
+      const data = sqlMailHistoryRequest_(query, variables, false);
+      const batch = data.rows;
+      if (!Array.isArray(batch)) throw new Error("SQL参加履歴の取得結果が不正です。");
+      if (batch.some(function(row, index) {
+        return !row.checkinId || row.checkinId <= (index ? batch[index - 1].checkinId : after);
+      })) throw new Error("SQL参加履歴の取得順が不正です。");
+      Array.prototype.push.apply(result, batch);
+      if (batch.length < 1000) return result;
+      after = batch[batch.length - 1].checkinId;
+    }
+    throw new Error("SQL参加履歴が上限を超えたため、完全にバックアップできません。");
+  }
+
+  const checkins = readPaged_("checkins",
+    "checkinId trainingId checkedInAt attendanceUnit targetId memberNo personalId checkinMethod cancelled " +
+    "canceledAt canceledBy cancelReason restoredAt restoredBy restoreReason " +
+    "company{companyName branch district block} person{name email}");
+  checkins.forEach(function(row) {
+    rows.push([
+      row.checkinId || "", row.trainingId || "", row.checkedInAt || "", "会員", row.attendanceUnit || "", row.targetId || "",
+      row.memberNo || "", row.company && row.company.companyName || "", row.personalId || "", row.person && row.person.name || "",
+      row.person && row.person.email || "", row.company && row.company.branch || "", row.company && row.company.district || "",
+      row.company && row.company.block || "", row.checkinMethod || "", row.cancelled === true ? "TRUE" : "FALSE",
+      row.canceledAt || "", row.canceledBy || "", row.cancelReason || "", row.restoredAt || "", row.restoredBy || "", row.restoreReason || ""
+    ]);
+  });
+
+  const guests = readPaged_("guestCheckins",
+    "checkinId trainingId checkedInAt guestKey participantName organizationName email branch block receptionCategory checkinMethod cancelled");
+  guests.forEach(function(row) {
+    rows.push([
+      row.checkinId || "", row.trainingId || "", row.checkedInAt || "", row.receptionCategory || "一般参加", "一般参加", row.guestKey || "",
+      "", row.organizationName || "", "", row.participantName || "", row.email || "", row.branch || "", "", row.block || "",
+      row.checkinMethod || "", row.cancelled === true ? "TRUE" : "FALSE", "", "", "", "", "", ""
+    ]);
+  });
+  return rows;
+}
+
+function writeSqlTrainingHistoryBackupSheet_(backupSs, eventId, sheetName) {
+  const rows = readSqlCheckinBackupRows_(eventId);
+  const sheet = backupSs.insertSheet(sanitizeBackupSheetName_(sheetName || "参加履歴"));
+  writeRowsToBackupSheet_(sheet, rows);
+  return Math.max(rows.length - 1, 0);
 }
 
 function writeBackupLog_(

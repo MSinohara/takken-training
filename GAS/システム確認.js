@@ -226,11 +226,19 @@ function checkSystemBackupFolder_() {
 function checkSystemFirestore_() {
 
   if (!isFirestoreEnabled_()) {
+    const sqlRuntime =
+      typeof isSqlDataRuntime_ === "function" &&
+      isSqlDataRuntime_();
+
     return makeSystemCheckResult_(
       "Firestore",
       true,
-      "未使用です。",
-      "FIRESTORE_ENABLED を TRUE にすると受付履歴をFirestoreにも保存します。"
+      sqlRuntime
+        ? "SQL移行済みのため使用していません。"
+        : "未使用です。",
+      sqlRuntime
+        ? "受付・出欠・研修データはSQLを正本としています。FIRESTORE_ENABLEDは再有効化しないでください。"
+        : "FIRESTORE_ENABLED を TRUE にすると受付履歴をFirestoreにも保存します。"
     );
   }
 
