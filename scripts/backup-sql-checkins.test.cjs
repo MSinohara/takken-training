@@ -43,3 +43,12 @@ test('backup pagination does not compare SQL collation using JavaScript lexical 
   assert.doesNotMatch(body, /row\[key\]\s*<=/);
   assert.match(body, /row\[key\]\s*===/);
 });
+
+test('scheduled date backup discovers trainings from SQL instead of the legacy sheet', () => {
+  const start = source.indexOf('function backupTrainingsByDate_(');
+  const end = source.indexOf('\nfunction ', start + 20);
+  const body = source.slice(start, end < 0 ? source.length : end);
+  assert.ok(body.indexOf('isSqlDataRuntime_()') < body.indexOf('getSpreadsheet_()'));
+  assert.match(body, /readSqlTrainingRecordStore_\(\)\.trainings/);
+  assert.match(body, /normalizeBackupDateText_\(training\.eventDate\)/);
+});

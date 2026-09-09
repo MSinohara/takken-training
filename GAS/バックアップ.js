@@ -137,6 +137,24 @@ function backupTrainingsByDate_(
       "yyyy/MM/dd"
     );
 
+  if (typeof isSqlDataRuntime_ === "function" && isSqlDataRuntime_()) {
+    const sqlTrainings = readSqlTrainingRecordStore_().trainings || [];
+    const sqlResults = [];
+    sqlTrainings.forEach(function(training) {
+      if (normalizeBackupDateText_(training.eventDate) !== targetDateText) return;
+      const eventId = String(training.trainingId || "").trim();
+      if (!eventId) return;
+      sqlResults.push(backupTrainingByEvent_(eventId, backupType));
+    });
+    return {
+      ok: true,
+      message: "対象日の研修会バックアップを作成しました。",
+      date: targetDateText,
+      count: sqlResults.length,
+      results: sqlResults
+    };
+  }
+
   const ss =
     getSpreadsheet_();
 
