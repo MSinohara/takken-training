@@ -85,6 +85,14 @@ function registerCheckin(eventId, code, method, meta) {
   meta =
     meta || {};
 
+  if (
+    typeof isSqlCheckinWriteCutoverEnabled_ === "function" &&
+    isSqlCheckinWriteCutoverEnabled_() &&
+    !isLegacyLocationCheckinAllowed_(meta)
+  ) {
+    return getLegacyCheckinStoppedResult_();
+  }
+
   const readValue =
     String(code || "").trim();
 
@@ -1099,6 +1107,10 @@ function saveCheckinHistory_(
   meta
 ) {
 
+  if (typeof guardLegacyCheckinWrite_ === "function") {
+    guardLegacyCheckinWrite_({});
+  }
+
   meta =
     meta || {};
 
@@ -1892,6 +1904,10 @@ function registerGuestPersonalCheckin_(
   params
 ) {
 
+  if (typeof guardLegacyCheckinWrite_ === "function") {
+    guardLegacyCheckinWrite_(params);
+  }
+
   const eventId =
     String(params.event || "").trim();
 
@@ -2164,6 +2180,10 @@ function registerManualGuestCheckinJsonp_(e) {
 }
 
 function registerManualGuestCheckin_(params) {
+
+  if (typeof guardLegacyCheckinWrite_ === "function") {
+    guardLegacyCheckinWrite_(params);
+  }
 
   const eventId =
     String(params.event || "").trim();
@@ -2739,6 +2759,8 @@ function getNextRelatedPersonId_() {
 
 function getRelatedPersonMasters_() {
 
+  rejectLegacyRelatedPerson_("読込");
+
   const sheet =
     getOrCreateRelatedPersonMasterSheet_();
 
@@ -2801,6 +2823,8 @@ function getRelatedPersonMasters_() {
 }
 
 function saveRelatedPersonMaster_(params) {
+
+  rejectLegacyRelatedPerson_("保存");
 
   const personIdParam =
     String(params.personId || "").trim();
@@ -2920,6 +2944,8 @@ function saveRelatedPersonMaster_(params) {
 }
 
 function addRelatedPersonsToPlanned_(eventId, personIds) {
+
+  rejectLegacyRelatedPerson_("予定者追加");
 
   if (!eventId) {
     throw new Error("研修IDがありません。");
@@ -3293,6 +3319,10 @@ function getPlannedAttendeesForEvent_(eventId) {
     return [];
   }
 
+  if (typeof isSqlDataRuntime_ === "function" && isSqlDataRuntime_()) {
+    return getSqlPlannedAttendeesForEvent_(eventId);
+  }
+
   if (
     shouldUseFirestoreForPlannedAttendees_() &&
     typeof getFirestorePlannedAttendees_ === "function"
@@ -3425,6 +3455,58 @@ function getPlannedAttendeesForEvent_(eventId) {
     });
   }
 
+  return attendees;
+}
+
+function getSqlPlannedAttendeesForEvent_(eventId) {
+  const query = "query($eventId:String!){" +
+    "plannedAttendees(where:{trainingId:{eq:$eventId},active:{eq:true}},orderBy:[{createdAt:ASC},{plannedId:ASC}],limit:5000)" +
+    "{plannedId trainingId targetType targetId memberNo personalId participantName email branch district block source createdAt " +
+    "company{companyName} person{name}} " +
+    "checkins(where:{trainingId:{eq:$eventId},cancelled:{eq:false}},orderBy:[{checkinId:ASC}],limit:5000)" +
+    "{checkinId targetId checkedInAt checkinMethod}}";
+  const data = sqlMailHistoryRequest_(query, {eventId: eventId}, false);
+  const planned = data.plannedAttendees;
+  const checkins = data.checkins;
+  if (!Array.isArray(planned) || !Array.isArray(checkins) || planned.length >= 5000 || checkins.length >= 5000) {
+    throw new Error("SQLの当日参加予定者を完全に取得できません。");
+  }
+  const checkedMap = {};
+  checkins.forEach(function(row) { checkedMap[String(row.targetId || "")] = row; });
+  const training = findTrainingById_(eventId);
+  const attendees = planned.map(function(row) {
+    const checked = checkedMap[String(row.targetId || "")];
+    const attendee = {
+      rowNo: "",
+      createdAt: formatDateTimeForClient_(row.createdAt),
+      updatedAt: "",
+      eventId: eventId,
+      plannedId: String(row.plannedId || ""),
+      receptionCategory: "第十ブロック会員",
+      block: String(row.block || ""),
+      branch: String(row.branch || ""),
+      district: String(row.district || ""),
+      companyName: String(row.company && row.company.companyName || ""),
+      participantName: String(row.participantName || row.person && row.person.name || ""),
+      memberNo: String(row.memberNo || ""),
+      personalId: String(row.personalId || ""),
+      mail: String(row.email || ""),
+      phone: "",
+      note: String(row.source || ""),
+      status: checked ? "受付済み" : "未受付",
+      historyRowNo: checked ? String(checked.checkinId || "") : "",
+      checkedAt: checked ? formatDateTimeForClient_(checked.checkedInAt) : "",
+      method: checked ? String(checked.checkinMethod || "") : "",
+      qrText: row.plannedId ? "PLANNED:" + row.plannedId : ""
+    };
+    attendee.locationUrl = training ? buildPlannedLocationCheckinUrl_(training, attendee) : "";
+    return attendee;
+  });
+  attendees.sort(function(a, b) {
+    return (a.status > b.status ? 1 : -1) ||
+      (a.receptionCategory > b.receptionCategory ? 1 : -1) ||
+      (a.participantName > b.participantName ? 1 : -1);
+  });
   return attendees;
 }
 
@@ -3621,6 +3703,10 @@ function checkinPlannedAttendee_(eventId, plannedId, method, meta) {
 
   meta =
     meta || {};
+
+  if (typeof guardLegacyCheckinWrite_ === "function") {
+    guardLegacyCheckinWrite_(meta);
+  }
 
   const checkinMethod =
     String(method || "予定者受付").trim() || "予定者受付";
