@@ -1,0 +1,80 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>添付資料</title>
+<style>body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#222;margin:16px auto;max-width:760px;padding:0 14px}body.embedded{background:white;margin:0;max-width:none}section{background:white;padding:16px;border:1px solid #e3e7ec;border-radius:10px;margin:14px 0}h1{font-size:22px}h2{font-size:18px;margin:0 0 12px}button,input,select{font:inherit;padding:9px;margin:4px;max-width:100%;box-sizing:border-box}button{cursor:pointer;background:#eef3f9;border:1px solid #bccbdc;border-radius:6px}li{margin:14px 0;overflow-wrap:anywhere}#status,#catalogStatus{white-space:pre-wrap;overflow-wrap:anywhere}button:disabled{cursor:wait;opacity:.5}select{width:100%;margin-left:0}.muted{font-size:14px;color:#555}.confirm{background:#fff5df;padding:10px;margin-top:8px}a{color:#164a80}[hidden]{display:none!important}@media(max-width:500px){input[type=file]{width:100%}section{padding:10px}}</style></head><body>
+<p id="blocked" role="status">添付資料の表示元を確認中…</p>
+<div id="panel" hidden>
+<header id="standalone"><h1>添付管理（SQL）</h1><a id="back">研修編集へ戻る</a></header><p id="title"></p>
+<p class="muted">添付を外してもDriveの原本は残ります。他の研修の添付は変更しません。</p>
+<p id="status" role="status">読み込み中…</p><button id="reload">最新の状態に更新</button>
+<section><h2>現在の添付</h2><ul id="files"></ul></section>
+<section><h2>パソコンから追加</h2><form id="uploadForm"><input type="hidden" name="idToken"><input type="hidden" name="eventId"><input type="hidden" name="revision"><input aria-label="追加するファイル" type="file" name="pdfFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" multiple><button type="submit">アップロードして添付</button></form><p class="muted">PDF・Word・Excel・PowerPointに対応。同名の原本は置き換えません。</p></section>
+<section><h2>保存済みのファイルから追加</h2><label for="catalogSearch">ファイル名で検索</label><input id="catalogSearch" type="search" maxlength="120" placeholder="ファイル名の一部"><button id="search">検索</button><p id="catalogStatus" class="muted" role="status"></p><label for="reuseId">ファイルを選択</label><select id="reuseId"><option value="">一覧を読み込み中…</option></select><a id="reusePreview" target="_blank" rel="noopener" hidden>選択したファイルを確認</a><button id="reuse">選択したファイルを添付</button></section>
+<p class="muted">管理者確認が期限切れの場合は、添付欄を開き直してください。</p>
+</div>
+<script>
+const boot = <?!= bootstrap ?>;
+function allowedEmbedContext(embedded,origins,adminOrigin){return !embedded || !!(adminOrigin && origins && origins.length && origins[origins.length-1]===adminOrigin);}
+if(allowedEmbedContext(boot.embedded,location.ancestorOrigins,boot.adminOrigin)){
+  document.getElementById('blocked').hidden=true;
+  document.getElementById('panel').hidden=false;
+  if(boot.embedded){document.body.classList.add('embedded');document.getElementById('standalone').hidden=true;}
+  startPanel();
+}else{document.getElementById('blocked').textContent='この表示元では添付を操作できません。管理サイトから開いてください。このブラウザーで埋め込み表示ができない場合は、研修編集の添付管理をご利用ください。';}
+function startPanel(){
+document.getElementById('back').href=boot.adminOrigin+'/training-form.html?event='+encodeURIComponent(boot.eventId);
+let revision=null,busy=false,catalogFiles=[],attachedIds=[];
+const status=document.getElementById('status');
+function setBusy(value){busy=value;document.querySelectorAll('button').forEach(el=>el.disabled=value);}
+function rpc(name,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args));}
+function preview(){const file=catalogFiles.find(f=>f.id===document.getElementById('reuseId').value),link=document.getElementById('reusePreview');link.hidden=!file;if(file)link.href=file.url;else link.removeAttribute('href');}
+async function catalog(){
+  const select=document.getElementById('reuseId'),message=document.getElementById('catalogStatus');
+  const selected=select.value;select.replaceChildren(new Option('ファイルを選択してください',''));catalogFiles=[];preview();
+  try{
+    const result=await rpc('getSqlAttachmentCatalog',boot.idToken,boot.eventId,document.getElementById('catalogSearch').value.trim());
+    if(!result || !result.ok || !Array.isArray(result.files))throw Error('一覧を取得できませんでした。');
+    catalogFiles=result.files;
+    for(const file of catalogFiles){const used=attachedIds.includes(file.id),option=new Option(file.name+(used?'（添付済み）':''),file.id);option.disabled=used;select.append(option);}
+    if(catalogFiles.some(f=>f.id===selected) && !attachedIds.includes(selected))select.value=selected;
+    message.textContent=result.truncated?'候補が多いため200件まで表示しています。ファイル名で絞り込んでください。':catalogFiles.length?catalogFiles.length+'件の保存済みファイルがあります。':'該当するファイルはありません。';preview();
+  }catch(error){message.textContent='保存済み一覧を取得できませんでした。「最新の状態に更新」で再取得してください。';}
+}
+async function read(){
+  revision=null;
+  const result=await rpc('getSqlAttachmentPanel',boot.idToken,boot.eventId);
+  if(!result || !result.ok)throw Error('読み込みに失敗しました。');
+  revision=result.revision;attachedIds=result.pdfFiles.map(f=>f.id);
+  document.getElementById('title').textContent=result.eventId+' '+result.title;
+  const list=document.getElementById('files');list.replaceChildren();
+  for(const file of result.pdfFiles){
+    const li=document.createElement('li'),label=document.createElement(file.url?'a':'span');label.textContent=file.name;
+    if(file.url){label.href=file.url;label.target='_blank';label.rel='noopener';}li.append(label);
+    const button=document.createElement('button');button.textContent='添付を外す';
+    button.onclick=()=>{
+      button.disabled=true;const confirmation=document.createElement('div');confirmation.className='confirm';
+      const text=document.createElement('p');text.textContent='この研修から「'+file.name+'」を外しますか？ Driveの原本は残ります。';confirmation.append(text);
+      const yes=document.createElement('button');yes.textContent='この研修から外す';yes.onclick=()=>run(()=>rpc('unlinkSqlAttachment',boot.idToken,boot.eventId,revision,file.id));
+      const no=document.createElement('button');no.textContent='キャンセル';no.onclick=()=>{confirmation.remove();button.disabled=false;};confirmation.append(yes,no);li.append(confirmation);
+    };
+    li.append(button);list.append(li);
+  }
+  if(!result.pdfFiles.length)list.textContent='添付はありません。';
+  await catalog();
+}
+async function run(action){
+  if(busy)return;setBusy(true);status.textContent='処理中…';let saved=false;
+  try{
+    if(action){if(revision===null)throw Error('先に最新の状態に更新してください。');const result=await action();
+      if(!result || !result.ok){throw Error((result && result.message || '処理に失敗しました。')+(result && result.createdFileIds && result.createdFileIds.length?'\n作成済みファイルは保存済み一覧から選び直せます。ID: '+result.createdFileIds.join(', '):''));}saved=true;}
+    await read();status.textContent=saved?'添付情報を保存しました。':'最新の添付情報です。';
+  }catch(error){revision=null;status.textContent=(saved?'保存は成功しましたが、再読み込みできません。再実行せず確認してください。\n':'')+(error.message||String(error));}
+  finally{setBusy(false);}
+}
+document.getElementById('reload').onclick=()=>run();
+document.getElementById('search').onclick=()=>run();
+document.getElementById('catalogSearch').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run();}};
+document.getElementById('reuseId').onchange=preview;
+document.getElementById('reuse').onclick=()=>{const id=document.getElementById('reuseId').value;if(!id){status.textContent='一覧からファイルを選択してください。';return;}run(()=>rpc('reuseSqlAttachment',boot.idToken,boot.eventId,revision,id));};
+document.getElementById('uploadForm').onsubmit=e=>{e.preventDefault();const form=e.currentTarget;form.elements.idToken.value=boot.idToken;form.elements.eventId.value=boot.eventId;form.elements.revision.value=revision;run(async()=>{const result=await rpc('uploadSqlAttachment',form);if(result && result.ok)form.elements.pdfFile.value='';return result;});};
+run();
+}
+</script></body></html>
