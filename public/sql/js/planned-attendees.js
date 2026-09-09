@@ -3,6 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getDataConnect } from "firebase/data-connect";
 import {
   addPlannedAttendee,
+  adminListDistricts,
   connectorConfig,
   getPlannedAttendee,
   getTrainingTargetForCheckin,
@@ -12,7 +13,7 @@ import {
   searchMemberCompanies,
 } from "./generated.js?v=18";
 import { firebaseConfig } from "./config.js?v=17";
-import { requireSqlAdmin } from "./admin-auth.js?v=16";
+import { requireSqlAdmin } from "./admin-auth.js?v=17";
 
 const app = initializeApp(firebaseConfig);
 const dc = getDataConnect(app, connectorConfig);
@@ -23,6 +24,7 @@ const eventId = params.get("event") || "";
 const pageSize = 50;
 let offset = 0;
 let training = null;
+let districtMap = {};
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (char) => ({
@@ -42,6 +44,27 @@ function makePlannedId(type, targetId) {
 function setBusy(button, busy, busyText, normalText) {
   button.disabled = busy;
   button.textContent = busy ? busyText : normalText;
+}
+
+function refreshDistrictOptions() {
+  const branch = $("branch").value;
+  const district = $("district");
+  const current = district.value;
+  const values = branch ? (districtMap[branch] || []) : [];
+  district.innerHTML = '<option value="">指定なし</option>' + values.map((value) =>
+    `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(value)}</option>`
+  ).join("");
+  district.disabled = !branch;
+}
+
+async function loadDistrictOptions() {
+  const response = await adminListDistricts(dc, {}, { fetchPolicy: "SERVER_ONLY" });
+  districtMap = {};
+  (response.data.districts || []).filter((row) => row.active).forEach((row) => {
+    if (!districtMap[row.branch]) districtMap[row.branch] = [];
+    districtMap[row.branch].push(row.districtName);
+  });
+  refreshDistrictOptions();
 }
 
 async function addPerson(company, person) {
@@ -180,7 +203,10 @@ async function init() {
   }
   try {
     await requireSqlAdmin(app, $("trainingInfo"));
-    const response = await listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" });
+    const [response] = await Promise.all([
+      listTrainings(dc, { limit: 200 }, { fetchPolicy: "SERVER_ONLY" }),
+      loadDistrictOptions(),
+    ]);
     training = (response.data.trainings || []).find((row) => row.trainingId === eventId);
     if (!training) throw new Error("SQLにイベントが登録されていません。");
     $("trainingInfo").innerHTML = `<strong>${esc(training.title)}</strong><br>${esc(training.trainingId)} / 開催日：${esc(training.eventDate || "")} / 受付単位：${esc(training.attendanceUnit || "-")}`;
@@ -192,6 +218,10 @@ async function init() {
 }
 
 $("search").addEventListener("click", search);
+$("branch").addEventListener("change", () => {
+  $("district").value = "";
+  refreshDistrictOptions();
+});
 $("reload").addEventListener("click", loadPlanned);
 $("clear").addEventListener("click", () => {
   ["district", "memberNo", "companyName"].forEach((id) => $(id).value = "");

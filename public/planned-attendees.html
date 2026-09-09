@@ -22,7 +22,7 @@
       <p class="muted">会員マスタから会社を検索し、参加する個人を選択します。</p>
       <div class="grid">
         <label>支部<select id="branch"><option value="">指定なし</option><option>杉並区支部</option><option>中野区支部</option><option>世田谷区支部</option></select></label>
-        <label>地区<input id="district" placeholder="指定なし"></label>
+        <label>地区<select id="district" disabled><option value="">指定なし</option></select></label>
         <label>業者番号<input id="memberNo" inputmode="numeric" placeholder="例: 90001"></label>
         <label>会社名<input id="companyName" placeholder="会社名の一部"></label>
       </div>
@@ -40,6 +40,6 @@
       <div class="actions"><button id="prev" class="secondary" disabled>前の50件</button><button id="next" class="secondary" disabled>次の50件</button></div>
     </section>
   </main>
-  <script type="module" src="sql/js/planned-attendees.js?v=18"></script>
+  <script type="module" src="sql/js/planned-attendees.js?v=19"></script>
 </body>
 </html>
