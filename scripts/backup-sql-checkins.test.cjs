@@ -52,3 +52,12 @@ test('scheduled date backup discovers trainings from SQL instead of the legacy s
   assert.match(body, /readSqlTrainingRecordStore_\(\)\.trainings/);
   assert.match(body, /normalizeBackupDateText_\(training\.eventDate\)/);
 });
+
+test('development and production can install the same non-duplicated backup triggers', () => {
+  assert.match(source, /function setupBackupTriggers\(\)/);
+  assert.match(source, /removeBackupTriggers_\(\)/);
+  assert.match(source, /everyDays\(1\)[\s\S]*?atHour\(3\)/);
+  assert.match(source, /onMonthDay\(1\)[\s\S]*?atHour\(4\)/);
+  assert.match(source, /function getBackupTriggerStatus\(\)/);
+  assert.match(source, /configured:/);
+});

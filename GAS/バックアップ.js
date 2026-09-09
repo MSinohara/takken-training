@@ -1,3 +1,6 @@
+const DAILY_BACKUP_TRIGGER_FUNCTION_ = "backupYesterdayTrainings_";
+const MONTHLY_BACKUP_TRIGGER_FUNCTION_ = "backupMonthlySystem_";
+
 function backupTrainingJsonp_(e) {
 
   const callback =
@@ -297,6 +300,59 @@ function backupMonthlySystem() {
   const result = backupMonthlySystem_();
   console.log(JSON.stringify(result));
   return result;
+}
+
+// 開発・本番で同じ定期バックアップ設定を作るための手動実行入口。
+function setupBackupTriggers() {
+  removeBackupTriggers_();
+
+  ScriptApp.newTrigger(DAILY_BACKUP_TRIGGER_FUNCTION_)
+    .timeBased()
+    .everyDays(1)
+    .atHour(3)
+    .create();
+
+  ScriptApp.newTrigger(MONTHLY_BACKUP_TRIGGER_FUNCTION_)
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(4)
+    .create();
+
+  const status = getBackupTriggerStatus_();
+  console.log(JSON.stringify(status));
+  return status;
+}
+
+function getBackupTriggerStatus() {
+  const status = getBackupTriggerStatus_();
+  console.log(JSON.stringify(status));
+  return status;
+}
+
+function getBackupTriggerStatus_() {
+  const counts = {};
+  counts[DAILY_BACKUP_TRIGGER_FUNCTION_] = 0;
+  counts[MONTHLY_BACKUP_TRIGGER_FUNCTION_] = 0;
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    const handler = trigger.getHandlerFunction();
+    if (Object.prototype.hasOwnProperty.call(counts, handler)) counts[handler]++;
+  });
+  return {
+    ok: true,
+    timeZone: Session.getScriptTimeZone(),
+    daily: {handler: DAILY_BACKUP_TRIGGER_FUNCTION_, hour: 3, count: counts[DAILY_BACKUP_TRIGGER_FUNCTION_]},
+    monthly: {handler: MONTHLY_BACKUP_TRIGGER_FUNCTION_, day: 1, hour: 4, count: counts[MONTHLY_BACKUP_TRIGGER_FUNCTION_]},
+    configured: counts[DAILY_BACKUP_TRIGGER_FUNCTION_] === 1 && counts[MONTHLY_BACKUP_TRIGGER_FUNCTION_] === 1
+  };
+}
+
+function removeBackupTriggers_() {
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    const handler = trigger.getHandlerFunction();
+    if (handler === DAILY_BACKUP_TRIGGER_FUNCTION_ || handler === MONTHLY_BACKUP_TRIGGER_FUNCTION_) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
 }
 
 function writeBackupSummarySheet_(
