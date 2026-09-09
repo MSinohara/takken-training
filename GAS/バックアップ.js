@@ -632,8 +632,7 @@ function readSqlMasterBackupRows_(sheetName) {
       const previousFirst = index ? batch[index - 1][association.firstKey] : afterFirst;
       const previousSecond = index ? batch[index - 1][association.secondKey] : afterSecond;
       if (!row[association.firstKey] || !row[association.secondKey] ||
-          row[association.firstKey] < previousFirst ||
-          (row[association.firstKey] === previousFirst && row[association.secondKey] <= previousSecond)) {
+          (row[association.firstKey] === previousFirst && row[association.secondKey] === previousSecond)) {
         throw new Error("SQL" + sheetName + "の取得順が不正です。");
       }
       associationRows.push(association.fields.split(" ").map(function(field) { return sqlBackupCell_(row[field]); }));
@@ -647,7 +646,7 @@ function readSqlMasterBackupRows_(sheetName) {
 
 function validateSqlBackupPage_(batch, key, after, sheetName) {
   batch.forEach(function(row, index) {
-    if (!row[key] || row[key] <= (index ? batch[index - 1][key] : after)) {
+    if (!row[key] || row[key] === (index ? batch[index - 1][key] : after)) {
       throw new Error("SQL" + sheetName + "の取得順が不正です。");
     }
   });

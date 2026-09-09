@@ -35,3 +35,11 @@ test('monthly member and organization sheets are read from paged SQL sources', (
 test('monthly backup has a public Apps Script editor entry point', () => {
   assert.match(source, /function backupMonthlySystem\(\)\s*\{[\s\S]*?backupMonthlySystem_\(\)/);
 });
+
+test('backup pagination does not compare SQL collation using JavaScript lexical order', () => {
+  const start = source.indexOf('function validateSqlBackupPage_(');
+  const end = source.indexOf('\nfunction ', start + 20);
+  const body = source.slice(start, end < 0 ? source.length : end);
+  assert.doesNotMatch(body, /row\[key\]\s*<=/);
+  assert.match(body, /row\[key\]\s*===/);
+});
