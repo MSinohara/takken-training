@@ -128,6 +128,14 @@ function getVenueMasterSheet_() {
 
 function getVenueMasters_() {
 
+  if (
+    typeof isSqlTrainingRecordEnabled_ === "function" &&
+    isSqlTrainingRecordEnabled_() &&
+    typeof getSqlVenueMastersForGas_ === "function"
+  ) {
+    return getSqlVenueMastersForGas_();
+  }
+
   const sheet =
     getVenueMasterSheet_();
 
