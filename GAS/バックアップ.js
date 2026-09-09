@@ -274,6 +274,13 @@ function backupMonthlySystem_() {
   };
 }
 
+// Apps Scriptエディタから月次バックアップを手動確認するための公開入口。
+function backupMonthlySystem() {
+  const result = backupMonthlySystem_();
+  console.log(JSON.stringify(result));
+  return result;
+}
+
 function writeBackupSummarySheet_(
   sheet,
   training,

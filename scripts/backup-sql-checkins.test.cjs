@@ -31,3 +31,7 @@ test('monthly member and organization sheets are read from paged SQL sources', (
   assert.match(source, /_or:\[\{/);
   assert.match(source, /limit:1000/);
 });
+
+test('monthly backup has a public Apps Script editor entry point', () => {
+  assert.match(source, /function backupMonthlySystem\(\)\s*\{[\s\S]*?backupMonthlySystem_\(\)/);
+});
